@@ -9,7 +9,8 @@ import { randomUUID } from 'node:crypto';
 import { buildApp } from './app.js';
 import { migrate } from './db.js';
 import { type AuthConfig } from './auth/config.js';
-import { audit, purgeAudit, redact, stableStringify, verifyChain } from './audit/store.js';
+import { audit, purgeAudit, redact, verifyChain } from './audit/store.js';
+import { stableStringify } from './lib/json.js';
 
 const CFG: AuthConfig = {
   keycloakUrl: 'https://kc.test',

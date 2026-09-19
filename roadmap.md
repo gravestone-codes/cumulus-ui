@@ -151,14 +151,14 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 
 ## Phase 1 — Workflow engine (the NVUE-specific risk; prototype early, on hardware)
 
-- [ ] 1.1 `RevisionManager` (R4): per-user branches + base-ID recording. Hygiene (recommended): branch TTL 7 days + nightly orphan GC; logout **keeps** drafts (listed as "my drafts" next login); explicit discard with confirm; stale-base routes to `ConflictScreen`, never silent drop.
+- [x] 1.1 `RevisionManager` (R4): per-user branches + base-ID recording. Hygiene (recommended): branch TTL 7 days + nightly orphan GC; logout **keeps** drafts (listed as "my drafts" next login); explicit discard with confirm; stale-base routes to `ConflictScreen`, never silent drop.
 - [ ] 1.2 Branch banner UI: visible active branch per editing session + discard path
-- [ ] 1.3 `ApplyPipeline` (R5): queue → overlap check → `DiffPreview` → danger-class confirm modal (§6.6) → `POST /config` → poll `GET /action`. Pre-apply snapshot: record base applied-ID + fetch full applied state as the rollback reference for every apply.
-- [ ] 1.4 `ActionRunner` (R6): generic driver for the 169 POSTs; confirm style follows danger class; prove with `clear interface counters`
-- [ ] 1.5 `Presence` (R19) + `ConflictScreen` (R20): per §4
-- [ ] 1.6 `DiffPreview` (R21): dry-run diff (staged vs applied) per switch, shown before every apply
-- [ ] 1.7 `FanOut` (R22): group-targeted mirrored writes — stage same payload per switch (own branch each), aggregated diffs, per-switch apply tracking; partial-failure semantics per §3 (no sibling auto-rollback)
-- [ ] 1.8 Cache keyed on `(switch, path, rev, view)`; identity stores (S1–S6) sit above the cache
+- [x] 1.3 `ApplyPipeline` (R5): queue → overlap check → `DiffPreview` → danger-class confirm modal (§6.6) → `POST /config` → poll `GET /action`. Pre-apply snapshot: record base applied-ID + fetch full applied state as the rollback reference for every apply.
+- [x] 1.4 `ActionRunner` (R6): generic driver for the 169 POSTs; confirm style follows danger class; prove with `clear interface counters`
+- [x] 1.5 `Presence` (R19) + `ConflictScreen` (R20): per §4
+- [x] 1.6 `DiffPreview` (R21): dry-run diff (staged vs applied) per switch, shown before every apply
+- [x] 1.7 `FanOut` (R22): group-targeted mirrored writes — stage same payload per switch (own branch each), aggregated diffs, per-switch apply tracking; partial-failure semantics per §3 (no sibling auto-rollback)
+- [x] 1.8 Cache keyed on `(switch, path, rev, view)`; identity stores (S1–S6) sit above the cache
 - [ ] ✅ **Milestone M1:** single user can create branch → PATCH one field → dry-run → apply → see job, against hardware
 - [ ] ✅ **Milestone M1b:** two-user conflict demo per §4
 

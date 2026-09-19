@@ -65,6 +65,15 @@ export async function listSwitches(): Promise<Array<Switch & { groups: string[] 
   return rows.map(toSwitch);
 }
 
+/** Switches in a group (for FanOut). Empty when the group is unknown or empty. */
+export async function getSwitchesByGroup(groupId: string): Promise<Array<Switch & { groups: string[] }>> {
+  const { rows } = await db().query<SwitchRow>(
+    `${WITH_GROUPS} WHERE s.id IN (SELECT switch_id FROM switch_groups WHERE group_id = $1) GROUP BY s.id ORDER BY s.id`,
+    [groupId],
+  );
+  return rows.map(toSwitch);
+}
+
 export interface SwitchIdentity {
   fingerprint: string;
   pem: string;

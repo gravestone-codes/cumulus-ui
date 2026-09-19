@@ -60,6 +60,7 @@ export class NvueClient {
     if (call.view !== undefined) query.set('view', call.view);
     for (const v of call.include ?? []) query.append('include', v);
     for (const v of call.omit ?? []) query.append('omit', v);
+    for (const [k, v] of Object.entries(call.params ?? {})) query.set(k, v);
     const qs = query.toString();
     const url = `${this.target.baseUrl}${this.target.basePath}${encodePath(call.path)}${qs ? `?${qs}` : ''}`;
     const body = call.body === undefined ? undefined : JSON.stringify(call.body);

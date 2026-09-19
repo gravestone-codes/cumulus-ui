@@ -40,6 +40,24 @@ describe('guard (pure)', () => {
     ).toThrow(GuardError);
   });
 
+  it('matches concrete ids against {template} routes', () => {
+    expect(() => guardCall(MANIFEST, { path: '/interface/swp1', method: 'GET' })).not.toThrow();
+    expect(() => guardCall(MANIFEST, { path: '/interface/swp1', method: 'PATCH' })).toThrow(GuardError);
+    expect(() => guardCall(MANIFEST, { path: '/interface/swp1/eth', method: 'GET' })).toThrow(GuardError);
+  });
+
+  it('validates extra query params', () => {
+    expect(() =>
+      guardCall(MANIFEST, { path: '/interface', method: 'GET', params: { base_rev: 'applied' } }),
+    ).not.toThrow();
+    expect(() => guardCall(MANIFEST, { path: '/interface', method: 'GET', params: { 'a;b': 'x' } })).toThrow(
+      GuardError,
+    );
+    expect(() => guardCall(MANIFEST, { path: '/interface', method: 'GET', params: { a: '' } })).toThrow(
+      GuardError,
+    );
+  });
+
   it('encodes path segments', () => {
     expect(encodePath('/vrf/blue/router/fib/ipv4')).toBe('/vrf/blue/router/fib/ipv4');
     expect(encodePath('/interface/swp1.100')).toBe('/interface/swp1.100');

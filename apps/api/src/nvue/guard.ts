@@ -17,6 +17,11 @@ export interface GuardedCall {
   omit?: string[];
   view?: string;
   body?: unknown;
+  /**
+   * Extra NVUE query params (e.g. base_rev). Keys are allowlisted to safe
+   * characters, values are bounded strings — never a back door around the gate.
+   */
+  params?: Record<string, string>;
 }
 
 /** Thrown (→ 400) when a call fails the gate. Never carries secrets. */
@@ -35,13 +40,42 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return proto === Object.prototype || proto === null;
 }
 
+const matcherCache = new WeakMap<object, Array<{ re: RegExp; methods: string[]; views: string[] }>>();
+
+/**
+ * NVUE paths are templates (`/interface/{interface-id}`); calls carry concrete
+ * ids. Exact match first, then template match. Compiled once per manifest.
+ */
+function matchersFor(manifest: Pick<NvueManifest, 'routes' | 'views'>) {
+  const cached = matcherCache.get(manifest);
+  if (cached) return cached;
+  const list = Object.entries(manifest.routes)
+    .filter(([tmpl]) => tmpl.includes('{'))
+    .map(([tmpl, methods]) => ({
+      re: new RegExp(
+        `^${tmpl
+          .split('/')
+          .map((seg) =>
+            seg.startsWith('{') && seg.endsWith('}') ? '[^/]+' : seg.replace(/[/.*+?^${}()|[\]\\]/g, '\\$&'),
+          )
+          .join('/')}$`,
+      ),
+      methods,
+      views: manifest.views[tmpl] ?? [],
+    }));
+  matcherCache.set(manifest, list);
+  return list;
+}
+
 /** Validate a call against the manifest. Throws GuardError on any violation. */
 export function guardCall(manifest: Pick<NvueManifest, 'routes' | 'views'>, call: GuardedCall): void {
   const { path, method } = call;
   if (!path.startsWith('/') || path.includes('..') || path.includes('\\') || path.includes('//')) {
     throw new GuardError(`bad path ${JSON.stringify(path)}`);
   }
-  const allowed = manifest.routes[path];
+  const direct = manifest.routes[path];
+  const viaTemplate = direct === undefined ? matchersFor(manifest).find((m) => m.re.test(path)) : undefined;
+  const allowed = direct ?? viaTemplate?.methods;
   if (!allowed) throw new GuardError(`unknown NVUE path ${JSON.stringify(path)}`);
   if (!allowed.includes(method.toLowerCase())) {
     throw new GuardError(`${method} not allowed on ${JSON.stringify(path)}`);
@@ -50,7 +84,7 @@ export function guardCall(manifest: Pick<NvueManifest, 'routes' | 'views'>, call
     throw new GuardError('rev must be a non-empty string');
   }
   if (call.view !== undefined) {
-    const known = manifest.views[path] ?? [];
+    const known = manifest.views[path] ?? viaTemplate?.views ?? [];
     if (!known.includes(call.view))
       throw new GuardError(`view ${JSON.stringify(call.view)} not supported on ${JSON.stringify(path)}`);
   }
@@ -67,6 +101,14 @@ export function guardCall(manifest: Pick<NvueManifest, 'routes' | 'views'>, call
     if (!isPlainObject(call.body)) throw new GuardError('body must be a JSON object');
     if (Buffer.byteLength(JSON.stringify(call.body), 'utf8') > MAX_BODY_BYTES) {
       throw new GuardError('body exceeds 1MB');
+    }
+  }
+  if (call.params !== undefined) {
+    if (!isPlainObject(call.params)) throw new GuardError('params must be a string map');
+    for (const [k, v] of Object.entries(call.params)) {
+      if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(k) || typeof v !== 'string' || v.length === 0 || v.length > 256) {
+        throw new GuardError(`bad query param ${JSON.stringify(k)}`);
+      }
     }
   }
 }

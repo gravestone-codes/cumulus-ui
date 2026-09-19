@@ -6,9 +6,10 @@ services:
       POSTGRES_USER: cumulus
       POSTGRES_PASSWORD: cumulus
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     ports:
-      - '5432:5432'
+      # Host 5433: local Postgres.app keeps 5432 for other projects.
+      - '5433:5432'
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.4
