@@ -94,6 +94,9 @@ describe.skipIf(!LIVE)('switch-auth routes', () => {
         `INSERT INTO roles (id, display_name) VALUES ('scoped-test', 't') ON CONFLICT DO NOTHING`,
       );
       await pool.query(
+        `INSERT INTO groups (id, display_name) VALUES ('DC1-leaf', 't') ON CONFLICT DO NOTHING`,
+      );
+      await pool.query(
         `INSERT INTO role_rules (role_id, method, path_prefix) VALUES ('scoped-test', 'GET', '/') ON CONFLICT DO NOTHING`,
       );
       await pool.query(

@@ -17,10 +17,12 @@ export function db(): Pool {
 export async function migrate(target: Pool = db()): Promise<string[]> {
   const client = await target.connect();
   try {
+    // Lock FIRST: concurrent CREATE TABLE IF NOT EXISTS races in the pg catalog
+    // (seen in CI as pg_type_typname_nsp_index violations across parallel workers).
+    await client.query(`SELECT pg_advisory_lock(hashtext('cumulus-migrate'))`);
     await client.query(
       'CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())',
     );
-    await client.query(`SELECT pg_advisory_lock(hashtext('cumulus-migrate'))`);
     const { rows } = await client.query<{ name: string }>('SELECT name FROM schema_migrations');
     const done = new Set(rows.map((r) => r.name));
     const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');

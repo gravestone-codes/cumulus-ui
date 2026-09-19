@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { buildApp } from './app.js';
 import { migrate } from './db.js';
 import { type AuthConfig } from './auth/config.js';
-import { audit, purgeAudit, redact, verifyChain } from './audit/store.js';
+import { audit, purgeAudit, redact, stableStringify, verifyChain } from './audit/store.js';
 
 const CFG: AuthConfig = {
   keycloakUrl: 'https://kc.test',
@@ -55,6 +55,12 @@ describe('redact (pure)', () => {
   });
 });
 
+describe('stableStringify (pure)', () => {
+  it('ignores key order at every level', () => {
+    expect(stableStringify({ b: 1, a: { z: 1, y: 2 } })).toBe(stableStringify({ a: { y: 2, z: 1 }, b: 1 }));
+  });
+});
+
 describe.skipIf(!LIVE)('audit trail', () => {
   let pool: PoolType;
 
@@ -84,11 +90,15 @@ describe.skipIf(!LIVE)('audit trail', () => {
 
   it('detects tampering at the exact row', async () => {
     const id = await audit({ userSub: 'u2', username: 'u2', roles: [], method: 'GET', path: '/tamper-me' });
-    await pool.query(`UPDATE audit_log SET path = '/evil' WHERE id = $1`, [id]);
-    const report = await verifyChain();
-    expect(report.ok).toBe(false);
-    expect(report.badId).toBe(id);
-    await pool.query('DELETE FROM audit_log WHERE id = $1', [id]);
+    try {
+      await pool.query(`UPDATE audit_log SET path = '/evil' WHERE id = $1`, [id]);
+      const report = await verifyChain();
+      expect(report.ok).toBe(false);
+      expect(report.badId).toBe(id);
+    } finally {
+      // A failed assertion here must not leave a poisoned row behind.
+      await pool.query('DELETE FROM audit_log WHERE id = $1', [id]);
+    }
   });
 
   it('purges only rows past retention', async () => {
@@ -136,7 +146,8 @@ describe.skipIf(!LIVE)('audit trail', () => {
 
       await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('aud1', 'view1')`);
       await pool.query(`DELETE FROM sessions WHERE user_sub IN ('aud1', 'view1')`);
-      await pool.query('DELETE FROM audit_log');
+      // NOTE: never mass-delete audit_log here — other files' tests run in
+      // parallel against the same DB and count on their rows surviving.
     } finally {
       await app.close();
     }
