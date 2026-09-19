@@ -10,7 +10,7 @@ Open-source UI + API proxy for NVIDIA Cumulus Linux (NVUE `/nvue_v1`).
 
 ```sh
 pnpm install
-docker compose up -d db keycloak
+docker compose up -d db
 pnpm --filter @cumulus/api dev   # :3000
 pnpm --filter @cumulus/ui dev    # vite
 ```

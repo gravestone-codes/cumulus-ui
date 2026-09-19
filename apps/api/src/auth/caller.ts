@@ -1,4 +1,4 @@
-/** Shared session-cookie caller resolution. Third use → promoted to shared (rule of three). */
+/** Shared session-cookie caller resolution. */
 import type { FastifyRequest } from 'fastify';
 import { type AuthConfig } from './config.js';
 import { getSession } from './session.js';
@@ -7,17 +7,12 @@ import { COOKIE } from './routes.js';
 export interface Caller {
   sub: string;
   username: string;
-  keycloakRoles: string[];
 }
 
-/** Resolve the caller from the session cookie. Null = anonymous. */
+/** Resolve the caller from the session cookie. Null = anonymous. Roles are read fresh by callers. */
 export async function resolveCaller(request: FastifyRequest, cfg: AuthConfig): Promise<Caller | null> {
   const id = request.cookies?.[COOKIE];
   const session = id ? await getSession(id, cfg) : null;
   if (!session) return null;
-  return {
-    sub: session.identity.sub,
-    username: session.identity.username,
-    keycloakRoles: session.identity.roles,
-  };
+  return { sub: session.identity.sub, username: session.identity.username };
 }

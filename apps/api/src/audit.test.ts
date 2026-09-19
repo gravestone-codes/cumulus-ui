@@ -5,20 +5,14 @@
 import { describe, expect, it, beforeAll } from 'vitest';
 import request from 'supertest';
 import { Pool, type Pool as PoolType } from 'pg';
-import { randomUUID } from 'node:crypto';
 import { buildApp } from './app.js';
+import { sessionCookie } from './test-sessions.js';
 import { migrate } from './db.js';
 import { type AuthConfig } from './auth/config.js';
 import { audit, purgeAudit, redact, verifyChain } from './audit/store.js';
 import { stableStringify } from './lib/json.js';
 
-const CFG: AuthConfig = {
-  keycloakUrl: 'https://kc.test',
-  realm: 't',
-  clientId: 'cumulus-ui',
-  sessionSecret: 'test-secret-that-is-long-enough-123',
-  idleMinutes: 30,
-};
+const CFG: AuthConfig = { credKey: 'test-cred-key-long-enough-12345', idleMinutes: 30 };
 
 async function dbReachable(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;
@@ -121,26 +115,15 @@ describe.skipIf(!LIVE)('audit trail', () => {
     });
     const app = await buildApp({ auth: { cfg: CFG } });
     await app.ready();
-    async function cookieFor(sub: string, appRoles: string[]): Promise<string> {
-      const id = randomUUID();
-      await pool.query(
-        `INSERT INTO sessions (id, user_sub, username, roles, user_groups, refresh_enc) VALUES ($1, $2, $3, '[]', '[]', 'sealed')`,
-        [id, sub, sub],
-      );
-      await pool.query('DELETE FROM user_roles WHERE user_sub = $1', [sub]);
-      for (const r of appRoles)
-        await pool.query('INSERT INTO user_roles (user_sub, role_id) VALUES ($1, $2)', [sub, r]);
-      return `cumulus_session=${id}`;
-    }
     try {
       const api = request(app.server);
-      const auditor = await cookieFor('aud1', []);
+      const auditor = await sessionCookie(pool, 'aud1', { appRoles: [] });
       await pool.query(`INSERT INTO user_roles (user_sub, role_id) VALUES ('aud1', 'auditor')`);
       const ok = await api.get('/api/v1/audit?limit=5').set('Cookie', auditor);
       expect(ok.status).toBe(200);
       expect(Array.isArray(ok.body)).toBe(true);
 
-      const viewer = await cookieFor('view1', []);
+      const viewer = await sessionCookie(pool, 'view1', { appRoles: [] });
       await pool.query(`INSERT INTO user_roles (user_sub, role_id) VALUES ('view1', 'viewer')`);
       expect(await api.get('/api/v1/audit').set('Cookie', viewer)).toMatchObject({ status: 403 });
       expect(await api.get('/api/v1/audit')).toMatchObject({ status: 401 });

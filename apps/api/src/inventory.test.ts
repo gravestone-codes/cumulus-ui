@@ -12,13 +12,7 @@ import { verifyFingerprint } from './inventory/store.js';
 import { type AuthConfig } from './auth/config.js';
 import { sessionCookie } from './test-sessions.js';
 
-const CFG: AuthConfig = {
-  keycloakUrl: 'https://kc.test',
-  realm: 't',
-  clientId: 'cumulus-ui',
-  sessionSecret: 'test-secret-that-is-long-enough-123',
-  idleMinutes: 30,
-};
+const CFG: AuthConfig = { credKey: 'test-cred-key-long-enough-12345', idleMinutes: 30 };
 
 async function dbReachable(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;

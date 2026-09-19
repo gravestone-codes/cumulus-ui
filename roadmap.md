@@ -7,20 +7,20 @@
 ## Locked decisions (don't relitigate; build to these)
 
 1. **Single vendor (NVUE-native).** No generic driver framework. All switch access goes through one `NvueClient` module — `?rev`, `?view`, pending→apply are first-class, not abstracted away.
-2. **Humans via Keycloak (OIDC); switches via the users' own accounts (pass-through). No service accounts.** App login is Keycloak (code + PKCE). For switch access the user supplies their own switch password once per session; the backend exchanges it per switch (`GET /api-token`), **then zeroes the password immediately — only the short-lived JWT remains in server-session memory, never persisted, never logged**. Same accounts work over SSH/CLI, so app-dead = use the CLI directly; there is no app-specific recovery path to build.
+2. **Platform users, switch credentials as an extension. No IdP, no redirects, no service accounts.** Users are created in our UI (or the create-admin CLI); login is username + scrypt password. Each user extends with per-switch device logins (`switch_credentials`, AES-GCM sealed). Switch access mints a JWT from the stored credential; plaintext passwords live only for the mint call, JWTs only in memory. Same switch accounts work over SSH/CLI, so app-dead = use the CLI directly.
 3. **A full-fledged backend: the browser never talks to switches; the backend makes every NVUE call on the UI's behalf.** Four reasons that can't live in a browser: (a) custom RBAC must be enforced server-side (hiding buttons ≠ enforcement — the user controls the browser); (b) the audit log must be server-written to be immutable/complete; (c) TOFU cert pinning can't be done by browsers (users would click through warnings per switch); (d) input validation/sanitization and group fan-out aggregation need a trusted place. The backend does **no auth transformation** — it proxies the user's own JWT.
 4. **Our RBAC is finer than the switch's, and admins can extend it.** Ship default roles; admins create custom roles (methods + path prefixes + scope) in-app. `PermissionGate` evaluates the stored roles deny-by-default.
 5. **One code path per object identity, not per URL path.** Paths are lenses; stores are canonical (§2). Same object → same code _and_ same state. Same shape but different scope (global BGP vs VRF BGP) → shared fragment, separate state keyed by `(scope, id)`.
 6. **Concurrency = D365-style OCC.** No locks across think time, ever. Per-user staging branches + presence (soft) + apply-time path-overlap check (hard) + serialized apply moment. See §4.
 7. **Fleet = groups, and writes fan out.** Inventory is grouped (datacenter → role, e.g. `DC1`, `DC1-leaf`, `DC1-spine`). Top-bar toggle selects the visible scope; mirrored configs stage preview + apply across a chosen group with per-switch results.
 8. **Dry-run is the default; danger is classified.** Every apply shows its diff first (pending vs applied). Dangerous actions require typed confirmation per the classification in §6.6.
-9. **Stack: TypeScript end-to-end monorepo.** `apps/ui` (React + Vite SPA + Tailwind + shadcn/Radix + TanStack Query/Table + react-hook-form/zod + keycloak-js) · `apps/api` (Fastify) · `packages/spec` (manifest + generated types + zod schemas shared by `InputGuard` and forms). Postgres + Keycloak (external). One language, one codegen from `openapi.json`, no client/server drift.
+9. **Stack: TypeScript end-to-end monorepo.** `apps/ui` (React + Vite SPA + Tailwind + shadcn/Radix + TanStack Query/Table + react-hook-form/zod + ) · `apps/api` (Fastify) · `packages/spec` (manifest + generated types + zod schemas shared by `InputGuard` and forms). Postgres. One language, one codegen from `openapi.json`, no client/server drift.
 10. **HARD RULE — dumb UI: all runtime data comes from the backend.** The browser never contacts switches (decision 3) and never hardcodes operational data: dropdown options, table contents, inventory/groups, roles/capabilities, jobs, audit, even the spec manifest itself are served by backend APIs (`/api/manifest`, `/api/me/capabilities`, `/api/inventory`, …) and TanStack Query caches them. UI gating hints come from `/api/me/capabilities`; enforcement stays in `PermissionGate`. Build-time sharing (`packages/spec` types/schemas compiled into both apps) is code, not data, and is unaffected — the rule governs runtime. A screen with a hardcoded switch-derived constant fails review.
 11. **Serving & API shape.** Backend serves the UI static bundle same-origin + `/api/v1/...` (versioned from day one). UI→backend auth is httpOnly session cookie (`SameSite=strict`). Live events (job progress, presence, out-of-band banners) over SSE, REST poll as fallback. English-only strings; UTC storage, local display. Per-switch concurrency caps + per-user rate limits in `FanOut` so the UI can never storm the fleet.
 12. **Logging: everything, structured.** JSON to stdout: `ts, level, reqId, user, switch, action, path, ms, outcome, jobId`. `reqId` propagates UI→backend→switch. Levels: debug (payloads/diffs, redacted) · info (login/logout, token mint metadata only, stage/apply/action outcomes, denials) · warn (conflicts, stale base, retries) · error (failures + stack). Central secret denylist redacts before logging — passwords, keys, tokens, communities never hit logs or audit diffs. Debug-log retention short (collector, ~30d); the hash-chained audit trail is separate (90d, PG).
 13. **Method docs: TSDoc, terse.** Every export gets one line of what+why; `@param` only when non-obvious; `@throws` on error paths; `@example` only when tricky. No signature restatements, no noise comments. API errors use RFC 9457 problem details. Endpoints carry OpenAPI summary/description. Enforced by eslint + review, not essay writing.
 
-- React SPA, not Next.js: everything is session-scoped dynamic data behind Keycloak — SSR buys nothing and complicates tokens. Not Svelte/Vue: smaller AI corpus, smaller contributor pool, weaker headless-component ecosystem.
+- React SPA, not Next.js: everything is session-scoped dynamic data behind a cookie session — SSR buys nothing and complicates auth. Not Svelte/Vue: smaller AI corpus, smaller contributor pool, weaker headless-component ecosystem.
 - shadcn (copy-into-repo Radix + Tailwind), not MUI/Ant: components live in our repo as ownable code AI can read and modify — no fighting a library's release train or theme system.
 - Tests: Vitest (unit, both apps) + Supertest (API incl. RBAC matrix) + Playwright (critical flows).
 
@@ -80,11 +80,11 @@ Granularity note (finer than D365 F&O, which conflicts on whole records): overla
 | #   | Canonical block                                                                                                                                                                                                                                              | Home phase | Consumed by                                                |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
 | R1  | `ConnectionManager` (fleet inventory + groups, `/nvue_v1` base, TOFU cert pinning)                                                                                                                                                                           | 0          | everything                                                 |
-| R2a | `HumanAuth` (Keycloak OIDC code+PKCE, JWKS validation, roles/groups → session; silent refresh while active, re-login when idle)                                                                                                                              | 0          | everything                                                 |
+| R2a | `PlatformAuth` (UI-created users, scrypt passwords, opaque cookie sessions, rolling idle expiry; create-admin CLI bootstraps the first admin)                                                                                                                              | 0          | everything                                                 |
 | R2b | `UserSwitchSession` (per-session capture of the user's own switch password → per-switch JWT via `GET /api-token`; password zeroed immediately after mint, JWT only thereafter in memory; invisible re-issue on expiry)                                       | 0          | everything                                                 |
 | R2c | `PermissionGate` (deny-by-default evaluation of stored roles: methods + path prefixes + scope; proxy-level, never UI-only)                                                                                                                                   | 0          | everything                                                 |
 | R2d | `RoleManager` (shipped default roles + admin custom-role CRUD; roles are data, not code)                                                                                                                                                                     | 0          | `PermissionGate`, admin UI                                 |
-| R2e | `AuditLog` (append-only, immutable; Keycloak `sub`, roles-at-decision, switch, path+method, before/after diff, rev, job ID; admin-configurable retention days)                                                                                               | 0          | all writes/actions                                         |
+| R2e | `AuditLog` (append-only, immutable; user id, roles-at-decision, switch, path+method, before/after diff, rev, job ID; admin-configurable retention days)                                                                                               | 0          | all writes/actions                                         |
 | R3  | `Transport` (`NvueClient`: `?rev`, `?include/?omit`, `?view`, typed errors; **no raw fetch outside it**) + `InputGuard` (server-side manifest-driven validation/sanitization of UI payloads: unknown fields rejected, formats normalized)                    | 0          | everything                                                 |
 | R4  | `RevisionManager` (per-user/session branches: `POST /revision?base_rev`, records base applied-ID; block PATCH without a branch; TTL + orphan GC)                                                                                                             | 1          | all writes                                                 |
 | R5  | `ApplyPipeline` (per-switch **apply queue** → base+overlap check → dry-run diff → `POST /config` → poll `GET /action`)                                                                                                                                       | 1          | all writes                                                 |
@@ -106,7 +106,7 @@ Granularity note (finer than D365 F&O, which conflicts on whole records): overla
 | R21 | `DiffPreview` (dry-run: staged-branch vs applied diff, per switch; shown before every apply and inside the confirm modal)                                                                                                                                    | 1          | `ApplyPipeline`, `ActionRunner` (where meaningful)         |
 | R22 | `FanOut` (group-targeted writes for mirrored configs: stage same payload on N switches → aggregated per-switch diffs → apply with per-switch job tracking and per-switch results; partial failure is reported per switch, siblings are NOT auto-rolled back) | 1          | mirrored/templated writes, user provisioning across groups |
 
-Shipped default roles (customizable via R2d; Keycloak carries role names, the backend owns the table):
+Shipped default roles (customizable via R2d; roles live entirely in the backend):
 
 | Role           | Reads                                                         | Writes                                           | Apply/actions                                                                                            | Scope                                                   |
 | -------------- | ------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
@@ -137,13 +137,13 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 
 ## Phase 0 — Baseplate (nothing else starts until this is done)
 
-- [x] 0.0 Monorepo scaffold + codegen pipeline: `apps/ui` (React + Vite + Tailwind + shadcn + TanStack Query), `apps/api` (Fastify), `packages/spec`; `openapi.json` → TypeScript types + zod schemas (single source for `InputGuard` and forms); Docker Compose dev (api + postgres + Keycloak); multi-arch distroless images; air-gap acceptance (pinned bases, vendored npm cache, zero first-boot downloads); CI (typecheck, lint, Vitest, Playwright skeleton, lockfile + dep audit, minimal dep surface)
+- [x] 0.0 Monorepo scaffold + codegen pipeline: `apps/ui` (React + Vite + Tailwind + shadcn + TanStack Query), `apps/api` (Fastify), `packages/spec`; `openapi.json` → TypeScript types + zod schemas (single source for `InputGuard` and forms); Docker Compose dev (api + postgres); multi-arch distroless images; air-gap acceptance (pinned bases, vendored npm cache, zero first-boot downloads); CI (typecheck, lint, Vitest, Playwright skeleton, lockfile + dep audit, minimal dep surface)
 - [x] 0.1 Vendor `openapi.json` into repo (`spec/`), record version `1.10.0.93`
 - [x] 0.2 Build spec-manifest script: extract path tree, verbs, `?view` enums, top segments + counts; output `manifest.json`
 - [x] 0.3 Verify manifest regenerates cleanly (re-run script, diff is empty)
 - [x] 0.4 `ConnectionManager` (R1): fleet inventory (switches, `DC`/`role` groups e.g. `DC1-leaf`, who can add/remove), base-path selector, **TOFU cert pinning** (record fingerprint at enrolment, hard-fail on mismatch)
-- [x] 0.5 `HumanAuth` (R2a): Keycloak OIDC (code + PKCE) → JWKS validation (iss/aud/exp) → session; silent refresh while active, re-login redirect when idle
-- [x] 0.6 `UserSwitchSession` (R2b): per-session capture of the user's own switch password → per-switch JWT; memory-only invariant (assert no persistence path exists); invisible re-issue. Single-instance sticky sessions initially; encrypted external session store when HA (keep the migration path, don't build it yet). Passwords may differ per switch — the session collects each manually (fleet-wide sync is an ops convenience, not an app requirement). Keycloak is identity, **not** a credential store — it never holds switch passwords.
+- [x] 0.5 `PlatformAuth` (R2a): UI-created users + scrypt login → opaque sessions; create-admin CLI seeds the first admin
+- [x] 0.6 `UserSwitchSession` (R2b): switch credentials stored per user per switch (AES-GCM) → per-switch JWT minted on connect; memory-only JWTs; re-mint on expiry from stored creds (no re-prompt). Passwords may differ per switch; group fan-out provisions the same login across switches.
 - [x] 0.7 `Transport` (R3) as the single `NvueClient` + `InputGuard` (manifest-driven server validation/sanitization)
 - [x] 0.8 `PermissionGate` (R2c) + `RoleManager` (R2d): roles as data, shipped defaults (§3 table), admin custom-role CRUD; deny-by-default tests per role (run against hardware)
 - [x] 0.9 `AuditLog` (R2e): append-only immutable sink (hash-chained), full schema, **admin-configurable retention days (default 90)**, read/export permissions, scheduled chain-verification job. (Pass-through auth means switch-side logs also carry the real user — our log remains the compliance record.)
@@ -237,14 +237,14 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 
 - [ ] 3H.1 Dashboard: health cards from `/system`, `/platform`, `/mlag`, `/router/bgp` summaries, aggregated across the selected group/DC
 - [ ] 3H.2 Platform health: fans/PSU/sensors/transceivers + LED action (POST) via `ActionRunner`
-- [ ] 3H.3 System forms: AAA/users (switch-local + break-glass accounts live here; humans' daily identities stay in Keycloak), NTP, DNS, syslog, SNMP via `ResourceForm`
+- [ ] 3H.3 System forms: AAA/users (switch-local + break-glass accounts live here; humans' daily identities stay in the platform user table), NTP, DNS, syslog, SNMP via `ResourceForm`
 - [ ] 3H.4 System actions: images, tech-support, ZTP, packages via `ActionRunner`
 - [ ] 3H.5 Services: DHCP-relay, PTP, NTP via generics
 - [ ] 3H.6 Cross-switch user provisioning (the DC1-leaf + DC1-spine case): `FanOut` (R22) over `/system/aaa/user…` with per-switch results
 
 ## Phase 4 — Shell (makes it a product; after ≥2 domains prove the generics)
 
-- [ ] 4.1 AppShell: nav = domains, **DC/group toggle in the top bar** (drives scope for every list, store, and fan-out target), branch banner (R4), user + roles from Keycloak session
+- [ ] 4.1 AppShell: nav = domains, **DC/group toggle in the top bar** (drives scope for every list, store, and fan-out target), branch banner (R4), user + roles from the platform session
 - [ ] 4.2 Command palette: `⌘K` across manifest paths + live IDs (`/interface/swp1`), scoped to the current DC/group
 - [ ] 4.3 Notifications fed by `ApplyPipeline` + `GET /action` jobs (per-switch, per-fan-out-member)
 - [ ] 4.4 Settings (app-admin): defaults for `rev`/`view`, strict-mode toggle, poll intervals, retention days
@@ -261,8 +261,8 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 
 ## 6. Decided items (were open questions; resolutions recorded)
 
-- [x] 6.1 Custom RBAC: ship defaults (§3 table), admins build custom roles via `RoleManager` (methods + path prefixes + scope, stored as data). Keycloak carries names; backend owns meaning.
-- [x] 6.2 No vault, no service accounts. Switch passwords exist only in server-session memory. App-dead login = SSH/CLI with your own switch account (provisioned identically, e.g. via Ansible). Keycloak cannot and should not store switch credentials — it is identity, not a secret store.
+- [x] 6.1 Custom RBAC: ship defaults (§3 table), admins build custom roles via `RoleManager` (methods + path prefixes + scope, stored as data). Users and roles both live in the backend.
+- [x] 6.2 No vault, no service accounts, no IdP. Switch passwords are sealed per user per switch (AES-GCM, SWITCH_CRED_KEY); plaintext exists only inside mint calls. App-dead login = SSH/CLI with your own switch account.
 - [x] 6.3 Backend stays (thin BFF): RBAC enforcement, immutable audit, TOFU pinning, `InputGuard` validation, fan-out. Browsers can do none of these trustworthily. TOFU: pin fingerprint at enrolment, hard-fail on change.
 - [x] 6.4 Fleet = groups (`DC → role`); top-bar scope toggle; mirrored writes via `FanOut` (R22), e.g. one user-provisioning payload to `DC1-leaf` + `DC1-spine` with per-switch results.
 - [x] 6.5 Revision hygiene (recommended, pending your sign-off): 7-day branch TTL + nightly orphan GC; logout keeps drafts ("my drafts"); stale base → conflict screen, never silent drop; explicit discard with confirm.
@@ -276,7 +276,7 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 - [x] 6.8 Audit: append-only immutable (hash-chained) log, complete (every proxied write + action + decision context), retention = admin-configurable days (default 90) with scheduled purge.
 - [x] 6.9 Fixtures only for UI dev; workflow truth comes from hardware. M1/M1b run on lab switches (provisioned at test time).
 - [x] 6.10 RBAC harness runs proxy-level tests against hardware (lab switches) at every milestone.
-- [x] 6.11 Session UX: silent refresh while active; re-login redirect when idle.
+- [x] 6.11 Session UX: rolling cookie sessions while active (idle timeout kills the session); re-login redirect when idle.
 
 ---
 

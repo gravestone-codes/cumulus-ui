@@ -10,18 +10,16 @@ import { auditRoutes } from './audit/routes.js';
 import { workflowRoutes } from './workflow/routes.js';
 import { fixtureRoutes } from './fixtures/routes.js';
 import { authRoutes } from './auth/routes.js';
+import { usersRoutes } from './users/routes.js';
 import { authConfig, type AuthConfig } from './auth/config.js';
-import type { KeyProvider } from './auth/oidc.js';
 import type { JsonRequest } from './nvue/tls.js';
 
 export interface AppOptions {
-  /** Omit for production boot (reads env, fails fast without SESSION_SECRET). */
+  /** Omit for production boot (reads env, fails fast without SWITCH_CRED_KEY). */
   auth?:
     | false
     | {
         cfg: AuthConfig;
-        keys?: KeyProvider;
-        refreshFetch?: typeof fetch;
         fetchJsonFn?: (req: JsonRequest) => Promise<unknown>;
       };
 }
@@ -43,7 +41,8 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
   if (auth !== false) {
     await app.register(inventoryRoutes, { cfg: auth.cfg });
     await app.register(switchAuthRoutes, { cfg: auth.cfg, fetchJsonFn: auth.fetchJsonFn });
-    await app.register(authRoutes, auth);
+    await app.register(authRoutes, { cfg: auth.cfg });
+    await app.register(usersRoutes, { cfg: auth.cfg });
     await app.register(rbacRoutes, { cfg: auth.cfg });
     await app.register(auditRoutes, { cfg: auth.cfg });
     await app.register(workflowRoutes, { cfg: auth.cfg });

@@ -18,13 +18,7 @@ import { sessionCookie } from './test-sessions.js';
 import { dropUserTokens } from './switchauth/sessions.js';
 import type { JsonRequest } from './nvue/tls.js';
 
-const CFG: AuthConfig = {
-  keycloakUrl: 'https://kc.test',
-  realm: 't',
-  clientId: 'cumulus-ui',
-  sessionSecret: 'test-secret-that-is-long-enough-123',
-  idleMinutes: 30,
-};
+const CFG: AuthConfig = { credKey: 'test-cred-key-long-enough-12345', idleMinutes: 30 };
 
 async function dbReachable(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;
@@ -54,7 +48,7 @@ describe.skipIf(!LIVE)('switch-auth routes', () => {
     await migrate();
   });
 
-  it('session + scope gated mint, status, drop', async () => {
+  it('stored credentials drive connect, status, drop', async () => {
     const app = await buildApp({ auth: { cfg: CFG, fetchJsonFn: stubFetch('pw', 'jwt-abc') } });
     await app.ready();
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -64,16 +58,25 @@ describe.skipIf(!LIVE)('switch-auth routes', () => {
        ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
     );
     try {
-      expect(await api.post('/api/v1/switch-auth/swt').send({ password: 'pw' })).toMatchObject({
-        status: 401,
-      });
+      expect(await api.post('/api/v1/switch-auth/swt')).toMatchObject({ status: 401 });
 
       const viewer = await sessionCookie(pool, 'sw-user', { appRoles: ['viewer'] });
-      const bad = await api.post('/api/v1/switch-auth/swt').set('Cookie', viewer).send({ password: 'wrong' });
-      expect(bad.status).toBe(401);
+      expect(await api.post('/api/v1/switch-auth/swt').set('Cookie', viewer)).toMatchObject({ status: 409 });
 
-      const ok = await api.post('/api/v1/switch-auth/swt').set('Cookie', viewer).send({ password: 'pw' });
-      expect(ok.status).toBe(204);
+      const listed0 = await api.get('/api/v1/me/switch-credentials').set('Cookie', viewer);
+      expect(listed0.body).toEqual([]);
+
+      const set = await api
+        .put('/api/v1/me/switch-credentials/swt')
+        .set('Cookie', viewer)
+        .send({ switch_username: 'op', switch_password: 'pw' });
+      expect(set.status).toBe(200);
+      const listed = await api.get('/api/v1/me/switch-credentials').set('Cookie', viewer);
+      expect(listed.body).toEqual([{ switchId: 'swt', switchUsername: 'op' }]);
+
+      // Stub accepts password 'pw' for any username — proves mint used stored creds.
+      const bad = await api.post('/api/v1/switch-auth/swt').set('Cookie', viewer);
+      expect(bad.status).toBe(204);
 
       const status = await api.get('/api/v1/switch-auth/swt').set('Cookie', viewer);
       expect(status.body).toEqual({ connected: true });
@@ -83,11 +86,12 @@ describe.skipIf(!LIVE)('switch-auth routes', () => {
       const off = await api.get('/api/v1/switch-auth/swt').set('Cookie', viewer);
       expect(off.body).toEqual({ connected: false });
 
-      const missing = await api
-        .post('/api/v1/switch-auth/nope')
-        .set('Cookie', viewer)
-        .send({ password: 'x' });
+      const missing = await api.post('/api/v1/switch-auth/nope').set('Cookie', viewer);
       expect(missing.status).toBe(404);
+
+      await api.delete('/api/v1/me/switch-credentials/swt').set('Cookie', viewer);
+      const listed2 = await api.get('/api/v1/me/switch-credentials').set('Cookie', viewer);
+      expect(listed2.body).toEqual([]);
 
       // scoped role, ungrouped switch → 403; grouped → 204
       await pool.query(
@@ -103,17 +107,17 @@ describe.skipIf(!LIVE)('switch-auth routes', () => {
         `INSERT INTO role_groups (role_id, group_id) VALUES ('scoped-test', 'DC1-leaf') ON CONFLICT DO NOTHING`,
       );
       const scoped = await sessionCookie(pool, 'sw-scoped', { appRoles: ['scoped-test'] });
-      expect(
-        await api.post('/api/v1/switch-auth/swt').set('Cookie', scoped).send({ password: 'pw' }),
-      ).toMatchObject({
+      await api
+        .put('/api/v1/me/switch-credentials/swt')
+        .set('Cookie', scoped)
+        .send({ switch_username: 'op', switch_password: 'pw' });
+      expect(await api.post('/api/v1/switch-auth/swt').set('Cookie', scoped)).toMatchObject({
         status: 403,
       });
       await pool.query(
         `INSERT INTO switch_groups (switch_id, group_id) VALUES ('swt', 'DC1-leaf') ON CONFLICT DO NOTHING`,
       );
-      expect(
-        await api.post('/api/v1/switch-auth/swt').set('Cookie', scoped).send({ password: 'pw' }),
-      ).toMatchObject({
+      expect(await api.post('/api/v1/switch-auth/swt').set('Cookie', scoped)).toMatchObject({
         status: 204,
       });
     } finally {
@@ -178,27 +182,22 @@ describe.skipIf(!LIVE)('switch-auth routes', () => {
           [`https://127.0.0.1:${port}`, pin, pem],
         );
         const api = request(app.server);
-        const ok = await api
-          .post('/api/v1/switch-auth/swtls')
+        await api
+          .put('/api/v1/me/switch-credentials/swtls')
           .set('Cookie', cookie)
-          .send({ password: 'whatever' });
+          .send({ switch_username: 'op', switch_password: 'whatever' });
+        const ok = await api.post('/api/v1/switch-auth/swtls').set('Cookie', cookie);
         expect(ok.status).toBe(204);
 
         await db().query(`UPDATE switches SET cert_fingerprint = 'SHA256:00' WHERE id = 'swtls'`);
         await api.delete('/api/v1/switch-auth/swtls').set('Cookie', cookie);
-        const refusedPin = await api
-          .post('/api/v1/switch-auth/swtls')
-          .set('Cookie', cookie)
-          .send({ password: 'whatever' });
+        const refusedPin = await api.post('/api/v1/switch-auth/swtls').set('Cookie', cookie);
         expect(refusedPin.status).toBe(401);
 
         await db().query(`UPDATE switches SET cert_fingerprint = $1, cert_pem = 'bogus' WHERE id = 'swtls'`, [
           pin,
         ]);
-        const refusedCa = await api
-          .post('/api/v1/switch-auth/swtls')
-          .set('Cookie', cookie)
-          .send({ password: 'whatever' });
+        const refusedCa = await api.post('/api/v1/switch-auth/swtls').set('Cookie', cookie);
         expect(refusedCa.status).toBe(401);
       } finally {
         await db().query('DELETE FROM switches WHERE id = $1', ['swtls']);

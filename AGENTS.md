@@ -17,7 +17,7 @@ Source of truth: `roadmap.md` (plan, checklists, locked decisions 1–13, design
 
 ## Stack
 
-TS monorepo (`apps/ui` React+Vite+Tailwind+shadcn+TanStack, `apps/api` Fastify, `packages/spec` codegen), Postgres, Keycloak. pnpm. Vitest + Supertest + Playwright. Docker Compose dev; distroless multi-arch images; air-gap clean.
+TS monorepo (`apps/ui` React+Vite+Tailwind+shadcn+TanStack, `apps/api` Fastify, `packages/spec` codegen), Postgres. pnpm. Vitest + Supertest + Playwright. Docker Compose dev; distroless multi-arch images; air-gap clean.
 
 ## Workflow
 

@@ -5,19 +5,13 @@
 import { describe, expect, it, beforeAll } from 'vitest';
 import request from 'supertest';
 import { Pool, type Pool as PoolType } from 'pg';
-import { randomUUID } from 'node:crypto';
 import { buildApp } from './app.js';
+import { sessionCookie } from './test-sessions.js';
 import { migrate } from './db.js';
 import { type AuthConfig } from './auth/config.js';
 import { capabilities, gateCheck, getUserRoles, type Role } from './rbac/store.js';
 
-const CFG: AuthConfig = {
-  keycloakUrl: 'https://kc.test',
-  realm: 't',
-  clientId: 'cumulus-ui',
-  sessionSecret: 'test-secret-that-is-long-enough-123',
-  idleMinutes: 30,
-};
+const CFG: AuthConfig = { credKey: 'test-cred-key-long-enough-12345', idleMinutes: 30 };
 
 async function dbReachable(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;
@@ -112,17 +106,6 @@ describe.skipIf(!LIVE)('rbac routes + seeds', () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
   });
 
-  /** Insert a session row directly and return its cookie header. */
-  async function cookieFor(sub: string, keycloakRoles: string[]): Promise<string> {
-    const id = randomUUID();
-    await pool.query(
-      `INSERT INTO sessions (id, user_sub, username, roles, user_groups, refresh_enc)
-       VALUES ($1, $2, $3, $4, '[]', 'sealed')`,
-      [id, sub, sub, JSON.stringify(keycloakRoles)],
-    );
-    return `cumulus_session=${id}`;
-  }
-
   async function appWithAuth() {
     const app = await buildApp({ auth: { cfg: CFG } });
     await app.ready();
@@ -132,7 +115,7 @@ describe.skipIf(!LIVE)('rbac routes + seeds', () => {
   it('ships the seven defaults; matrix holds on real rows', async () => {
     const app = await appWithAuth();
     try {
-      const cookie = await cookieFor('boss', ['app-admin']);
+      const cookie = await sessionCookie(pool, 'boss', { appRoles: ['app-admin'] });
       const list = await request(app.server).get('/api/v1/roles').set('Cookie', cookie);
       expect(list.status).toBe(200);
       expect(list.body.map((r: { id: string }) => r.id).sort()).toEqual([
@@ -157,7 +140,7 @@ describe.skipIf(!LIVE)('rbac routes + seeds', () => {
   it('bootstrap: non-admin gets 403 everywhere admin', async () => {
     const app = await appWithAuth();
     try {
-      const cookie = await cookieFor('pleb', ['viewer']);
+      const cookie = await sessionCookie(pool, 'pleb', { appRoles: ['viewer'] });
       expect(await request(app.server).get('/api/v1/roles').set('Cookie', cookie)).toMatchObject({
         status: 403,
       });
@@ -176,7 +159,7 @@ describe.skipIf(!LIVE)('rbac routes + seeds', () => {
   it('custom roles: create, duplicate 409, delete; system immutable', async () => {
     const app = await appWithAuth();
     try {
-      const cookie = await cookieFor('boss2', ['app-admin']);
+      const cookie = await sessionCookie(pool, 'boss2', { appRoles: ['app-admin'] });
       const api = request(app.server);
       const created = await api
         .post('/api/v1/roles')
@@ -210,10 +193,10 @@ describe.skipIf(!LIVE)('rbac routes + seeds', () => {
   it('grant + capabilities reflect stored roles', async () => {
     const app = await appWithAuth();
     try {
-      const admin = await cookieFor('boss3', ['app-admin']);
+      const admin = await sessionCookie(pool, 'boss3', { appRoles: ['app-admin'] });
       const api = request(app.server);
+      const user = await sessionCookie(pool, 'tech1', { appRoles: [] });
       await api.post('/api/v1/roles/grant').set('Cookie', admin).send({ user_sub: 'tech1', role_id: 'noc' });
-      const user = await cookieFor('tech1', []);
       const caps = await api.get('/api/v1/me/capabilities').set('Cookie', user);
       expect(caps.body.roles).toEqual(['noc']);
       expect(caps.body.rules.map((r: { role: string }) => r.role)).toContain('noc');
