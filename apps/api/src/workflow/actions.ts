@@ -5,7 +5,7 @@
  * exists; this decides HOW (run → track job → audit). No per-action code.
  */
 import { clientFor, tokenFor } from '../nvue/clients.js';
-import { getAction, extractJobId } from '../nvue/revisions.js';
+import { extractJobId } from '../nvue/revisions.js';
 import { DANGEROUS_PREFIXES } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
 import { pollJob } from './apply.js';
