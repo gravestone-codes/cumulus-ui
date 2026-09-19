@@ -1,0 +1,29 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+allowBuilds:
+  esbuild: true
+
+# typescript-eslint does not support TS7 yet (tracking #10940) — pin TS6 repo-wide.
+overrides:
+  typescript: 6.0.3
+
+minimumReleaseAgeExclude:
+  - '@orval/angular@8.34.0'
+  - '@orval/axios@8.34.0'
+  - '@orval/core@8.34.0'
+  - '@orval/effect@8.34.0'
+  - '@orval/fetch@8.34.0'
+  - '@orval/hono@8.34.0'
+  - '@orval/mcp@8.34.0'
+  - '@orval/mock@8.34.0'
+  - '@orval/pinia-colada@8.34.0'
+  - '@orval/query@8.34.0'
+  - '@orval/solid-start@8.34.0'
+  - '@orval/swr@8.34.0'
+  - '@orval/zod@8.34.0'
+  - '@types/node@26.6.2'
+  - dotenv@18.0.1
+  - eslint@10.11.0
+  - orval@8.34.0

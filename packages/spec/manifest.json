@@ -1,0 +1,7241 @@
+{
+  "title": "NVUE OpenAPI Specification for Cumulus Linux 5.14.0",
+  "version": "1.10.0.93",
+  "pathCount": 1648,
+  "verbs": {
+    "get": 1564,
+    "patch": 1089,
+    "delete": 1089,
+    "post": 169
+  },
+  "topSegments": {
+    "root": 1,
+    "platform": 34,
+    "interface": 220,
+    "system": 490,
+    "acl": 43,
+    "vrf": 443,
+    "maintenance": 3,
+    "api-token": 1,
+    "revision": 2,
+    "action": 2,
+    "config": 1,
+    "router": 108,
+    "bridge": 47,
+    "mlag": 25,
+    "evpn": 50,
+    "qos": 68,
+    "service": 99,
+    "nve": 11
+  },
+  "views": {},
+  "routes": {
+    "/": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/platform": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/platform/inventory": [
+      "get"
+    ],
+    "/platform/inventory/{inventory-id}": [
+      "get"
+    ],
+    "/platform/environment/fan": [
+      "get"
+    ],
+    "/platform/environment/fan/{fan-id}": [
+      "get"
+    ],
+    "/platform/environment/psu": [
+      "get"
+    ],
+    "/platform/environment/psu/{psu-id}": [
+      "get"
+    ],
+    "/platform/environment/led": [
+      "get"
+    ],
+    "/platform/environment/led/{led-id}": [
+      "get",
+      "post"
+    ],
+    "/platform/environment/temperature": [
+      "get"
+    ],
+    "/platform/environment/temperature/{sensor-id}": [
+      "get"
+    ],
+    "/platform/environment/leakage": [
+      "get"
+    ],
+    "/platform/environment/voltage": [
+      "get"
+    ],
+    "/platform/environment/voltage/{volt-sensor-id}": [
+      "get"
+    ],
+    "/platform/firmware": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/platform/firmware/{platform-component-id}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/platform/firmware/{platform-component-id}/files": [
+      "get"
+    ],
+    "/platform/firmware/{platform-component-id}/files/{file-name}": [
+      "get",
+      "post"
+    ],
+    "/platform/transceiver": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/platform/transceiver/{transceiver-id}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/platform/transceiver/{transceiver-id}/temperature": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/platform/transceiver/{transceiver-id}/channel": [
+      "get"
+    ],
+    "/platform/transceiver/{transceiver-id}/channel/{channel-id}": [
+      "get"
+    ],
+    "/platform/transceiver/{transceiver-id}/firmware": [
+      "get"
+    ],
+    "/platform/transceiver/{transceiver-id}/firmware/files": [
+      "get"
+    ],
+    "/platform/transceiver/{transceiver-id}/firmware/files/{file-name}": [
+      "get",
+      "post"
+    ],
+    "/interface/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/rates": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/address/{ip-prefix-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/gateway": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/gateway/{ip-address-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/link": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/link/protodown-reason": [
+      "get"
+    ],
+    "/interface/{interface-id}/link/phy-detail": [
+      "get",
+      "post"
+    ],
+    "/interface/{interface-id}/link/phy-diag": [
+      "get"
+    ],
+    "/interface/{interface-id}/link/state": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/link/flap-protection": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/interface/{interface-id}/acl": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/statistics": [
+      "get"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/statistics/{rule-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/inbound/control-plane": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/outbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/outbound/control-plane": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/transceiver": [
+      "get"
+    ],
+    "/interface/{interface-id}/transceiver/thresholds": [
+      "get"
+    ],
+    "/system/health": [
+      "get"
+    ],
+    "/system/health/history": [
+      "get"
+    ],
+    "/system/health/history/files": [
+      "get"
+    ],
+    "/system/health/history/files/{file-name}": [
+      "get",
+      "post"
+    ],
+    "/system/factory-default": [
+      "post"
+    ],
+    "/system/documentation": [
+      "get"
+    ],
+    "/system/documentation/files": [
+      "get"
+    ],
+    "/system/documentation/files/{file-name}": [
+      "post"
+    ],
+    "/system/file-path": [
+      "post"
+    ],
+    "/system/log": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/log/rotation": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/log/file": [
+      "get"
+    ],
+    "/system/log/file/{file-name}": [
+      "get",
+      "post"
+    ],
+    "/system/log/component": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/log/component/{component-name}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/log/component/{component-name}/file": [
+      "get"
+    ],
+    "/system/log/component/{component-name}/file/{file-name}": [
+      "get",
+      "post"
+    ],
+    "/system/snmp-server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/listening-address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/listening-address/{listening-address-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-none": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-md5": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-md5/{auth-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-md5/{auth-id}/encrypt-des": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-md5/{auth-id}/encrypt-des/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-md5/{auth-id}/encrypt-aes": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-md5/{auth-id}/encrypt-aes/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-sha": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-sha/{auth-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-sha/{auth-id}/encrypt-des": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-sha/{auth-id}/encrypt-des/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-sha/{auth-id}/encrypt-aes": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/username/{username-id}/auth-sha/{auth-id}/encrypt-aes/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/mibs": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/viewname": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/viewname/{viewname-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/readonly-community": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/readonly-community/{readonly-community-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/readonly-community/{readonly-community-id}/access": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/readonly-community/{readonly-community-id}/access/{access-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/readonly-community-v6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/readonly-community-v6/{readonly-community-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/readonly-community-v6/{readonly-community-id}/access": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/readonly-community-v6/{readonly-community-id}/access/{access-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-link-down": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-link-up": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-snmp-auth-failures": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-cpu-load-average": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-cpu-load-average/one-minute": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-cpu-load-average/one-minute/{one-minute-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-cpu-load-average/one-minute/{one-minute-id}/five-minute": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-cpu-load-average/one-minute/{one-minute-id}/five-minute/{five-minute-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-cpu-load-average/one-minute/{one-minute-id}/five-minute/{five-minute-id}/fifteen-minute": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-cpu-load-average/one-minute/{one-minute-id}/five-minute/{five-minute-id}/fifteen-minute/{fifteen-minute-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/community-password": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/community-password/{community-password-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/community-password": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/community-password/{community-password-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/encrypt-des": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/encrypt-des/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/encrypt-des/{encrypt-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/encrypt-des/{encrypt-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/encrypt-aes": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/encrypt-aes/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/encrypt-aes/{encrypt-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-md5/{auth-id}/encrypt-aes/{encrypt-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/encrypt-des": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/encrypt-des/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/encrypt-des/{encrypt-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/encrypt-des/{encrypt-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/encrypt-aes": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/encrypt-aes/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/encrypt-aes/{encrypt-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/username/{username-id}/auth-sha/{auth-id}/encrypt-aes/{encrypt-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/encrypt-des": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/encrypt-des/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/encrypt-des/{encrypt-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/encrypt-des/{encrypt-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/encrypt-aes": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/encrypt-aes/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/encrypt-aes/{encrypt-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-md5/{auth-id}/encrypt-aes/{encrypt-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/encrypt-des": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/encrypt-des/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/encrypt-des/{encrypt-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/encrypt-des/{encrypt-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/encrypt-aes": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/encrypt-aes/{encrypt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/encrypt-aes/{encrypt-id}/engine-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/snmp-server/trap-destination/{trap-destination-id}/vrf/{vrf-name}/username/{username-id}/auth-sha/{auth-id}/encrypt-aes/{encrypt-id}/engine-id/{engine-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ztp": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/ztp/script": [
+      "get"
+    ],
+    "/system/message": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/cli": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/cli/pagination": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/link": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/link/flap-protection": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/cpu": [
+      "get"
+    ],
+    "/system/memory": [
+      "get"
+    ],
+    "/system/reboot": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/reboot/required": [
+      "get"
+    ],
+    "/system/reboot/reason": [
+      "get"
+    ],
+    "/system/reboot/history": [
+      "get"
+    ],
+    "/system/config": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/config/auto-save": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/config/files": [
+      "get",
+      "post"
+    ],
+    "/system/config/files/{config-file-id}": [
+      "get",
+      "post"
+    ],
+    "/system/security": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/security/tpm": [
+      "get",
+      "post"
+    ],
+    "/system/security/tpm/oiak": [
+      "get",
+      "post"
+    ],
+    "/system/security/spdm": [
+      "get"
+    ],
+    "/system/security/spdm/{component-id}": [
+      "get",
+      "post"
+    ],
+    "/system/security/spdm/{component-id}/measurements": [
+      "get"
+    ],
+    "/system/security/spdm/{component-id}/certificates": [
+      "get"
+    ],
+    "/system/security/password-hardening": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/security/encryption": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/security/encryption/db": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/dns": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/user": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/aaa/user/{user-id}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/aaa/user/{user-id}/ssh": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/user/{user-id}/ssh/authorized-key": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/user/{user-id}/ssh/authorized-key/{ssh-authorized-key-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/user/{user-id}/ssh/cert-auth": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/user/{user-id}/ssh/cert-auth/principals": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/user/{user-id}/ssh/cert-auth/principals/{cert-auth-principal}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/user/{user-id}/spiffe-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/user/{user-id}/spiffe-id/{spiffe-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/role": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/role/{role-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/role/{role-id}/class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/role/{role-id}/class/{class-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/class/{class-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/class/{class-id}/command-path": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/class/{class-id}/command-path/{command-path-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/radius": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/radius/server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/radius/server/{hostname-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/radius/accounting": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/tacacs": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/tacacs/server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/tacacs/server/{hostname-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/tacacs/accounting": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/tacacs/authentication": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/tacacs/authorization": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/tacacs/authorization/{privilege-level-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/tacacs/authorization/{privilege-level-id}/command": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/tacacs/exclude-user": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/ldap": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/ldap/ssl": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/ldap/filter": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/ldap/map": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/ldap/map/passwd": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/ldap/map/group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/ldap/server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/ldap/server/{hostname-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/disk": [
+      "get",
+      "post"
+    ],
+    "/system/disk/usage": [
+      "get"
+    ],
+    "/acl": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/acl/{acl-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/fragment": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/ecn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/ecn/flags": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/udp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/udp/source-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/udp/source-port/{ip-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/udp/dest-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/udp/dest-port/{ip-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/tcp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/tcp/source-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/tcp/source-port/{ip-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/tcp/dest-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/tcp/dest-port/{ip-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/tcp/flags": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/tcp/mask": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/connection-state": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/recent-list": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/ip/hashlimit": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/permit": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/deny": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/log": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/version": [
+      "get"
+    ],
+    "/system/version/image": [
+      "get"
+    ],
+    "/system/version/packages": [
+      "get"
+    ],
+    "/system/version/packages/installed": [
+      "get"
+    ],
+    "/system/version/packages/installed/{installed-id}": [
+      "get"
+    ],
+    "/system/ssh-server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/max-unauthenticated": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/vrf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/vrf/{vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/allow-users": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/allow-users/{user-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/deny-users": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/deny-users/{user-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/port/{port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/active-sessions": [
+      "get"
+    ],
+    "/system/ssh-server/trusted-ca-keys": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/ssh-server/trusted-ca-keys/{ssh-trusted-ca-key-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/image": [
+      "get",
+      "post"
+    ],
+    "/system/image/files": [
+      "get"
+    ],
+    "/system/image/files/{image}": [
+      "get",
+      "post"
+    ],
+    "/system/syslog": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/format": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/format/welf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/server/{server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/server/{server-id}/selector": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/server/{server-id}/selector/{priority-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/selector": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/selector/{selector-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/selector/{selector-id}/rate-limit": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/selector/{selector-id}/filter": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/syslog/selector/{selector-id}/filter/{filter-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/fib": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/fib/ipv4": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/fib/ipv6": [
+      "post"
+    ],
+    "/maintenance": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/maintenance/unit": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/maintenance/unit/{unit-name}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/file-hash": [
+      "post"
+    ],
+    "/api-token": [
+      "get"
+    ],
+    "/system/telemetry/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/export/otlp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/label": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/label/{label-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/export/otlp/grpc": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/export/otlp/grpc/destination": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/export/otlp/grpc/destination/{destination-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/api": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/api/listening-address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/api/listening-address/{listening-address-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/api/connections": [
+      "get"
+    ],
+    "/system/api/session": [
+      "post"
+    ],
+    "/system/api/mtls": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/security/certificate": [
+      "get"
+    ],
+    "/system/security/certificate/{cert-id}": [
+      "get",
+      "post"
+    ],
+    "/system/security/certificate/{cert-id}/installed": [
+      "get"
+    ],
+    "/system/security/certificate/{cert-id}/dump": [
+      "get"
+    ],
+    "/system/security/ca-certificate": [
+      "get"
+    ],
+    "/system/security/ca-certificate/{cert-id}": [
+      "get",
+      "post"
+    ],
+    "/system/security/ca-certificate/{cert-id}/dump": [
+      "get"
+    ],
+    "/system/security/crl": [
+      "get"
+    ],
+    "/system/security/crl/{crl-id}": [
+      "get",
+      "post"
+    ],
+    "/revision": [
+      "get",
+      "post"
+    ],
+    "/revision/{revision-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/action": [
+      "get"
+    ],
+    "/action/{action-job-id}": [
+      "get"
+    ],
+    "/system/gnmi-server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/gnmi-server/listening-address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/gnmi-server/listening-address/{listening-address-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/gnmi-server/mtls": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/gnmi-server/status": [
+      "get"
+    ],
+    "/system/gnmi-server/status/client": [
+      "get"
+    ],
+    "/system/gnmi-server/status/client/{client-id}": [
+      "get"
+    ],
+    "/system/grpc-tunnel": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/grpc-tunnel/server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/grpc-tunnel/server/{server-name-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/grpc-tunnel/server/{server-name-id}/status": [
+      "get"
+    ],
+    "/system/grpc-tunnel/server/{server-name-id}/status/connection": [
+      "get"
+    ],
+    "/config": [
+      "get",
+      "post"
+    ],
+    "/router": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/ptm": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/nexthop": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/nexthop/group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/nexthop/group/{nexthop-group-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/nexthop/group/{nexthop-group-id}/via": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/nexthop/group/{nexthop-group-id}/via/{via-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/nexthop/rib": [
+      "get"
+    ],
+    "/router/nexthop/rib/{nhg-id}": [
+      "get"
+    ],
+    "/router/nexthop/rib/{nhg-id}/resolved-via": [
+      "get"
+    ],
+    "/router/nexthop/rib/{nhg-id}/resolved-via-backup": [
+      "get"
+    ],
+    "/router/pbr": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pbr/nexthop-group": [
+      "get"
+    ],
+    "/router/pbr/nexthop-group/{nexthop-group-id}": [
+      "get"
+    ],
+    "/router/pbr/map": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pbr/map/{pbr-map-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pbr/map/{pbr-map-id}/rule": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pbr/map/{pbr-map-id}/rule/{rule-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pbr/map/{pbr-map-id}/rule/{rule-id}/match": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pbr/map/{pbr-map-id}/rule/{rule-id}/action": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pbr/map/{pbr-map-id}/rule/{rule-id}/action/nexthop-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pbr/map/{pbr-map-id}/rule/{rule-id}/action/nexthop-group/{nexthop-group-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/community-list": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/community-list/{list-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/community-list/{list-id}/rule": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/community-list/{list-id}/rule/{rule-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/community-list/{list-id}/rule/{rule-id}/community": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/community-list/{list-id}/rule/{rule-id}/community/{community-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/as-path-list": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/as-path-list/{list-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/as-path-list/{list-id}/rule": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/as-path-list/{list-id}/rule/{rule-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/ext-community-list": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/ext-community-list/{list-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/ext-community-list/{list-id}/rule": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/ext-community-list/{list-id}/rule/{rule-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/ext-community-list/{list-id}/rule/{rule-id}/ext-community": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/ext-community-list/{list-id}/rule/{rule-id}/ext-community/rt": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/ext-community-list/{list-id}/rule/{rule-id}/ext-community/rt/{ext-community-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/ext-community-list/{list-id}/rule/{rule-id}/ext-community/soo": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/ext-community-list/{list-id}/rule/{rule-id}/ext-community/soo/{ext-community-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/large-community-list": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/large-community-list/{list-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/large-community-list/{list-id}/rule": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/large-community-list/{list-id}/rule/{rule-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/large-community-list/{list-id}/rule/{rule-id}/large-community": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/large-community-list/{list-id}/rule/{rule-id}/large-community/{large-community-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/prefix-list": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/router/policy/prefix-list/{prefix-list-id}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/router/policy/prefix-list/{prefix-list-id}/rule": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/prefix-list/{prefix-list-id}/rule/{rule-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/prefix-list/{prefix-list-id}/rule/{rule-id}/match": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/prefix-list/{prefix-list-id}/rule/{rule-id}/match/{match-id}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/router/policy/route-map": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/router/policy/route-map/{route-map-id}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/match": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set/as-path-prepend": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set/community": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set/community/{community-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set/large-community": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set/large-community/{large-community-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set/aggregator-as": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set/aggregator-as/{asn-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set/aggregator-as/{asn-id}/address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/set/aggregator-as/{asn-id}/address/{ipv4-address-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/action": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/action/deny": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/action/permit": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/policy/route-map/{route-map-id}/rule/{rule-id}/action/permit/exit-policy": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/bgp": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/router/bgp/in": [
+      "post"
+    ],
+    "/router/bgp/out": [
+      "post"
+    ],
+    "/router/bgp/soft": [
+      "post"
+    ],
+    "/router/bgp/soft/in": [
+      "post"
+    ],
+    "/router/bgp/soft/out": [
+      "post"
+    ],
+    "/router/bgp/graceful-restart": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/bgp/convergence-wait": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/bgp/queue-limit": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/ospf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/ospf/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/ospf/timers/lsa": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/ospf/timers/spf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/ospf6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pim": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/pim/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/igmp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/igmp/interfaces": [
+      "post"
+    ],
+    "/router/vrrp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/vrr": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/adaptive-routing": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/graceful-restart": [
+      "get"
+    ],
+    "/bridge": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/vlan-vni-map": [
+      "get"
+    ],
+    "/bridge/domain": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop/vlan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop/vlan/{vid}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop/vlan/{vid}/trust": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop/vlan/{vid}/trust/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop/vlan/{vid}/bind": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop/vlan/{vid}/bind/{interface-id}": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop6/vlan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop6/vlan/{vid}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop6/vlan/{vid}/trust": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop6/vlan/{vid}/trust/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop6/vlan/{vid}/bind": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop6/vlan/{vid}/bind/{interface-id}": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/svi-force-up": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/port": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/stp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/stp/state": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/stp/counters": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/stp/port": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/stp/port/{interface-id}": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/stp/vlan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/stp/vlan/{vid}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/multicast": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/multicast/snooping": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/multicast/snooping/querier": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan-vni-map": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/vlan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}/vni": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}/vni/{vni-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}/vni/{vni-id}/flooding": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}/vni/{vni-id}/flooding/head-end-replication": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}/vni/{vni-id}/flooding/head-end-replication/{hrep-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}/ptp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}/multicast": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}/multicast/snooping": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/vlan/{vid}/multicast/snooping/querier": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/bridge/domain/{domain-id}/mac-table": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/mac-table/dynamic": [
+      "post"
+    ],
+    "/bridge/domain/{domain-id}/mac-table/dynamic/mac": [
+      "post"
+    ],
+    "/bridge/domain/{domain-id}/mdb": [
+      "get"
+    ],
+    "/bridge/domain/{domain-id}/router-port": [
+      "get"
+    ],
+    "/mlag": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/mlag/lacp-conflict": [
+      "post"
+    ],
+    "/mlag/consistency-checker": [
+      "get"
+    ],
+    "/mlag/consistency-checker/global": [
+      "get"
+    ],
+    "/mlag/backup": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/mlag/backup/{backup-ip}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/mlag/fdb": [
+      "get"
+    ],
+    "/mlag/fdb/local": [
+      "get"
+    ],
+    "/mlag/fdb/peer": [
+      "get"
+    ],
+    "/mlag/fdb/permanent": [
+      "get"
+    ],
+    "/mlag/mdb": [
+      "get"
+    ],
+    "/mlag/mdb/local": [
+      "get"
+    ],
+    "/mlag/mdb/peer": [
+      "get"
+    ],
+    "/mlag/multicast-router-port": [
+      "get"
+    ],
+    "/mlag/multicast-router-port/local": [
+      "get"
+    ],
+    "/mlag/multicast-router-port/peer": [
+      "get"
+    ],
+    "/mlag/vni": [
+      "get"
+    ],
+    "/mlag/vni/local": [
+      "get"
+    ],
+    "/mlag/vni/peer": [
+      "get"
+    ],
+    "/mlag/lacpdb": [
+      "get"
+    ],
+    "/mlag/lacpdb/local": [
+      "get"
+    ],
+    "/mlag/lacpdb/peer": [
+      "get"
+    ],
+    "/mlag/neighbor": [
+      "get"
+    ],
+    "/mlag/neighbor/dynamic": [
+      "get"
+    ],
+    "/mlag/neighbor/permanent": [
+      "get"
+    ],
+    "/evpn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/route-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/dad": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/dad/duplicate-action": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/dad/duplicate-action/freeze": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/vni": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/evpn/vni/{vni-id}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/evpn/vni/{vni-id}/remote-vtep": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/multihoming": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/multihoming/esi": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/multihoming/esi/{esi-id}": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/multihoming/bgp-info": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/multihoming/bgp-info/esi": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/multihoming/bgp-info/esi/{esi-id}": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/multihoming/bgp-info/esi/{esi-id}/remote-vtep": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/multihoming/bgp-info/esi/{esi-id}/remote-vtep/{ipv4-address-id}": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/route-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/vni/{vni-id}/route-target": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/vni/{vni-id}/route-target/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/vni/{vni-id}/route-target/export/{rt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/vni/{vni-id}/route-target/import": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/vni/{vni-id}/route-target/import/{rt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/vni/{vni-id}/route-target/both": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/vni/{vni-id}/route-target/both/{rt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/vni/{vni-id}/mac": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/mac/{mac-address-id}": [
+      "get",
+      "post"
+    ],
+    "/evpn/vni/{vni-id}/host": [
+      "get"
+    ],
+    "/evpn/vni/{vni-id}/host/{ip-address-id}": [
+      "get",
+      "post"
+    ],
+    "/evpn/vni/{vni-id}/bgp-info": [
+      "get"
+    ],
+    "/evpn/multihoming": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/multihoming/ead-evi-route": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/multihoming/segment": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/evpn/multihoming/esi": [
+      "get"
+    ],
+    "/evpn/multihoming/esi/{esi-id}": [
+      "get"
+    ],
+    "/evpn/multihoming/esi/{esi-id}/remote-vtep": [
+      "get"
+    ],
+    "/evpn/multihoming/esi/{esi-id}/remote-vtep/{ipv4-address-id}": [
+      "get"
+    ],
+    "/evpn/multihoming/bgp-info": [
+      "get"
+    ],
+    "/evpn/multihoming/bgp-info/esi": [
+      "get"
+    ],
+    "/evpn/multihoming/bgp-info/esi/{esi-id}": [
+      "get"
+    ],
+    "/evpn/multihoming/bgp-info/esi/{esi-id}/remote-vtep": [
+      "get"
+    ],
+    "/evpn/multihoming/bgp-info/esi/{esi-id}/remote-vtep/{ipv4-address-id}": [
+      "get"
+    ],
+    "/evpn/multihoming/bgp-info/esi/{esi-id}/fragments": [
+      "get"
+    ],
+    "/evpn/multihoming/bgp-info/esi/{esi-id}/fragments/{fragment-id}": [
+      "get"
+    ],
+    "/evpn/access-vlan-info": [
+      "get"
+    ],
+    "/evpn/access-vlan-info/vlan": [
+      "get"
+    ],
+    "/evpn/access-vlan-info/vlan/{vlan-id}": [
+      "get"
+    ],
+    "/evpn/access-vlan-info/vlan/{vlan-id}/member-interface": [
+      "get"
+    ],
+    "/evpn/l2-nhg": [
+      "get"
+    ],
+    "/evpn/l2-nhg/vtep-ip": [
+      "get"
+    ],
+    "/evpn/l2-nhg/vtep-ip/{vtep-ip-id}": [
+      "get"
+    ],
+    "/qos": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/pfc-watchdog": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/ingress-service-pool": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/ingress-service-pool/{pool-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-service-pool": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-service-pool/{pool-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/ingress-lossy-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/ingress-lossy-buffer/priority-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/ingress-lossy-buffer/priority-group/{priority-group-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/ingress-lossy-buffer/priority-group/{priority-group-id}/switch-priority": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/ingress-lossy-buffer/priority-group/{priority-group-id}/switch-priority/{qos-sp-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/ingress-lossless-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/ingress-mgmt-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-lossless-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-lossy-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-lossy-buffer/traffic-class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-lossy-buffer/traffic-class/{traffic-class-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-lossy-buffer/multicast-switch-priority": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-lossy-buffer/multicast-switch-priority/{qos-sp-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-lossy-buffer/multicast-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/advance-buffer-config/{profile-id}/egress-mgmt-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/traffic-pool": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/traffic-pool/{traffic-pool-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/traffic-pool/{traffic-pool-id}/switch-priority": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/traffic-pool/{traffic-pool-id}/switch-priority/{qos-sp-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/link-pause": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/link-pause/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/pfc": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/pfc/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/pfc/{profile-id}/switch-priority": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/pfc/{profile-id}/switch-priority/{qos-sp-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/mapping": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/mapping/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/mapping/{profile-id}/pcp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/mapping/{profile-id}/pcp/{qos-pcp-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/mapping/{profile-id}/dscp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/mapping/{profile-id}/dscp/{qos-dscp-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/remark": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/remark/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/remark/{profile-id}/switch-priority": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/remark/{profile-id}/switch-priority/{qos-sp-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/congestion-control": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/congestion-control/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/congestion-control/{profile-id}/traffic-class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/congestion-control/{profile-id}/traffic-class/{qos-tc-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-queue-mapping": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-queue-mapping/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-queue-mapping/{profile-id}/switch-priority": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-queue-mapping/{profile-id}/switch-priority/{qos-sp-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-scheduler": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-scheduler/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-scheduler/{profile-id}/traffic-class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-scheduler/{profile-id}/traffic-class/{qos-tc-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-shaper": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-shaper/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-shaper/{profile-id}/traffic-class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/egress-shaper/{profile-id}/traffic-class/{qos-tc-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/roce": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/qos/roce/prio-map": [
+      "get"
+    ],
+    "/qos/roce/tc-map": [
+      "get"
+    ],
+    "/qos/roce/pool-map": [
+      "get"
+    ],
+    "/qos/roce/pool": [
+      "get"
+    ],
+    "/qos/buffer": [
+      "get"
+    ],
+    "/qos/buffer/pool": [
+      "get",
+      "post"
+    ],
+    "/qos/buffer/descriptor-pool": [
+      "get"
+    ],
+    "/qos/buffer/multicast-switch-priority": [
+      "get",
+      "post"
+    ],
+    "/interface": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/interface/{interface-id}/port-security": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/sflow": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/port-security/static-mac": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/port-security/static-mac/{mac-address-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/port-security/mac-addresses": [
+      "get"
+    ],
+    "/interface/{interface-id}/counters": [
+      "get",
+      "post"
+    ],
+    "/interface/{interface-id}/counters/errors": [
+      "get"
+    ],
+    "/interface/{interface-id}/counters/drops": [
+      "get"
+    ],
+    "/interface/{interface-id}/counters/pktdist": [
+      "get"
+    ],
+    "/interface/{interface-id}/router": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/pbr": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/pbr/map": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/pbr/map/{pbr-map-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/ospf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/ospf/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/ospf/authentication": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/ospf/bfd": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/ospf6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/pim": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/pim/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/pim/bfd": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/pim/address-family": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/pim/address-family/ipv4-unicast": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/pim/address-family/ipv4-unicast/allow-rp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/router/adaptive-routing": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bond": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bond/member": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bond/member/{member-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bond/mlag": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bond/mlag/lacp-conflict": [
+      "post"
+    ],
+    "/interface/{interface-id}/bond/mlag/consistency-checker": [
+      "get"
+    ],
+    "/interface/{interface-id}/bridge": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bridge/domain": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bridge/domain/{domain-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bridge/domain/{domain-id}/stp": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/interface/{interface-id}/bridge/domain/{domain-id}/stp/vlan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bridge/domain/{domain-id}/stp/vlan/{vid}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bridge/domain/{domain-id}/vlan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/bridge/domain/{domain-id}/vlan/{vid}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/link/stats": [
+      "get"
+    ],
+    "/interface/{interface-id}/link/flag": [
+      "get"
+    ],
+    "/interface/{interface-id}/link/breakout": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/link/breakout/{mode-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv6/{neighbor-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv6/{neighbor-id}/lladdr": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv6/{neighbor-id}/lladdr/{lladdr-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv6/{neighbor-id}/lladdr/{lladdr-id}/state": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv6/{neighbor-id}/lladdr/{lladdr-id}/flag": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv4": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv4/{neighbor-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv4/{neighbor-id}/lladdr": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv4/{neighbor-id}/lladdr/{lladdr-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv4/{neighbor-id}/lladdr/{lladdr-id}/state": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/neighbor/ipv4/{neighbor-id}/lladdr/{lladdr-id}/flag": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip/neighbor/ipv4": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip/neighbor/ipv4/{neighbor-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip/neighbor/ipv6": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip/neighbor/ipv6/{neighbor-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip/ipv4": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/ipv6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/vrr": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/vrr/address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/vrr/address/{ip-prefix-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/vrr/state": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/igmp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/igmp/static-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/igmp/static-group/{static-group-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/igmp/static-group/{static-group-id}/source-address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/igmp/static-group/{static-group-id}/source-address/{source-addresses-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/igmp/group": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip/igmp/group/{group-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip/vrrp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/vrrp/virtual-router": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/vrrp/virtual-router/{virtual-router-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/vrrp/virtual-router/{virtual-router-id}/address-family": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip/vrrp/virtual-router/{virtual-router-id}/address-family/{afi}": [
+      "get"
+    ],
+    "/interface/{interface-id}/ip/vrrp/virtual-router/{virtual-router-id}/address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/vrrp/virtual-router/{virtual-router-id}/address/{ip-address-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor-discovery": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor-discovery/rdnss": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor-discovery/rdnss/{ipv6-address-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor-discovery/prefix": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor-discovery/prefix/{ipv6-prefix-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor-discovery/dnssl": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor-discovery/dnssl/{domain-name-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor-discovery/router-advertisement": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ip/neighbor-discovery/home-agent": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/lldp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/lldp/neighbor": [
+      "get"
+    ],
+    "/interface/{interface-id}/lldp/neighbor/{neighbor-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/lldp/neighbor/{neighbor-id}/bridge": [
+      "get"
+    ],
+    "/interface/{interface-id}/lldp/neighbor/{neighbor-id}/bridge/vlan": [
+      "get"
+    ],
+    "/interface/{interface-id}/lldp/neighbor/{neighbor-id}/bridge/vlan/{vid}": [
+      "get"
+    ],
+    "/interface/{interface-id}/lldp/application-tlv": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/lldp/application-tlv/app": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/lldp/application-tlv/app/{l4-app-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/lldp/application-tlv/tcp-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/lldp/application-tlv/tcp-port/{l4-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/lldp/application-tlv/udp-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/lldp/application-tlv/udp-port/{l4-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/qos": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/qos/pfc": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/qos/pfc-watchdog": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/interface/{interface-id}/qos/pfc-watchdog/status": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/pfc-watchdog/status/{qos-tc-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/link-pause": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/qos/mapping": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/qos/mapping/pcp": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/mapping/pcp/{qos-pcp-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/mapping/dscp": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/mapping/dscp/{qos-dscp-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/remark": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/qos/remark/switch-priority": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/remark/switch-priority/{qos-sp-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/congestion-control": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/qos/congestion-control/traffic-class": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/congestion-control/traffic-class/{qos-tc-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/egress-scheduler": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/qos/egress-scheduler/traffic-class": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/egress-scheduler/traffic-class/{qos-tc-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/egress-queue-mapping": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/egress-queue-mapping/switch-priority": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/egress-queue-mapping/switch-priority/{qos-sp-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/egress-shaper": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/qos/egress-shaper/traffic-class": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/egress-shaper/traffic-class/{qos-tc-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/counters/qos": [
+      "get"
+    ],
+    "/interface/{interface-id}/counters/qos/port-stats": [
+      "get"
+    ],
+    "/interface/{interface-id}/counters/qos/egress-queue-stats": [
+      "get"
+    ],
+    "/interface/{interface-id}/counters/qos/ingress-buffer-stats": [
+      "get"
+    ],
+    "/interface/{interface-id}/counters/qos/pfc-stats": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/roce": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/roce/counters": [
+      "get",
+      "post"
+    ],
+    "/interface/{interface-id}/qos/roce/status": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/roce/status/pool-map": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/roce/status/prio-map": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/roce/status/tc-map": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer": [
+      "get",
+      "post"
+    ],
+    "/interface/{interface-id}/qos/buffer/ingress-port": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer/ingress-priority-group": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer/egress-port": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer/egress-traffic-class": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer/egress-multicast": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer/descriptor": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer/descriptor/ingress-port": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer/descriptor/ingress-priority-group": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer/descriptor/egress-port": [
+      "get"
+    ],
+    "/interface/{interface-id}/qos/buffer/descriptor/egress-traffic-class": [
+      "get"
+    ],
+    "/interface/{interface-id}/evpn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/evpn/multihoming": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/evpn/multihoming/segment": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ptp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ptp/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/ptp/shaper": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/counters/ptp": [
+      "get",
+      "post"
+    ],
+    "/interface/{interface-id}/tunnel": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/storm-control": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/interface": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/interface/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/pool": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/pool/{pool-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/pool/{pool-id}/domain-name-server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/pool/{pool-id}/domain-name-server/{server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/pool/{pool-id}/gateway": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/pool/{pool-id}/gateway/{gateway-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/pool/{pool-id}/range": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/pool/{pool-id}/range/{range-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/domain-name-server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/domain-name-server/{server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/static": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server/{vrf-id}/static/{static-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/interface": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/interface/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/pool": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/pool/{pool-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/pool/{pool-id}/domain-name-server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/pool/{pool-id}/domain-name-server/{server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/pool/{pool-id}/range": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/pool/{pool-id}/range/{range-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/domain-name-server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/domain-name-server/{server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/static": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-server6/{vrf-id}/static/{static-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dns": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dns/{vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dns/{vrf-id}/server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dns/{vrf-id}/server/{dns-server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ntp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ntp/{vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ntp/{vrf-id}/server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ntp/{vrf-id}/server/{server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ntp/{vrf-id}/pool": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ntp/{vrf-id}/pool/{server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/server-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/server-group/{server-group-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/server-group/{server-group-id}/server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/server-group/{server-group-id}/server/{server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/server-group/{server-group-id}/upstream-interface": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/server-group/{server-group-id}/upstream-interface/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/downstream-interface": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/downstream-interface/{downstream-interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/gateway-interface": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/gateway-interface/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/agent": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay/{vrf-id}/agent/use-pif-circuit-id": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay6/{vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay6/{vrf-id}/interface": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay6/{vrf-id}/interface/upstream": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay6/{vrf-id}/interface/upstream/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay6/{vrf-id}/interface/downstream": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/dhcp-relay6/{vrf-id}/interface/downstream/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/control": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/control/{service-name-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/control/{service-name-id}/resource-limit": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/synce": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/synce": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/counters/synce": [
+      "get",
+      "post"
+    ],
+    "/service/ptp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/foreign-masters": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/counters": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/status": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/acceptable-master": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/acceptable-master/{clock-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/unicast-master": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/unicast-master/{table-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/unicast-master/{table-id}/address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/unicast-master/{table-id}/address/{ip-mac-address-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/profile": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/profile/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/monitor": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/ptp/{instance-id}/monitor/timestamp-log": [
+      "get",
+      "post"
+    ],
+    "/service/ptp/{instance-id}/monitor/violations": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/monitor/violations/log": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/monitor/violations/log/acceptable-master": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/monitor/violations/log/forced-master": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/monitor/violations/log/max-offset": [
+      "get",
+      "post"
+    ],
+    "/service/ptp/{instance-id}/monitor/violations/log/min-offset": [
+      "get",
+      "post"
+    ],
+    "/service/ptp/{instance-id}/monitor/violations/log/path-delay": [
+      "get",
+      "post"
+    ],
+    "/service/ptp/{instance-id}/current": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/clock-quality": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/parent": [
+      "get"
+    ],
+    "/service/ptp/{instance-id}/time-properties": [
+      "get"
+    ],
+    "/system": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/sflow": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/sflow/collector": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/sflow/collector/{collector-ip}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/sflow/sampling-rate": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/sflow/agent": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/sflow/dropmon": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/sflow/dropmon/{drop-type}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/packages": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/packages/key": [
+      "get",
+      "post"
+    ],
+    "/system/packages/key/{key-id}": [
+      "get",
+      "post"
+    ],
+    "/system/packages/repository": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/packages/repository/{repo-url-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/packages/repository/{repo-url-id}/distribution": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/packages/repository/{repo-url-id}/distribution/{repo-dist-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/packages/repository/{repo-url-id}/distribution/{repo-dist-id}/pool": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/packages/repository/{repo-url-id}/distribution/{repo-dist-id}/pool/{repo-pool-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/packages/to": [
+      "post"
+    ],
+    "/system/time": [
+      "get",
+      "post"
+    ],
+    "/system/acl": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/counter": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/counter/rates": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/counter/polling-interval": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/control-plane": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/control-plane/trap": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/control-plane/policer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/control-plane/trap/{trap-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/control-plane/policer/{policer-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/control-plane/policer/{policer-id}/statistics": [
+      "get"
+    ],
+    "/system/control-plane/acl": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/control-plane/acl/{acl-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/control-plane/acl/{acl-id}/statistics": [
+      "get"
+    ],
+    "/system/control-plane/acl/{acl-id}/statistics/{rule-id}": [
+      "get"
+    ],
+    "/system/global": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/global/reserved": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/global/reserved/routing-table": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/global/reserved/routing-table/pbr": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/global/reserved/vlan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/global/reserved/vlan/internal": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/global/reserved/vlan/l3-vni-vlan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/global/arp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/global/arp/garbage-collection-threshold": [
+      "get"
+    ],
+    "/system/global/nd": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/global/nd/garbage-collection-threshold": [
+      "get"
+    ],
+    "/system/global/svi-force-up": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/forwarding": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/forwarding/lag-hash": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/forwarding/ecmp-hash": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/forwarding/ecmp-weight-normalisation": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/forwarding/programming": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/forwarding/profile-option": [
+      "get"
+    ],
+    "/interface/{interface-id}/packet-trim": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/packet-trim/egress-eligibility": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/packet-trim/egress-eligibility/traffic-class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/packet-trim/egress-eligibility/traffic-class/{tc-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/forwarding/packet-trim": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/forwarding/packet-trim/remark": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/span": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/span/source-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/span/source-port/{src-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/span/destination": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/span/destination/{dest-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/span/truncate": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/erspan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/erspan/source-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/erspan/source-port/{src-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/erspan/destination": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/erspan/destination/source-ip": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/erspan/destination/source-ip/{source-ip}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/erspan/destination/dest-ip": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/erspan/destination/dest-ip/{dest-ip}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/port-mirror/session/{session-id}/erspan/truncate": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/dot1x": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/dot1x/radius": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/dot1x/radius/server": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/dot1x/radius/server/{server-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/tech-support": [
+      "get",
+      "post"
+    ],
+    "/system/tech-support/files": [
+      "get"
+    ],
+    "/system/tech-support/files/{file-name}": [
+      "post"
+    ],
+    "/router/segment-routing/srv6/stats": [
+      "get",
+      "post"
+    ],
+    "/router/segment-routing/srv6/stats/sid": [
+      "get",
+      "post"
+    ],
+    "/router/segment-routing/srv6/stats/sid/{sid}": [
+      "get",
+      "post"
+    ],
+    "/router/segment-routing/srv6/stats/no-sid-drops": [
+      "get",
+      "post"
+    ],
+    "/interface/{interface-id}/dot1x": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/dot1x/authorized-sessions": [
+      "post"
+    ],
+    "/interface/{interface-id}/dot1x/authenticated-sessions": [
+      "get"
+    ],
+    "/interface/{interface-id}/dot1x/authenticated-sessions/{mac-address-id}": [
+      "get"
+    ],
+    "/interface/{interface-id}/dot1x/authenticated-sessions/{mac-address-id}/counters": [
+      "get"
+    ],
+    "/system/config/apply": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/config/apply/ignore": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/config/apply/ignore/{ignore-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/config/snippet": [
+      "get"
+    ],
+    "/service/lldp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/lldp/application-tlv": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/lldp/application-tlv/app": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/lldp/application-tlv/app/{l4-app-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/lldp/application-tlv/tcp-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/lldp/application-tlv/tcp-port/{l4-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/lldp/application-tlv/udp-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/service/lldp/application-tlv/udp-port/{l4-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/wjh": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/wjh/channel": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/wjh/packet-buffer": [
+      "get"
+    ],
+    "/system/wjh/channel/{channel-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/wjh/channel/{channel-id}/trigger": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/authentication-order": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/aaa/authentication-order/{priority-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/nat": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/software-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/software-stats/systemd": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/software-stats/systemd/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/software-stats/systemd/unit-profile": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/software-stats/systemd/unit-profile/{unit-profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/software-stats/systemd/unit-profile/{unit-profile-id}/unit": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/buffer-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/buffer-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/ai-ethernet-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/ai-ethernet-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/health": [
+      "get"
+    ],
+    "/system/telemetry/health/internal-metrics": [
+      "get"
+    ],
+    "/system/telemetry/health/internal-metrics/process": [
+      "get"
+    ],
+    "/system/telemetry/health/internal-metrics/receivers": [
+      "get"
+    ],
+    "/system/telemetry/health/internal-metrics/processors": [
+      "get"
+    ],
+    "/system/telemetry/health/internal-metrics/exporters": [
+      "get"
+    ],
+    "/system/telemetry/snapshot": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/snapshot-file": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/threshold": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/threshold/{threshold-stats-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/threshold/{threshold-stats-id}/action": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/threshold/{threshold-stats-id}/action/log": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/threshold/{threshold-stats-id}/action/collect": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats-type": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/buffer": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/buffer/pool": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/buffer/pool/{buffer-pool-id}": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/good": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/good/tx": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/good/rx": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/discard": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/discard/tx": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/discard/rx": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/discard/general": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/all": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/all/tx": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/all/rx": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/tc": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/tc/{if-tc-id}": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/tc/{if-tc-id}/tx": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/pg": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/pg/{if-pg-id}": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/packet/pg/{if-pg-id}/rx": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/buffer": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/buffer/tc": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/buffer/tc/{if-tc-id}": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/buffer/pg": [
+      "get"
+    ],
+    "/system/telemetry/platform-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/platform-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/platform-stats/class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/platform-stats/class/transceiver-info": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/platform-stats/class/cpu": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/platform-stats/class/disk": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/platform-stats/class/file-system": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/platform-stats/class/environment-sensor": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/platform-stats/class/platform-info": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/platform-stats/class/memory": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/buffer/pg/{if-pg-id}": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/buffer/ingress-port": [
+      "get"
+    ],
+    "/system/telemetry/snapshot/port-group/{port-group-id}/stats/interface/{intf-id}/buffer/ingress-port/{buffer-pool-id}": [
+      "get"
+    ],
+    "/system/telemetry/interface-stats/class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/class/phy": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/switch-priority": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/switch-priority/{if-int-pg-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/ingress-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/ingress-buffer/priority-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/ingress-buffer/priority-group/{if-pg-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/egress-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/egress-buffer/traffic-class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/interface-stats/egress-buffer/traffic-class/{if-tc-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/histogram": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/control-plane-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/control-plane-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/histogram/ingress-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/histogram/egress-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/histogram/counter": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/histogram/latency": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/histogram/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/histogram/interface": [
+      "get"
+    ],
+    "/system/telemetry/bw-gauge": [
+      "get"
+    ],
+    "/system/telemetry/bw-gauge/interface": [
+      "get"
+    ],
+    "/system/telemetry/snapshot-file": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/lldp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/lldp/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/interface-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/interface-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/buffer-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/buffer-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/ai-ethernet-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/ai-ethernet-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/software-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/software-stats/systemd": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/software-stats/systemd/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/histogram": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/histogram/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/router": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/router/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/control-plane-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/control-plane-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats/class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats/class/cpu": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats/class/disk": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats/class/file-system": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats/class/environment-sensor": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats/class/platform-info": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats/class/memory": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/platform-stats/class/transceiver-info": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/lldp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/stats-group/{stats-group-id}/lldp/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/hft": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/system/telemetry/hft/profile": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/hft/profile/{profile-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/hft/profile/{profile-id}/traffic-class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/hft/profile/{profile-id}/counter": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/hft/target": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/hft/job": [
+      "get",
+      "post"
+    ],
+    "/system/telemetry/hft/job/{hft-job-id}": [
+      "get",
+      "post"
+    ],
+    "/system/telemetry/router": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/bgp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/bgp/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/rib": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/rib/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/vrf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/vrf/{vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/vrf/{vrf-id}/bgp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/vrf/{vrf-id}/bgp/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/vrf/{vrf-id}/bgp/peer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/vrf/{vrf-id}/bgp/peer/{neighbor-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/vrf/{vrf-id}/bgp/peer/{neighbor-id}/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/vrf/{vrf-id}/rib": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/system/telemetry/router/vrf/{vrf-id}/rib/export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/label": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/label/{label-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/ingress-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/ingress-buffer/priority-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/ingress-buffer/priority-group/{if-pg-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/ingress-buffer/priority-group/{if-pg-id}/threshold": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/ingress-buffer/priority-group/{if-pg-id}/snapshot": [
+      "get"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/egress-buffer": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/egress-buffer/traffic-class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/egress-buffer/traffic-class/{if-tc-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/egress-buffer/traffic-class/{if-tc-id}/threshold": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/egress-buffer/traffic-class/{if-tc-id}/snapshot": [
+      "get"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/counter": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/counter/counter-type": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/counter/counter-type/{if-counter-type-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/counter/counter-type/{if-counter-type-id}/threshold": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/counter/counter-type/{if-counter-type-id}/snapshot": [
+      "get"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/latency": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/latency/traffic-class": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/latency/traffic-class/{if-tc-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/latency/traffic-class/{if-tc-id}/threshold": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/interface/{interface-id}/telemetry/histogram/latency/traffic-class/{if-tc-id}/snapshot": [
+      "get"
+    ],
+    "/interface/{interface-id}/telemetry/bw-gauge": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/loopback": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/loopback/ip": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/loopback/ip/address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/loopback/ip/address/{ip-prefix-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/evpn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/evpn/vni": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/evpn/bgp-info": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/evpn/remote-router-mac": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/evpn/remote-router-mac/{mac-address-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/evpn/nexthop-vtep": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/evpn/nexthop-vtep/{nexthop-vtep-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/rib": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route-count": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route-count/protocol": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/fib-filter": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/fib-filter/protocol": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/fib-filter/protocol/{import-protocol-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}/route-entry": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}/route-entry/{route-entry}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}/route-entry/{route-entry}/flags": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}/route-entry/{route-entry}/via-entry": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}/route-entry/{route-entry}/via-entry/{via-entry-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}/route-entry/{route-entry}/via-entry/{via-entry-id}/flags": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}/route-entry/{route-entry}/via-entry/{via-entry-id}/label": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}/route-entry/{route-entry}/via-entry/{via-entry-id}/resolved-via-entry": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route/{route-id}/route-entry/{route-entry}/via-entry/{via-entry-id}/resolved-via-entry/{resolved-via-entry-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking/{afi}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking/{afi}/route-map": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking/{afi}/route-map/{nht-routemap-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking/{afi}/route-map/{nht-routemap-id}/protocol": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking/{afi}/route-map/{nht-routemap-id}/protocol/{nht-protocol-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking/{afi}/ip-address": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking/{afi}/ip-address/{nht-ip-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking/{afi}/ip-address/{nht-ip-id}/resolved-via": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/nexthop-tracking/{afi}/ip-address/{nht-ip-id}/protocol": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/nexthop": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/nexthop/{afi}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/nexthop/{afi}/ip-address": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/nexthop/{afi}/ip-address/{ip-address-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/nexthop/{afi}/ip-address/{ip-address-id}/resolved-via": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/nexthop/{afi}/ip-address/{ip-address-id}/path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/nexthop/{afi}/ip-address/{ip-address-id}/path/{path-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/soo-route": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/soo-route/{ip-address-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/soo-route/{ip-address-id}/route-with-soo": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/soo-route/{ip-address-id}/peer-index": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/advertise-origin": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/nhg-per-origin": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/redistribute": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/redistribute/static": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/redistribute/connected": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/redistribute/kernel": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/redistribute/ospf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/aggregate-route": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/aggregate-route/{aggregate-route-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/network": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/network/{static-network-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route-import": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route-import/from-vrf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route-import/from-vrf/list": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route-import/from-vrf/list/{leak-vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/multipaths": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/admin-distance": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route-export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route-export/to-evpn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/nexthop": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/nexthop/{nexthop-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/peer": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/flags": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/bestpath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/aspath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/large-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/ext-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route/{route-id}/path/{path-id}/cluster": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route-count": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/update-group": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/update-group/{group-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/update-group/{group-id}/sub-group": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/route": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/route/{evpn-route-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/route-count": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/update-group": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/update-group/{group-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/update-group/{group-id}/sub-group": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/soo-route": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/soo-route/{ip-address-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/soo-route/{ip-address-id}/route-with-soo": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/soo-route/{ip-address-id}/peer-index": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/advertise-origin": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/nhg-per-origin": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/aggregate-route": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/aggregate-route/{aggregate-route-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/network": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/network/{static-network-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route-import": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route-import/from-vrf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route-import/from-vrf/list": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route-import/from-vrf/list/{leak-vrf-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/multipaths": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/admin-distance": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route-export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route-export/to-evpn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/redistribute": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/redistribute/static": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/redistribute/connected": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/redistribute/kernel": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/redistribute/ospf6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/nexthop": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/nexthop/{nexthop-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/peer": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/flags": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/bestpath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/aspath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/large-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/ext-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route/{route-id}/path/{path-id}/cluster": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route-count": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/update-group": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/update-group/{group-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/update-group/{group-id}/sub-group": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/path-selection": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/path-selection/aspath": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/path-selection/med": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/path-selection/multipath": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/route-reflection": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/bfd": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/ttl-security": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/capabilities": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/local-as": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/community-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/attribute-mod": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/aspath": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/aspath/allow-my-asn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/prefix-limits": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/prefix-limits/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/default-route-origination": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/policy": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/policy/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/policy/outbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv4-unicast/conditional-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/policy": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/policy/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/policy/outbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/aspath/allow-my-asn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/aspath": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/prefix-limits": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/prefix-limits/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/default-route-origination": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/community-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/attribute-mod": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/ipv6-unicast/conditional-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/attribute-mod": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/aspath": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/aspath/allow-my-asn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/policy": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/policy/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/policy/outbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/prefix-limits": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/peer-group/{peer-group-id}/address-family/l2vpn-evpn/prefix-limits/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/route-export": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/route-export/to-evpn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/route-export/to-evpn/route-target": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/route-export/to-evpn/route-target/{rt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/route-import": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/route-import/from-evpn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/route-import/from-evpn/route-target": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/route-import/from-evpn/route-target/{rt-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/confederation": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/dynamic-neighbor": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/dynamic-neighbor/listen-range": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/dynamic-neighbor/listen-range/{ip-sub-prefix-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/confederation/member-as": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/confederation/member-as/{asn-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/bfd": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/capabilities": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/local-as": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/graceful-restart": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/ttl-security": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/nexthop": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/message-stats": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/ebgp-policy": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/route-counters": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}/nexthop": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}/nexthop/{nexthop-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}/peer": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}/flags": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}/bestpath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}/aspath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}/community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}/large-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes/{route-id}/path/{path-id}/ext-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}/nexthop": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}/nexthop/{nexthop-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}/peer": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}/flags": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}/bestpath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}/aspath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}/community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}/large-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes/{route-id}/path/{path-id}/ext-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}/nexthop": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}/nexthop/{nexthop-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}/peer": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}/flags": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}/bestpath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}/aspath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}/community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}/large-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes/{route-id}/path/{path-id}/ext-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/attribute-mod": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/aspath": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/aspath/allow-my-asn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/policy": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/policy/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/policy/outbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/prefix-limits": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/prefix-limits/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/default-route-origination": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/community-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/conditional-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/capabilities": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/graceful-restart": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/graceful-restart/timers": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/graceful-restart/timers/stale-path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/graceful-restart/timers/selection-deferral": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/route-counters": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}/nexthop": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}/nexthop/{nexthop-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}/peer": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}/flags": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}/bestpath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}/aspath": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}/community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}/large-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes/{route-id}/path/{path-id}/ext-community": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/attribute-mod": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/aspath": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/aspath/allow-my-asn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/prefix-limits": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/prefix-limits/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/default-route-origination": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/policy": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/policy/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/policy/outbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/community-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/conditional-advertise": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/capabilities": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/graceful-restart": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/graceful-restart/timers": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/graceful-restart/timers/stale-path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/graceful-restart/timers/selection-deferral": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn": [
+      "delete",
+      "get",
+      "patch",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/soft": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/soft/in": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/soft/out": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/attribute-mod": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/aspath": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/aspath/allow-my-asn": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/policy": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/policy/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/policy/outbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/prefix-limits": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/prefix-limits/inbound": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/capabilities": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/graceful-restart": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/graceful-restart/timers": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/graceful-restart/timers/stale-path": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/l2vpn-evpn/graceful-restart/timers/selection-deferral": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/distance": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/distance/{distance-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/distance/{distance-id}/via": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/distance/{distance-id}/via/{via-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/distance/{distance-id}/via/{via-id}/flag": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/distance/{distance-id}/via/{via-id}/interface": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/distance/{distance-id}/via/{via-id}/interface/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/via": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/via/{via-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/via/{via-id}/flag": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/via/{via-id}/interface": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/static/{route-id}/via/{via-id}/interface/{interface-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/ptp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/interfaces": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/pim/interface-traffic": [
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/pim/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/ecmp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/msdp-mesh-group": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/msdp-mesh-group/{msdp-mesh-group-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/msdp-mesh-group/{msdp-mesh-group-id}/member-address": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/msdp-mesh-group/{msdp-mesh-group-id}/member-address/{mesh-member-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/address-family": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/address-family/ipv4": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/address-family/ipv4/spt-switchover": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/address-family/ipv4/rp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/address-family/ipv4/rp/{rp-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/address-family/ipv4/rp/{rp-id}/group-range": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/pim/address-family/ipv4/rp/{rp-id}/group-range/{group-range-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan/mlag": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan/source": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan/flooding": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan/flooding/head-end-replication": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan/flooding/head-end-replication/{hrep-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan/encapsulation": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan/encapsulation/dscp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan/decapsulation": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/nve/vxlan/decapsulation/dscp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/match/mac": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/set": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/erspan": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/police": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/source-nat": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/source-nat/translate-ip": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/source-nat/translate-ip/{range-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/source-nat/translate-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/source-nat/translate-port/{translate-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/dest-nat": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/dest-nat/translate-ip": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/dest-nat/translate-ip/{range-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/dest-nat/translate-port": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/dest-nat/translate-port/{translate-port-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/acl/{acl-id}/rule/{rule-id}/action/recent": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/interface": [
+      "get",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/ospf/interface/{interface-id}": [
+      "get",
+      "post"
+    ],
+    "/vrf/{vrf-id}/router/ospf/interface/{interface-id}/local-ip": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/ospf/interface/{interface-id}/local-ip/{ipv4-address-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/ospf/area": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/area/{area-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/area/{area-id}/filter-list": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/area/{area-id}/range": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/area/{area-id}/range/{range-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/area/{area-id}/network": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/area/{area-id}/network/{network-id}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/default-originate": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/distance": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/max-metric": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/log": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/neighbor": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/ospf/neighbor/{ipv4-nbr-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/ospf/neighbor/{ipv4-nbr-id}/interface": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/ospf/neighbor/{ipv4-nbr-id}/interface/{interface-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/ospf/neighbor/{ipv4-nbr-id}/interface/{interface-id}/local-ip": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/ospf/neighbor/{ipv4-nbr-id}/interface/{interface-id}/local-ip/{ipv4-address-id}": [
+      "get"
+    ],
+    "/vrf/{vrf-id}/router/ospf/redistribute": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/redistribute/static": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/redistribute/connected": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/redistribute/kernel": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/redistribute/bgp": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/timers": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/timers/lsa": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/timers/spf": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf/database": [
+      "post"
+    ],
+    "/platform/environment": [
+      "get"
+    ],
+    "/platform/asic": [
+      "get"
+    ],
+    "/platform/asic/resource": [
+      "get"
+    ],
+    "/platform/asic/resource/global": [
+      "get"
+    ],
+    "/platform/asic/resource/acl": [
+      "get"
+    ],
+    "/platform/pulse-per-second": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/platform/pulse-per-second/in": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/platform/pulse-per-second/out": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/vrf/{vrf-id}/router/ospf6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/segment-routing": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/segment-routing/srv6": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/segment-routing/srv6/locator": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/segment-routing/srv6/locator/{locator-name}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/segment-routing/static": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/segment-routing/static/srv6-sid": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/segment-routing/static/srv6-sid/{sid}": [
+      "delete",
+      "get",
+      "patch"
+    ],
+    "/router/segment-routing/srv6/sid": [
+      "get"
+    ],
+    "/router/segment-routing/srv6/sid/{sid-ipv6}": [
+      "get"
+    ]
+  }
+}

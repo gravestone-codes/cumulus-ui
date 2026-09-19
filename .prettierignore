@@ -1,0 +1,10 @@
+pnpm-lock.yaml
+packages/spec/openapi.json
+packages/spec/manifest.json
+packages/spec/src/generated/
+design/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/

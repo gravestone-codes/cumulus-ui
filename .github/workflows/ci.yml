@@ -1,0 +1,51 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:18
+        env:
+          POSTGRES_DB: cumulus
+          POSTGRES_USER: cumulus
+          POSTGRES_PASSWORD: cumulus
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgres://cumulus:cumulus@localhost:5432/cumulus
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm manifest && git diff --exit-code -- packages/spec/manifest.json
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cumulus/ui build
+      - run: pnpm dlx playwright@1.63.0 install --with-deps chromium
+      - run: pnpm --filter @cumulus/ui test:e2e

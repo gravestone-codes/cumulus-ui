@@ -1,0 +1,25 @@
+{
+  "name": "@cumulus/spec",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "manifest": "tsx scripts/manifest.ts",
+    "split": "tsx scripts/split-spec.ts",
+    "codegen": "tsx scripts/split-spec.ts && orval && tsx scripts/postgen.ts",
+    "build": "pnpm run codegen",
+    "typecheck": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "eslint src scripts"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.2",
+    "orval": "8.34.0",
+    "tsx": "4.23.13",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1"
+  }
+}

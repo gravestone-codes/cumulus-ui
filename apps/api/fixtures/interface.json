@@ -1,0 +1,10 @@
+{
+  "switch": "leaf01",
+  "rev": "operational",
+  "interface": {
+    "swp1": { "state": "up", "speed": "10G", "mtu": 9216, "counters": { "rx_errors": 0, "tx_errors": 0 } },
+    "swp2": { "state": "up", "speed": "25G", "mtu": 9216, "counters": { "rx_errors": 3, "tx_errors": 0 } },
+    "swp3": { "state": "down", "speed": "-", "mtu": 9216, "counters": { "rx_errors": 1200, "tx_errors": 0 } },
+    "bond0": { "state": "up", "speed": "50G", "mtu": 9216, "members": ["swp1", "swp2"] }
+  }
+}

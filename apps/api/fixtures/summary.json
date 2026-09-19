@@ -1,0 +1,7 @@
+{
+  "switch": "leaf01",
+  "rev": "applied",
+  "bgp": { "asn": 65001, "router_id": "10.0.0.1", "peers_up": 4, "peers_total": 4 },
+  "mlag": { "state": "active", "peer": "leaf02", "peerlink": "bond0" },
+  "platform": { "psu": ["ok", "ok"], "fans": ["ok", "ok", "ok", "ok"], "temp_c": 41 }
+}

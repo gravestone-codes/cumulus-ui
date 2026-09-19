@@ -1,0 +1,6 @@
+@import 'tailwindcss';
+
+/* Design tokens land here in Phase 2 (roadmap §7). Until then: dark canvas only. */
+:root {
+  color-scheme: dark;
+}

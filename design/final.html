@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cumulus UI — Final Design Language</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  :root {
+    --bg:#100e0c; --surface:#1a1714; --surface2:#241f1a; --text:#f6f3ef; --muted:#9c958b;
+    --border:#36312b; --brand:#cabfb0; --pass:#4fb19d; --warn:#e0a93c; --fail:#e0556b; --stale:#6e7681;
+  }
+  body { background:var(--bg); color:var(--text); font-family:"Inter",system-ui,sans-serif; letter-spacing:-0.011em; -webkit-font-smoothing:antialiased; padding-bottom:60px; }
+  .page { max-width:1060px; margin:0 auto; padding:36px 24px; }
+  .hero h1 { font-size:26px; font-weight:700; letter-spacing:-0.02em; }
+  .hero p { color:var(--muted); margin-top:8px; font-size:14px; line-height:1.65; max-width:820px; }
+  table.res { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:18px; }
+  table.res th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--border); }
+  table.res td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:top; line-height:1.55; }
+  table.res td:first-child { font-weight:600; white-space:nowrap; }
+  table.res td:nth-child(2) { color:var(--muted); }
+  section.block { margin-top:44px; }
+  section.block > h2 { font-size:19px; font-weight:700; letter-spacing:-0.02em; }
+  section.block > h2 .n { color:var(--muted); font-weight:500; margin-right:8px; }
+  section.block > .sub { color:var(--muted); font-size:13px; margin:4px 0 16px; }
+  .demo { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; position:relative; }
+  .mono { font-variant-numeric:tabular-nums; }
+  /* ---------- tables ---------- */
+  table.dt { width:100%; border-collapse:collapse; font-size:13px; }
+  table.dt th { text-align:left; font-size:11.5px; font-weight:600; color:var(--muted); padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  table.dt td { padding:10px; border-bottom:1px solid var(--border); transition:background-color .18s ease; }
+  table.dt tbody tr { transition:background-color .18s ease; }
+  table.dt tbody tr:hover td { background:rgba(202,191,176,.06); }
+  table.dt tbody tr:hover .dot { box-shadow:0 0 8px currentColor; }
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:99px; border:1px solid var(--border); color:var(--muted); }
+  .badge .dot { width:7px; height:7px; border-radius:50%; background:currentColor; transition:box-shadow .18s ease; }
+  .badge.on { color:var(--pass); border-color:rgba(79,177,157,.35); }
+  .toolrow { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .toolrow .microlabel { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .icon-btn { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:8px; border:1px solid transparent; background:none; color:var(--muted); cursor:pointer; }
+  .icon-btn:hover { color:var(--text); background:var(--surface2); }
+  .colpanel { position:absolute; z-index:60; width:288px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:8px; box-shadow:0 16px 40px rgba(0,0,0,.5); display:none; }
+  .colpanel.open { display:block; }
+  .colpanel .cap { display:flex; align-items:center; justify-content:space-between; padding:4px 8px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .colpanel .cap button { background:none; border:0; color:var(--muted); font-size:12px; cursor:pointer; text-transform:none; letter-spacing:0; }
+  .colpanel .cap button:hover { color:var(--text); }
+  .colpanel li { display:flex; align-items:center; gap:8px; border-radius:8px; padding:6px 8px; list-style:none; font-size:13px; }
+  .colpanel li:hover { background:var(--surface2); }
+  .colpanel input[type=checkbox] { width:14px; height:14px; accent-color:var(--text); }
+  .colpanel .nm { flex:1; } .colpanel li.off .nm { color:var(--muted); }
+  .colpanel .pinnedtag { font-size:10px; text-transform:uppercase; color:var(--muted); opacity:.6; margin-left:6px; }
+  .colpanel .arrows { display:flex; gap:2px; opacity:0; }
+  .colpanel li:hover .arrows { opacity:1; }
+  .colpanel .arrows button { width:20px; height:20px; display:grid; place-items:center; border-radius:5px; border:0; background:none; color:var(--muted); cursor:pointer; font-size:12px; }
+  .colpanel .arrows button:hover { background:var(--border); color:var(--text); }
+  .colpanel .arrows button:disabled { opacity:.3; }
+  /* ---------- buttons ---------- */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; font-size:13.5px; font-weight:600; padding:11px 14px; border-radius:10px; border:1px solid var(--text); background:var(--text); color:var(--bg); cursor:pointer; transition:opacity .15s, transform .05s; font-family:inherit; }
+  .btn:hover { opacity:.9; } .btn:active { transform:translateY(1px); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn:focus-visible { outline:2px solid var(--brand); outline-offset:3px; }
+  .btn.auto { width:auto; } .btn.sm { font-size:12px; padding:7px 12px; }
+  .btn-d { background:var(--fail); border-color:var(--fail); color:var(--bg); }
+  .btn-s { background:transparent; color:var(--text); border-color:var(--border); }
+  .btn-s:hover { border-color:var(--brand); opacity:1; }
+  .btn-g { background:transparent; border-color:transparent; color:var(--muted); }
+  .btn-g:hover { color:var(--text); background:var(--surface2); opacity:1; }
+  /* ---------- forms ---------- */
+  label.fl { display:block; font-size:12px; font-weight:600; margin:14px 0 2px; }
+  label.fl:first-child { margin-top:0; }
+  .lf { position:relative; display:flex; align-items:center; }
+  .lf > input { width:100%; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); font-size:14px; font-family:inherit; padding:7px 26px 8px 0; outline:none; }
+  .lf > input:focus { border-bottom-color:var(--brand); }
+  .lf.invalid > input { border-bottom-color:var(--fail); }
+  .lf .end { position:absolute; right:0; background:none; border:0; color:var(--muted); cursor:pointer; display:flex; padding:2px; }
+  .lf .end:hover { color:var(--text); }
+  .err-text { color:var(--fail); font-size:12px; margin-top:4px; }
+  .rule { border:1px dashed var(--border); border-radius:10px; padding:10px 12px; font-size:12.5px; color:var(--muted); margin-top:16px; line-height:1.6; }
+  .rule b { color:var(--text); }
+  /* ---------- dropdowns ---------- */
+  .dd { position:relative; max-width:280px; }
+  .dd-btn { width:100%; display:flex; align-items:center; gap:8px; background:transparent; border:0; border-bottom:1px solid var(--border); color:var(--text); padding:8px 22px 9px 0; font-size:14px; font-family:inherit; cursor:pointer; text-align:left; }
+  .dd-btn:hover, .dd.open .dd-btn { border-bottom-color:var(--brand); }
+  .dd-btn .chev { position:absolute; right:2px; color:var(--muted); transition:transform .18s; font-size:12px; }
+  .dd.open .dd-btn .chev { transform:rotate(180deg); }
+  .dd-menu { display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; min-width:220px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:40; box-shadow:0 16px 40px rgba(0,0,0,.5); }
+  .dd.open .dd-menu { display:block; }
+  .dd-menu input { width:100%; background:var(--surface2); border:0; border-radius:8px; padding:8px 10px; font-size:13px; color:var(--text); outline:none; margin-bottom:4px; font-family:inherit; }
+  .dd-menu button { display:flex; width:100%; align-items:center; gap:8px; background:none; border:0; color:var(--muted); font-size:13px; padding:9px 11px; border-radius:8px; cursor:pointer; text-align:left; font-family:inherit; }
+  .dd-menu button:hover, .dd-menu button.hot { background:var(--surface2); color:var(--text); }
+  /* ---------- modal ---------- */
+  .overlay { display:none; position:absolute; inset:0; background:rgba(16,14,12,.55); backdrop-filter:blur(4px); z-index:30; align-items:center; justify-content:center; padding:16px; border-radius:12px; }
+  .overlay.open { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; width:100%; max-width:340px; box-shadow:0 24px 64px rgba(0,0,0,.55); position:relative; }
+  .modal h4 { font-size:15px; font-weight:700; letter-spacing:-0.01em; margin-bottom:6px; }
+  .modal p { font-size:13px; color:var(--muted); line-height:1.6; }
+  .modal .row { display:flex; gap:8px; margin-top:18px; justify-content:flex-end; }
+  .modal .x { position:absolute; top:12px; right:12px; }
+  /* ---------- notifications: single-colour cards, coloured icons only ---------- */
+  .toaststack { position:absolute; top:12px; right:12px; display:flex; flex-direction:column; gap:8px; z-index:50; width:250px; }
+  .toast { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; font-size:12.5px; box-shadow:0 12px 32px rgba(0,0,0,.4); display:flex; gap:9px; animation:tin .25s ease-out; color:var(--text); }
+  .toast .ic { flex-shrink:0; font-weight:700; }
+  .toast b { display:block; font-size:13px; } .toast span { color:var(--muted); }
+  .toast .ic.ok { color:var(--pass); } .toast .ic.warn { color:var(--warn); } .toast .ic.err { color:var(--fail); } .toast .ic.info { color:var(--muted); }
+  @keyframes tin { from { opacity:0; transform:translateX(12px); } }
+  .alert { border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:13px; margin-top:8px; display:flex; gap:9px; background:var(--surface); color:var(--text); }
+  .alert .ic { font-weight:700; flex-shrink:0; }
+  .alert .ic.ok { color:var(--pass); } .alert .ic.warn { color:var(--warn); } .alert .ic.err { color:var(--fail); } .alert .ic.info { color:var(--muted); }
+  /* ---------- colors/type ---------- */
+  .sw { display:inline-block; width:34px; height:22px; border-radius:6px; border:1px solid rgba(255,255,255,.12); }
+  .t-big { font-size:22px; font-weight:700; letter-spacing:-0.02em; }
+  .t-body { font-size:13.5px; color:var(--muted); margin-top:4px; line-height:1.6; }
+  /* ---------- nav ---------- */
+  .sbar { background:rgba(26,23,20,.6); border:1px solid var(--border); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:2px; min-height:300px; max-width:250px; transition:max-width .2s; }
+  .sbar.collapsed { max-width:64px; }
+  .sbar.collapsed .lbl, .sbar.collapsed .scount { display:none; }
+  .sbrand { display:flex; align-items:center; gap:8px; padding:2px 4px 10px; font-weight:700; font-size:13px; }
+  .slogo { width:24px; height:24px; border-radius:7px; background:var(--text); color:var(--bg); display:grid; place-items:center; font-size:13px; font-weight:800; flex-shrink:0; }
+  .scollapse { margin-left:auto; background:none; border:1px solid var(--border); color:var(--muted); border-radius:6px; font-size:11px; padding:2px 7px; cursor:pointer; }
+  .scollapse:hover { color:var(--text); }
+  .snav { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:500; color:var(--muted); padding:8px 10px; border-radius:8px; white-space:nowrap; }
+  .snav svg { flex-shrink:0; }
+  .snav:hover { background:var(--surface2); color:var(--text); }
+  .snav.active { color:var(--text); background:var(--surface2); }
+  .sfoot { margin-top:auto; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); padding:10px 4px 0; border-top:1px solid var(--border); }
+  .savatar { width:24px; height:24px; border-radius:50%; background:var(--surface2); color:var(--text); display:grid; place-items:center; font-size:11px; font-weight:700; flex-shrink:0; }
+  /* ---------- login ---------- */
+  .login-card { border:1px solid var(--border); background:var(--surface); border-radius:14px; padding:24px 22px; max-width:280px; margin:0 auto; text-align:center; }
+  .logo-dot { width:36px; height:36px; border-radius:11px; background:var(--pass); color:var(--bg); display:grid; place-items:center; font-weight:800; font-size:17px; margin:0 auto 10px; }
+  .spin { display:inline-block; width:14px; height:14px; border-radius:50%; border:2px solid currentColor; border-top-color:transparent; animation:spn .7s linear infinite; vertical-align:-2px; }
+  @keyframes spn { to { transform:rotate(360deg); } }
+  /* ---------- motion (C timings) ---------- */
+  @keyframes mxIn { from { opacity:0; transform:translateY(14px); } }
+  @keyframes mxPop { 0% { opacity:0; transform:scale(.92); } 60% { transform:scale(1.04); } 100% { opacity:1; transform:scale(1); } }
+  @keyframes mxShake { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-5px); } 40% { transform:translateX(5px); } 60% { transform:translateX(-3px); } 80% { transform:translateX(3px); } }
+  @keyframes mxSlide { from { opacity:0; transform:translateX(28px); } }
+  .mx-go-in{animation:mxIn .4s ease-out} .mx-go-pop{animation:mxPop .45s cubic-bezier(.34,1.56,.64,1)}
+  .mx-go-shake{animation:mxShake .45s} .mx-go-slide{animation:mxSlide .4s ease-out}
+  .mx-box { height:60px; border-radius:8px; display:grid; place-items:center; font-size:12px; font-weight:700; background:rgba(202,191,176,.07); border:1px solid var(--border); color:var(--brand); }
+  /* ---------- scrollbars (D + brand hover) ---------- */
+  .scrollbox { height:180px; overflow-y:auto; border-radius:8px; padding:6px; border:1px solid var(--border); background:var(--surface); scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .scrollbox::-webkit-scrollbar { width:10px; }
+  .scrollbox::-webkit-scrollbar-thumb { background:var(--border); border-radius:8px; border:2px solid var(--surface); }
+  .scrollbox::-webkit-scrollbar-thumb:hover { background:var(--brand); }
+  .scrollbox .srow { font-size:12px; padding:7px 10px; border-radius:6px; font-variant-numeric:tabular-nums; transition:background-color .18s ease; }
+  .scrollbox .srow:hover { background:rgba(202,191,176,.07); }
+  /* ---------- pagination (D) ---------- */
+  .pgbar { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12.5px; color:var(--muted); padding:12px 4px 2px; border-top:1px solid var(--border); margin-top:12px; }
+  .pgctl { display:flex; align-items:center; gap:6px; }
+  .pgbtn { min-width:26px; height:26px; display:grid; place-items:center; border-radius:6px; border:0; background:transparent; color:var(--muted); cursor:pointer; font-size:14px; padding:0 6px; font-family:inherit; }
+  .pgbtn:hover { background:var(--surface2); color:var(--text); }
+  .pgbtn:disabled { opacity:.3; cursor:not-allowed; background:none; }
+  .pgnum { font-variant-numeric:tabular-nums; min-width:52px; text-align:center; font-size:12px; }
+  .pgsize { border:1px solid transparent; background:transparent; color:var(--muted); font-size:12px; border-radius:6px; padding:4px 6px; cursor:pointer; font-family:inherit; }
+  .pgsize:hover { background:var(--surface2); color:var(--text); }
+  .pgsizewrap { position:relative; }
+  #pgsizemenu { display:none; position:absolute; bottom:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; z-index:40; box-shadow:0 16px 40px rgba(0,0,0,.5); min-width:70px; }
+  #pgsizemenu.open { display:block; }
+  #pgsizemenu button { display:block; width:100%; background:none; border:0; color:var(--muted); font-size:12px; padding:7px 10px; border-radius:6px; cursor:pointer; text-align:left; font-family:inherit; }
+  #pgsizemenu button:hover { background:var(--surface2); color:var(--text); }
+  #pgsizemenu button.sel { color:var(--text); font-weight:700; }
+  .hint { color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }
+  @media (prefers-reduced-motion: reduce) {
+    .mx-go-in,.mx-go-pop,.mx-go-shake,.mx-go-slide,.toast,.spin { animation:none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <h1>Cumulus UI — final design language</h1>
+    <p>Your picks with every note applied. Tokens: OWL dark warm · Type: Paper Light Inter · Motion: Midnight Ops timings. Anything below is the law for all future screens.</p>
+    <table class="res">
+      <thead><tr><th>Area</th><th>Pick</th><th>Note → resolution</th></tr></thead>
+      <tbody>
+        <tr><td>Tables</td><td>E – GRG</td><td>Customizable (show/hide, ↑↓ reorder, pinned first column, Reset, persisted) — try the columns icon. Row hover animates; scrollbar thumb turns stone on hover.</td></tr>
+        <tr><td>Buttons</td><td>E – GRG</td><td>Cancel now has a border (secondary style) instead of borderless.</td></tr>
+        <tr><td>Forms</td><td>E – GRG</td><td>SVG eye icon (no emoji). Wordless: label only, zero helper prose. Max 2 questions per form — longer flows become stepped wizards.</td></tr>
+        <tr><td>Dropdowns</td><td>D – OWL</td><td>Trigger restyled as an underline line-field with the chevron pinned to the end corner; OWL portal menu + search behavior kept.</td></tr>
+        <tr><td>Modals</td><td>D – OWL</td><td>As designed: centered, blurred backdrop, Esc/backdrop/✕ close.</td></tr>
+        <tr><td>Notifications</td><td>B – Paper Light</td><td>Single-colour cards — only the icon carries the severity colour.</td></tr>
+        <tr><td>Colors</td><td>D – OWL</td><td>Warm dark tokens below.</td></tr>
+        <tr><td>Typography</td><td>B – Paper Light</td><td>Inter, semibold tight headings, tabular numerals.</td></tr>
+        <tr><td>Navigation</td><td>D – OWL</td><td>Collapsible rail added; hand-drawn SVG icon set.</td></tr>
+        <tr><td>Login</td><td>E – GRG</td><td>Glow removed; SVG eye icon; spinner submit kept.</td></tr>
+        <tr><td>Motion</td><td>C – Midnight Ops</td><td>Deliberate ~400–450ms timings; reduced-motion respected.</td></tr>
+        <tr><td>Scrollbars</td><td>D – OWL</td><td>Stone thumb on hover; rows animate on hover.</td></tr>
+        <tr><td>Pagination</td><td>D – OWL</td><td>Range readout + rows-per-page + ‹ n/m › footer.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section class="block"><h2><span class="n">1</span>Tables — customizable, pinnable, animated</h2>
+    <div class="sub">Columns icon opens the GRG customize popover: checkboxes show/hide, hover arrows reorder, first column pinned, Reset restores, prefs persist.</div>
+    <div class="demo">
+      <div class="toolrow"><span class="microlabel">DC1 · interfaces</span>
+        <span style="margin-left:auto;position:relative"><button class="icon-btn" id="colbtn" title="Customize columns" aria-label="Customize columns">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="6" height="16" rx="1.3" stroke="currentColor" stroke-width="1.7"/><rect x="9.5" y="4" width="5" height="16" rx="1.3" stroke="currentColor" stroke-width="1.7"/><rect x="15" y="4" width="6" height="16" rx="1.3" stroke="currentColor" stroke-width="1.7"/></svg>
+        </button><div class="colpanel" id="colpanel" style="right:0;top:34px"></div></span>
+      </div>
+      <table class="dt"><thead id="dthead"></thead><tbody id="dtbody"></tbody></table>
+    </div>
+  </section>
+
+  <section class="block"><h2><span class="n">2</span>Buttons</h2>
+    <div class="sub">Full-width inverted primary with press-down; Cancel carries a border per your note.</div>
+    <div class="demo">
+      <button class="btn" style="width:100%">Apply changes</button>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-d auto sm">Delete bond0</button><button class="btn btn-s auto sm">Cancel</button><button class="btn btn-g auto sm">Dismiss</button><button class="btn auto sm" disabled>Disabled</button></div>
+    </div>
+  </section>
+
+  <section class="block"><h2><span class="n">3</span>Forms — wordless, max 2 questions</h2>
+    <div class="sub">Label only. No helper prose. The eye is a real SVG icon, functional.</div>
+    <div class="demo" style="max-width:420px">
+      <label class="fl">Hostname</label>
+      <div class="lf"><input value="leaf01"></div>
+      <label class="fl">Switch password</label>
+      <div class="lf"><input type="password" value="cumulus123" id="pwfield"><button class="end" id="eyebtn" aria-label="Show password">
+        <svg id="eyeopen" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="eyeoff" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.9 4.24A9 9 0 0 1 12 4c6.5 0 10 7 10 7a13 13 0 0 1-2.16 3.19M6.1 6.1A13 13 0 0 0 2 11s3.5 7 10 7a9 9 0 0 0 4-.94"/><path d="m2 2 20 20"/></svg>
+      </button></div>
+      <div class="rule"><b>Form law:</b> wordless fields (label only) · max <b>2 questions</b> per form — longer objects become stepped wizards · invalid state is a red underline + one error line, nothing more.</div>
+    </div>
+  </section>
+
+  <section class="block"><h2><span class="n">4</span>Dropdowns — line trigger, OWL menu</h2>
+    <div class="sub">Underline trigger with end-corner chevron; portal menu with search (9 options, so search shows).</div>
+    <div class="demo"><div class="dd" id="dd1"><button class="dd-btn"><span style="flex:1" id="ddlabel">DC1-leaf</span><span class="chev">▾</span></button>
+      <div class="dd-menu"><input placeholder="Search…" id="ddsearch"><div id="ddopts">
+        <button data-v="DC1-leaf">DC1-leaf ✓</button><button data-v="DC1-spine">DC1-spine</button><button data-v="DC2-leaf">DC2-leaf</button><button data-v="DC2-spine">DC2-spine</button><button data-v="MGMT">MGMT</button><button data-v="LAB-1">LAB-1</button><button data-v="LAB-2">LAB-2</button><button data-v="STAGING">STAGING</button><button data-v="All switches">All switches</button>
+      </div></div></div></div>
+  </section>
+
+  <section class="block"><h2><span class="n">5</span>Modals</h2>
+    <div class="sub">Centered, blurred backdrop, Esc / backdrop / ✕ close. Click to preview.</div>
+    <div class="demo"><button class="btn btn-s auto sm" id="mopen">Preview apply modal</button>
+      <div class="overlay" id="mov"><div class="modal">
+        <button class="icon-btn x" id="mclose" aria-label="Close">✕</button>
+        <h4>Apply 3 staged changes?</h4><p class="mono">~ interface/bond0/mtu 9000→9216<br>+ vrf/blue static 10.4.0.0/16</p>
+        <div class="row"><button class="btn btn-g auto sm" id="mcancel">Cancel</button><button class="btn auto sm">Apply</button></div>
+      </div></div></div>
+  </section>
+
+  <section class="block"><h2><span class="n">6</span>Notifications — single-colour, coloured icons</h2>
+    <div class="sub">Cards stay neutral; only the icon carries severity. Click to fire a toast.</div>
+    <div class="demo"><div class="toaststack" id="tstack"></div><button class="btn btn-s auto sm" id="tfire">Fire toast</button>
+      <div class="alert"><span class="ic ok">✓</span><span><b>Applied.</b> <span class="mono">rev 42 on leaf01.</span></span></div>
+      <div class="alert"><span class="ic warn">!</span><span><b>Conflict.</b> bond0 changed by alice.</span></div>
+      <div class="alert"><span class="ic err">✕</span><span><b>Failed.</b> job 7: BGP peer down.</span></div>
+      <div class="alert"><span class="ic info">i</span><span><b>Staged.</b> 3 changes unapplied.</span></div></div>
+  </section>
+
+  <section class="block"><h2><span class="n">7</span>Colors</h2>
+    <div class="sub">OWL warm dark — the only hues outside greyscale are status.</div>
+    <div class="demo"><div style="display:flex;gap:10px;flex-wrap:wrap">
+      <span class="sw" style="background:#100e0c" title="bg"></span><span class="sw" style="background:#1a1714" title="surface"></span><span class="sw" style="background:#241f1a" title="surface-2"></span><span class="sw" style="background:#f6f3ef" title="text"></span><span class="sw" style="background:#9c958b" title="muted"></span><span class="sw" style="background:#36312b" title="border"></span><span class="sw" style="background:#cabfb0" title="brand"></span><span class="sw" style="background:#4fb19d" title="pass"></span><span class="sw" style="background:#e0a93c" title="warn"></span><span class="sw" style="background:#e0556b" title="fail"></span>
+    </div><div class="mono" style="margin-top:10px;font-size:12px;color:var(--muted)">bg #100e0c · surface #1a1714 · surface-2 #241f1a · text #f6f3ef · muted #9c958b · border #36312b · brand #cabfb0 · pass #4fb19d · warn #e0a93c · fail #e0556b</div></div>
+  </section>
+
+  <section class="block"><h2><span class="n">8</span>Typography</h2>
+    <div class="sub">Paper Light rules on OWL colours: Inter, semibold tight headings, tabular numerals.</div>
+    <div class="demo"><div class="t-big">Aa — Display · 22/700/−0.02em</div>
+      <div class="t-body">Body 13.5px muted — banners, diffs and empty states. Headings semibold, never bold-black.</div>
+      <div class="mono" style="margin-top:8px;font-size:13px">swp1 · 10.0.0.1/24 · 65001 · rev 42</div></div>
+  </section>
+
+  <section class="block"><h2><span class="n">9</span>Navigation — collapsible, SVG icons</h2>
+    <div class="sub">OWL rail + collapse (click ‹) + hand-drawn icon set.</div>
+    <div class="demo"><div class="sbar" id="srail" style="min-height:320px"><div class="sbrand"><span class="slogo">C</span><span class="lbl">Cumulus</span><button class="scollapse" id="scoll" title="Collapse">‹</button></div>
+      <a class="snav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Dashboard</span></a>
+      <a class="snav active"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span class="lbl">Interfaces</span></a>
+      <a class="snav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg><span class="lbl">VRFs</span></a>
+      <a class="snav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.5 8l3.5 7.5M16.5 8L13 15.5M8.5 6h7"/></svg><span class="lbl">BGP</span></a>
+      <a class="snav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg><span class="lbl">Audit Log</span></a>
+      <div class="sfoot"><span class="savatar">Y</span><span class="lbl">yves · admin</span></div></div></div>
+  </section>
+
+  <section class="block"><h2><span class="n">10</span>Login — GRG, no glow, SVG eye</h2>
+    <div class="sub">Centered card, line fields, functional eye, spinner submit. Click Sign in to see busy state.</div>
+    <div class="demo"><div class="login-card"><div class="logo-dot">C</div><div style="font-weight:700">Sign in to Cumulus</div><div class="hint" style="margin-bottom:12px">DC fleet console</div>
+      <div class="lf"><input placeholder="username" value="yves"></div>
+      <div class="lf" style="margin-top:14px"><input type="password" value="secret" id="lpw"><button class="end" id="leyebtn" aria-label="Show password">
+        <svg id="leyeopen" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="leyeoff" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M9.9 4.24A9 9 0 0 1 12 4c6.5 0 10 7 10 7a13 13 0 0 1-2.16 3.19M6.1 6.1A13 13 0 0 0 2 11s3.5 7 10 7a9 9 0 0 0 4-.94"/><path d="m2 2 20 20"/></svg>
+      </button></div>
+      <button class="btn" style="width:100%;margin-top:18px" id="signinbtn">Sign in</button>
+      <div class="hint" style="margin-top:12px">Contact your administrator for access.</div></div></div>
+  </section>
+
+  <section class="block"><h2><span class="n">11</span>Motion — Midnight Ops timings</h2>
+    <div class="sub">Deliberate ~400–450ms. Honors reduced-motion.</div>
+    <div class="demo"><div class="mx-box" id="mxbox">watch me</div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-s auto sm" data-mx="mx-go-in">Enter</button><button class="btn btn-s auto sm" data-mx="mx-go-pop">Pop</button><button class="btn btn-s auto sm" data-mx="mx-go-shake">Shake</button><button class="btn btn-s auto sm" data-mx="mx-go-slide">Slide</button></div></div>
+  </section>
+
+  <section class="block"><h2><span class="n">12</span>Scrollbars — stone on hover</h2>
+    <div class="sub">Thin themed thumb that turns stone on hover; rows animate underneath it.</div>
+    <div class="demo"><div class="scrollbox"><div class="srow">swp1 — up — 10G</div><div class="srow">swp2 — up — 25G</div><div class="srow">swp3 — down — —</div><div class="srow">swp4 — up — 10G</div><div class="srow">bond0 — up — 50G</div><div class="srow">swp5 — up — 10G</div><div class="srow">swp6 — up — 25G</div><div class="srow">swp7 — down — —</div><div class="srow">swp8 — up — 10G</div><div class="srow">lo — up — —</div></div></div>
+  </section>
+
+  <section class="block"><h2><span class="n">13</span>Pagination — working footer</h2>
+    <div class="sub">Range readout, rows-per-page, ‹ n/m ›. Click through it.</div>
+    <div class="demo"><div id="pglist" class="mono" style="font-size:12.5px;line-height:2"></div>
+      <div class="pgbar"><span id="pgrange"></span><div class="pgctl"><span class="pgsizewrap"><button class="pgsize" id="pgsize">5 ▾</button><div id="pgsizemenu"><button data-n="5" class="sel">5</button><button data-n="10">10</button><button data-n="20">20</button></div></span><button class="pgbtn" id="pgprev">‹</button><span class="pgnum" id="pgnum"></span><button class="pgbtn" id="pgnext">›</button></div></div></div>
+  </section>
+</div>
+
+<script>
+  // ---- tables: GRG column mechanics (catalog + order/hidden prefs + always-pinned) ----
+  const CATALOG = [
+    {key:"iface", label:"Interface", always:true},
+    {key:"status", label:"Status"}, {key:"speed", label:"Speed"},
+    {key:"errors", label:"Errors"}, {key:"descr", label:"Description"}, {key:"vrf", label:"VRF"},
+  ];
+  const ROWS = [
+    {iface:"swp1",status:1,speed:"10G",errors:"0",descr:"uplink to spine01",vrf:"default"},
+    {iface:"swp2",status:1,speed:"25G",errors:"3",descr:"server pool A",vrf:"default"},
+    {iface:"bond0",status:1,speed:"50G",errors:"0",descr:"mlag peer-link",vrf:"default"},
+    {iface:"swp3",status:0,speed:"—",errors:"1.2k",descr:"reserved",vrf:"default"},
+    {iface:"lo",status:1,speed:"—",errors:"0",descr:"loopback",vrf:"default"},
+    {iface:"swp4",status:1,speed:"10G",errors:"0",descr:"server pool B",vrf:"blue"},
+    {iface:"mgmt0",status:1,speed:"1G",errors:"0",descr:"out-of-band",vrf:"mgmt"},
+    {iface:"vlan4001",status:1,speed:"—",errors:"0",descr:"tenant blue",vrf:"blue"},
+  ];
+  const LSKEY = "cumulus-final-cols";
+  function loadPrefs() {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(LSKEY)); } catch(e) {}
+    const known = new Set(CATALOG.map(c=>c.key));
+    const stored = ((raw&&raw.order)||[]).filter(k=>known.has(k));
+    const appended = CATALOG.map(c=>c.key).filter(k=>!stored.includes(k));
+    const anchors = CATALOG.filter(c=>c.always).map(c=>c.key);
+    const order = [...anchors, ...stored, ...appended].filter(k=>!CATALOG.find(c=>c.key===k).always || anchors.includes(k));
+    const fixed = [...anchors, ...[...stored,...appended].filter(k=>!anchors.includes(k))];
+    const hidden = ((raw&&raw.hidden)||[]).filter(k=>known.has(k) && !CATALOG.find(c=>c.key===k).always);
+    return {order:fixed, hidden};
+  }
+  let prefs = loadPrefs();
+  function savePrefs() { try { localStorage.setItem(LSKEY, JSON.stringify(prefs)); } catch(e) {} }
+  function cell(k,r) {
+    if (k==="status") return r.status?'<span class="badge on"><span class="dot"></span>up</span>':'<span class="badge"><span class="dot"></span>down</span>';
+    if (k==="iface") return `<span class="mono"><b>${r.iface}</b></span>`;
+    return `<span class="mono">${r[k]}</span>`;
+  }
+  function renderTable() {
+    const vis = prefs.order.filter(k=>!prefs.hidden.includes(k));
+    document.getElementById("dthead").innerHTML = "<tr>"+vis.map(k=>`<th>${CATALOG.find(c=>c.key===k).label}</th>`).join("")+"</tr>";
+    document.getElementById("dtbody").innerHTML = ROWS.map(r=>"<tr>"+vis.map(k=>`<td>${cell(k,r)}</td>`).join("")+"</tr>").join("");
+    renderPanel();
+  }
+  function renderPanel() {
+    const byKey = new Map(CATALOG.map(c=>[c.key,c]));
+    const fields = prefs.order.map(k=>byKey.get(k)).filter(Boolean);
+    document.getElementById("colpanel").innerHTML =
+      `<div class="cap"><span>Columns</span><button id="colreset">Reset</button></div><ul>` +
+      fields.map((f,i)=>{ const vis=!prefs.hidden.includes(f.key);
+        return `<li class="${vis?"":"off"}"><input type="checkbox" data-t="${f.key}" ${vis?"checked":""} ${f.always?"disabled":""} aria-label="Show ${f.label}"><span class="nm">${f.label}${f.always?'<span class="pinnedtag">pinned</span>':""}</span><span class="arrows"><button data-m="${f.key}|-1" ${i<=1?"disabled":""}>↑</button><button data-m="${f.key}|1" ${i>=fields.length-1?"disabled":""}>↓</button></span></li>`; }).join("") +
+      `</ul><p style="padding:8px;font-size:11px;color:var(--muted)">Hover a row to reorder with the arrows.</p>`;
+    document.getElementById("colreset").onclick = () => { prefs = {order:CATALOG.map(c=>c.key), hidden:[]}; savePrefs(); renderTable(); };
+    document.querySelectorAll("#colpanel [data-t]").forEach(cb => cb.onchange = () => {
+      const k = cb.dataset.t, h = prefs.hidden;
+      prefs.hidden = h.includes(k) ? h.filter(x=>x!==k) : [...h, k]; savePrefs(); renderTable();
+    });
+    document.querySelectorAll("#colpanel [data-m]").forEach(b => b.onclick = () => {
+      const [k,d] = b.dataset.m.split("|"), dir = +d, o = [...prefs.order];
+      const i = o.indexOf(k), j = i + dir;
+      if (i<0||j<0||j>=o.length) return;
+      if (byKey.get(o[i]).always || byKey.get(o[j]).always) return;
+      [o[i],o[j]]=[o[j],o[i]]; prefs.order = o; savePrefs(); renderTable();
+      document.getElementById("colpanel").classList.add("open");
+    });
+  }
+  document.getElementById("colbtn").onclick = e => { e.stopPropagation(); document.getElementById("colpanel").classList.toggle("open"); };
+  document.addEventListener("mousedown", e => {
+    if (!e.target.closest("#colpanel") && !e.target.closest("#colbtn")) document.getElementById("colpanel").classList.remove("open");
+  });
+  renderTable();
+  // ---- forms eye ----
+  function eye(btnId, fieldId, openId, offId) {
+    document.getElementById(btnId).onclick = () => {
+      const f = document.getElementById(fieldId), show = f.type === "password";
+      f.type = show ? "text" : "password";
+      document.getElementById(openId).style.display = show ? "none" : "";
+      document.getElementById(offId).style.display = show ? "" : "none";
+    };
+  }
+  eye("eyebtn","pwfield","eyeopen","eyeoff");
+  eye("leyebtn","lpw","leyeopen","leyeoff");
+  // ---- login busy ----
+  document.getElementById("signinbtn").onclick = function() {
+    this.innerHTML = '<span class="spin"></span>&nbsp;Signing in…'; this.disabled = true;
+    setTimeout(() => { this.textContent = "Sign in"; this.disabled = false; }, 1600);
+  };
+  // ---- dropdown: line trigger + OWL menu + search ----
+  const dd = document.getElementById("dd1"), ddbtn = dd.querySelector(".dd-btn");
+  ddbtn.onclick = e => { e.stopPropagation(); dd.classList.toggle("open"); document.getElementById("ddsearch").value=""; filterDd(""); };
+  function filterDd(q) {
+    document.querySelectorAll("#ddopts button").forEach(b => b.style.display = b.textContent.toLowerCase().includes(q.toLowerCase()) ? "" : "none");
+  }
+  document.getElementById("ddsearch").oninput = e => filterDd(e.target.value);
+  document.querySelectorAll("#ddopts button").forEach(b => b.onclick = () => {
+    document.getElementById("ddlabel").textContent = b.dataset.v;
+    document.querySelectorAll("#ddopts button").forEach(x => x.textContent = x.textContent.replace(" ✓",""));
+    b.textContent += " ✓"; dd.classList.remove("open");
+  });
+  document.addEventListener("mousedown", e => { if (!e.target.closest("#dd1")) dd.classList.remove("open"); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { dd.classList.remove("open"); document.getElementById("mov").classList.remove("open"); } });
+  // ---- modal ----
+  document.getElementById("mopen").onclick = () => document.getElementById("mov").classList.add("open");
+  const mclose = () => document.getElementById("mov").classList.remove("open");
+  document.getElementById("mclose").onclick = mclose;
+  document.getElementById("mcancel").onclick = mclose;
+  document.getElementById("mov").onclick = e => { if (e.target.id === "mov") mclose(); };
+  // ---- toasts ----
+  const ICONS = {ok:["✓","ok","Applied","rev 43 live on leaf01."],warn:["!","warn","Conflict","bond0 changed by alice."],err:["✕","err","Failed","job 7: BGP peer down."],info:["i","info","Staged","3 changes unapplied."]};
+  let tick = 0;
+  document.getElementById("tfire").onclick = () => {
+    const kinds = ["ok","warn","err","info"], k = kinds[tick++ % 4], [g,cls,t,m] = ICONS[k];
+    const el = document.createElement("div");
+    el.className = "toast"; el.innerHTML = `<span class="ic ${cls}">${g}</span><span><b>${t}</b><span>${m}</span></span>`;
+    document.getElementById("tstack").appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  };
+  // ---- nav collapse ----
+  document.getElementById("scoll").onclick = function() {
+    const r = document.getElementById("srail"), c = r.classList.toggle("collapsed");
+    this.textContent = c ? "›" : "‹";
+  };
+  // ---- motion ----
+  document.querySelectorAll("[data-mx]").forEach(b => b.onclick = () => {
+    const box = document.getElementById("mxbox");
+    ["mx-go-in","mx-go-pop","mx-go-shake","mx-go-slide"].forEach(c => box.classList.remove(c));
+    void box.offsetWidth; box.classList.add(b.dataset.mx);
+  });
+  // ---- pagination: working footer over 12 items ----
+  const ITEMS = Array.from({length:12},(_,i)=>`swp${i+1}`);
+  let pg = 1, per = 5;
+  const SIZES = [5,10,20];
+  function renderPg() {
+    const total = ITEMS.length, pages = Math.max(1, Math.ceil(total/per));
+    pg = Math.min(Math.max(1,pg), pages);
+    const s = (pg-1)*per, e = Math.min(s+per,total);
+    document.getElementById("pglist").innerHTML = ITEMS.slice(s,e).map(x=>`<div>▸ ${x} — <span style="color:var(--pass)">up</span></div>`).join("");
+    document.getElementById("pgrange").textContent = `${s+1}–${e} of ${total}`;
+    document.getElementById("pgnum").textContent = `${pg} / ${pages}`;
+    document.getElementById("pgprev").disabled = pg<=1;
+    document.getElementById("pgnext").disabled = pg>=pages;
+    document.getElementById("pgsize").textContent = `${per} ▾`;
+    document.querySelectorAll("#pgsizemenu button").forEach(b => b.classList.toggle("sel", +b.dataset.n === per));
+  }
+  document.getElementById("pgprev").onclick = () => { pg--; renderPg(); };
+  document.getElementById("pgnext").onclick = () => { pg++; renderPg(); };
+  document.getElementById("pgsize").onclick = e => { e.stopPropagation(); document.getElementById("pgsizemenu").classList.toggle("open"); };
+  document.querySelectorAll("#pgsizemenu button").forEach(b => b.onclick = () => {
+    per = +b.dataset.n; pg = 1; renderPg();
+    document.getElementById("pgsizemenu").classList.remove("open");
+  });
+  document.addEventListener("mousedown", e => { if (!e.target.closest(".pgsizewrap")) document.getElementById("pgsizemenu").classList.remove("open"); });
+  renderPg();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: cumulus
+      POSTGRES_USER: cumulus
+      POSTGRES_PASSWORD: cumulus
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.4
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./deploy/keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - '8080:8080'
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://cumulus:cumulus@db:5432/cumulus
+      KEYCLOAK_URL: http://keycloak:8080
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+      - keycloak
+
+volumes:
+  pgdata: {}

@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cumulus UI — Design Language Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0c0c0e; color: #ececf1; font-family: "Inter", system-ui, sans-serif; padding-bottom: 120px; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+  .hero h1 { font-size: 28px; letter-spacing: -0.02em; }
+  .hero p { color: #9a9aad; margin-top: 8px; max-width: 760px; font-size: 14px; line-height: 1.6; }
+  .bulk { display: flex; gap: 8px; margin: 20px 0 8px; flex-wrap: wrap; }
+  .bulk button { background: #1b1b20; color: #ececf1; border: 1px solid #34343e; border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; }
+  .bulk button:hover { border-color: #6b6b7d; }
+  section.block { margin-top: 40px; }
+  section.block > h2 { font-size: 20px; letter-spacing: -0.01em; }
+  section.block > .sub { color: #9a9aad; font-size: 13px; margin: 4px 0 16px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 1100px) { .grid4 { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px) { .grid4 { grid-template-columns: 1fr; } }
+  .variant { border-radius: 14px; overflow: hidden; border: 1px solid #34343e; position: relative; transition: outline-color .15s; outline: 2px solid transparent; outline-offset: 2px; }
+  .variant:has(.pick input:checked) { outline-color: #4ade80; }
+  .variant > header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #141417; border-bottom: 1px solid #26262c; }
+  .opttag { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
+  .optname { font-size: 13px; font-weight: 600; }
+  .pick { margin-left: auto; display: flex; align-items: center; gap: 7px; font-size: 12px; color: #9a9aad; cursor: pointer; }
+  .pick input { appearance: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #55555f; cursor: pointer; position: relative; background: transparent; }
+  .pick input:checked { border-color: #4ade80; background: #4ade80; }
+  .pick input:checked::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #052e12; }
+  .demo { min-height: 340px; padding: 18px; position: relative; }
+
+  /* ============ OPTION A — Signal Dark ============ */
+  .theme-a { --bg:#0a0e13; --surface:#11161d; --surface2:#1a212b; --text:#e8eef4; --muted:#8b98a5; --border:#232c38; --brand:#2dd4bf; --brand-ink:#052925; --danger:#f87171; --warn:#fbbf24; --pass:#34d399; --info:#60a5fa; --radius:6px; --font:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",monospace; background:var(--bg); color:var(--text); font-family:var(--font); }
+  .theme-a .microlabel { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .theme-a table.dt { width:100%; border-collapse:collapse; font-size:13px; }
+  .theme-a table.dt th { text-align:left; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--border); }
+  .theme-a table.dt td { padding:9px 10px; border-bottom:1px solid var(--border); }
+  .theme-a table.dt tr:hover td { background:rgba(45,212,191,.05); }
+  .theme-a .mono { font-family:var(--mono); font-size:12.5px; }
+  .theme-a .pill { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; padding:3px 9px; border-radius:999px; border:1px solid; }
+  .theme-a .pill .dot { width:6px; height:6px; border-radius:50%; background:currentColor; box-shadow:0 0 6px currentColor; }
+  .theme-a .pill.up { color:var(--pass); border-color:rgba(52,211,153,.4); background:rgba(52,211,153,.08); }
+  .theme-a .pill.down { color:var(--danger); border-color:rgba(248,113,113,.4); background:rgba(248,113,113,.08); }
+  .theme-a .btn { display:inline-flex; align-items:center; gap:6px; font-family:var(--font); font-size:13px; font-weight:600; padding:8px 14px; border-radius:var(--radius); border:1px solid transparent; cursor:pointer; }
+  .theme-a .btn-p { background:var(--brand); color:var(--brand-ink); } .theme-a .btn-p:hover { filter:brightness(1.1); }
+  .theme-a .btn-s { background:transparent; color:var(--text); border-color:var(--border); } .theme-a .btn-s:hover { border-color:var(--brand); }
+  .theme-a .btn-d { background:rgba(248,113,113,.12); color:var(--danger); border-color:rgba(248,113,113,.4); }
+  .theme-a .btn-g { background:transparent; color:var(--muted); } .theme-a .btn-g:hover { color:var(--text); }
+  .theme-a .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .theme-a .btn.sm { font-size:12px; padding:5px 10px; }
+  .theme-a label.fl { display:block; font-size:12px; font-weight:600; margin:12px 0 5px; }
+  .theme-a .inp { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:var(--radius); padding:8px 10px; font-size:13px; outline:none; }
+  .theme-a .inp:focus { border-color:var(--brand); box-shadow:0 0 0 3px rgba(45,212,191,.15); }
+  .theme-a .inp.err { border-color:var(--danger); } .theme-a .err-text { color:var(--danger); font-size:12px; margin-top:4px; }
+  .theme-a .hint { color:var(--muted); font-size:12px; margin-top:4px; }
+  .theme-a .switch { position:relative; width:36px; height:20px; appearance:none; background:var(--surface2); border:1px solid var(--border); border-radius:999px; cursor:pointer; transition:.15s; }
+  .theme-a .switch:checked { background:rgba(45,212,191,.25); border-color:var(--brand); }
+  .theme-a .switch::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--muted); transition:.15s; }
+  .theme-a .switch:checked::after { left:18px; background:var(--brand); }
+  .theme-a .dd { position:relative; }
+  .theme-a .dd-btn { width:100%; display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:var(--radius); padding:8px 10px; font-size:13px; cursor:pointer; }
+  .theme-a .dd-btn:hover, .theme-a .dd.open .dd-btn { border-color:var(--brand); }
+  .theme-a .dd-menu { display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:4px; z-index:5; box-shadow:0 12px 32px rgba(0,0,0,.5); }
+  .theme-a .dd.open .dd-menu { display:block; }
+  .theme-a .dd-menu button { display:flex; width:100%; align-items:center; gap:8px; background:none; border:0; color:var(--muted); font-size:13px; padding:8px 10px; border-radius:4px; cursor:pointer; text-align:left; }
+  .theme-a .dd-menu button:hover { background:rgba(45,212,191,.08); color:var(--text); }
+  .theme-a .alert { border:1px solid; border-radius:var(--radius); padding:10px 12px; font-size:12.5px; margin-top:8px; display:flex; gap:8px; }
+  .theme-a .alert.ok { color:var(--pass); border-color:rgba(52,211,153,.4); background:rgba(52,211,153,.07); }
+  .theme-a .alert.warn { color:var(--warn); border-color:rgba(251,191,36,.4); background:rgba(251,191,36,.07); }
+  .theme-a .alert.err { color:var(--danger); border-color:rgba(248,113,113,.4); background:rgba(248,113,113,.07); }
+  .theme-a .alert.info { color:var(--info); border-color:rgba(96,165,250,.4); background:rgba(96,165,250,.07); }
+  .theme-a .overlay { display:none; position:absolute; inset:0; background:rgba(4,7,10,.7); backdrop-filter:blur(2px); z-index:10; align-items:center; justify-content:center; padding:16px; }
+  .theme-a .overlay.open { display:flex; }
+  .theme-a .modal { background:var(--surface); border:1px solid var(--border); border-top:2px solid var(--brand); border-radius:8px; padding:18px; width:100%; max-width:300px; box-shadow:0 24px 64px rgba(0,0,0,.6); }
+  .theme-a .modal h4 { font-size:14px; margin-bottom:6px; } .theme-a .modal p { font-size:12.5px; color:var(--muted); line-height:1.55; }
+  .theme-a .modal .row { display:flex; gap:8px; margin-top:14px; justify-content:flex-end; }
+  .theme-a .toaststack { position:absolute; top:12px; right:12px; display:flex; flex-direction:column; gap:8px; z-index:20; width:230px; }
+  .theme-a .toast { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--brand); border-radius:var(--radius); padding:9px 11px; font-size:12px; box-shadow:0 8px 24px rgba(0,0,0,.5); animation:tin .2s ease-out; }
+  .theme-a .toast b { display:block; font-size:12.5px; } .theme-a .toast span { color:var(--muted); }
+  @keyframes tin { from { opacity:0; transform:translateX(12px);} }
+  .theme-a .sw { display:inline-block; width:28px; height:14px; border-radius:3px; margin-right:6px; vertical-align:-2px; border:1px solid rgba(255,255,255,.15); }
+  .theme-a .t-big { font-size:22px; font-weight:700; letter-spacing:-0.01em; } .theme-a .t-body { font-size:13px; color:var(--muted); margin-top:4px; }
+
+  /* ============ OPTION B — Paper Light ============ */
+  .theme-b { --bg:#f6f7f9; --surface:#ffffff; --surface2:#eef1f4; --text:#16202b; --muted:#5d6b7a; --border:#dfe4ea; --brand:#4f46e5; --brand-h:#4338ca; --brand-ink:#ffffff; --danger:#dc2626; --warn:#b45309; --pass:#15803d; --info:#1d4ed8; --radius:12px; --font:"Inter",system-ui,sans-serif; background:var(--bg); color:var(--text); font-family:var(--font); }
+  .theme-b table.dt { width:100%; border-collapse:collapse; font-size:13.5px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .theme-b table.dt th { text-align:left; font-size:12px; font-weight:600; color:var(--muted); padding:12px 14px; border-bottom:1px solid var(--border); background:#fafbfc; }
+  .theme-b table.dt td { padding:13px 14px; border-bottom:1px solid var(--border); }
+  .theme-b table.dt tr:last-child td { border-bottom:0; }
+  .theme-b table.dt tr:hover td { background:#f5f6ff; }
+  .theme-b .mono { font-family:var(--font); font-variant-numeric:tabular-nums; font-size:13px; }
+  .theme-b .pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:4px 11px; border-radius:999px; }
+  .theme-b .pill .dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .theme-b .pill.up { color:#166534; background:#dcfce7; } .theme-b .pill.down { color:#991b1b; background:#fee2e2; }
+  .theme-b .btn { display:inline-flex; align-items:center; gap:6px; font-family:var(--font); font-size:13.5px; font-weight:600; padding:9px 16px; border-radius:10px; border:1px solid transparent; cursor:pointer; box-shadow:0 1px 2px rgba(16,24,40,.06); }
+  .theme-b .btn-p { background:var(--brand); color:var(--brand-ink); } .theme-b .btn-p:hover { background:var(--brand-h); }
+  .theme-b .btn-s { background:var(--surface); color:var(--text); border-color:var(--border); } .theme-b .btn-s:hover { border-color:#b6bfcc; background:#f8fafc; }
+  .theme-b .btn-d { background:var(--danger); color:#fff; } .theme-b .btn-d:hover { filter:brightness(.94); }
+  .theme-b .btn-g { background:transparent; color:var(--brand); box-shadow:none; } .theme-b .btn-g:hover { background:#eef0ff; }
+  .theme-b .btn:disabled { opacity:.45; cursor:not-allowed; box-shadow:none; }
+  .theme-b .btn.sm { font-size:12.5px; padding:6px 12px; }
+  .theme-b label.fl { display:block; font-size:13px; font-weight:600; margin:14px 0 6px; }
+  .theme-b .inp { width:100%; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:9px 12px; font-size:13.5px; outline:none; box-shadow:0 1px 2px rgba(16,24,40,.05); }
+  .theme-b .inp:focus { border-color:var(--brand); box-shadow:0 0 0 4px rgba(79,70,229,.12); }
+  .theme-b .inp.err { border-color:var(--danger); } .theme-b .err-text { color:var(--danger); font-size:12.5px; margin-top:5px; font-weight:500; }
+  .theme-b .hint { color:var(--muted); font-size:12.5px; margin-top:5px; }
+  .theme-b .switch { position:relative; width:40px; height:22px; appearance:none; background:#cbd2dc; border-radius:999px; cursor:pointer; transition:.15s; }
+  .theme-b .switch:checked { background:var(--brand); }
+  .theme-b .switch::after { content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:.15s; }
+  .theme-b .switch:checked::after { left:20px; }
+  .theme-b .dd { position:relative; }
+  .theme-b .dd-btn { width:100%; display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:9px 12px; font-size:13.5px; cursor:pointer; box-shadow:0 1px 2px rgba(16,24,40,.05); }
+  .theme-b .dd-btn:hover, .theme-b .dd.open .dd-btn { border-color:var(--brand); box-shadow:0 0 0 4px rgba(79,70,229,.12); }
+  .theme-b .dd-menu { display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:5; box-shadow:0 16px 40px rgba(16,24,40,.14); }
+  .theme-b .dd.open .dd-menu { display:block; }
+  .theme-b .dd-menu button { display:flex; width:100%; align-items:center; gap:8px; background:none; border:0; color:var(--text); font-size:13.5px; padding:9px 11px; border-radius:8px; cursor:pointer; text-align:left; }
+  .theme-b .dd-menu button:hover { background:#eef0ff; }
+  .theme-b .alert { border-radius:10px; padding:11px 13px; font-size:13px; margin-top:8px; display:flex; gap:9px; border:1px solid; }
+  .theme-b .alert.ok { color:#166534; background:#f0fdf4; border-color:#bbf7d0; }
+  .theme-b .alert.warn { color:#92400e; background:#fffbeb; border-color:#fde68a; }
+  .theme-b .alert.err { color:#991b1b; background:#fef2f2; border-color:#fecaca; }
+  .theme-b .alert.info { color:#1e40af; background:#eff6ff; border-color:#bfdbfe; }
+  .theme-b .overlay { display:none; position:absolute; inset:0; background:rgba(22,32,43,.45); z-index:10; align-items:center; justify-content:center; padding:16px; }
+  .theme-b .overlay.open { display:flex; }
+  .theme-b .modal { background:var(--surface); border-radius:16px; padding:22px; width:100%; max-width:310px; box-shadow:0 24px 64px rgba(16,24,40,.25); }
+  .theme-b .modal h4 { font-size:15px; margin-bottom:6px; letter-spacing:-0.01em; } .theme-b .modal p { font-size:13px; color:var(--muted); line-height:1.6; }
+  .theme-b .modal .row { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+  .theme-b .toaststack { position:absolute; top:12px; right:12px; display:flex; flex-direction:column; gap:8px; z-index:20; width:240px; }
+  .theme-b .toast { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; font-size:12.5px; box-shadow:0 12px 32px rgba(16,24,40,.16); animation:tin .2s ease-out; }
+  .theme-b .toast b { display:block; font-size:13px; } .theme-b .toast span { color:var(--muted); }
+  .theme-b .sw { display:inline-block; width:30px; height:15px; border-radius:4px; margin-right:6px; vertical-align:-2px; }
+  .theme-b .t-big { font-size:23px; font-weight:700; letter-spacing:-0.02em; } .theme-b .t-body { font-size:13.5px; color:var(--muted); margin-top:4px; }
+
+  /* ============ OPTION C — Midnight Ops ============ */
+  .theme-c { --bg:#070b1a; --surface:#0d1430; --surface2:#18224d; --text:#eef1ff; --muted:#8e97c4; --border:#26305c; --brand:#f5a623; --brand-h:#ffc44d; --brand-ink:#241300; --danger:#ff5d5d; --warn:#f5a623; --pass:#3ddc84; --info:#7aa2ff; --radius:10px; --font:"Inter",system-ui,sans-serif; --disp:"Space Grotesk","Inter",sans-serif; background:radial-gradient(120% 90% at 50% 0%, #101a45 0%, var(--bg) 60%); color:var(--text); font-family:var(--font); }
+  .theme-c .card { background:rgba(13,20,48,.85); border:1px solid var(--border); border-radius:14px; padding:14px; }
+  .theme-c h5.disp { font-family:var(--disp); font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--brand); margin-bottom:10px; }
+  .theme-c table.dt { width:100%; border-collapse:collapse; font-size:13.5px; }
+  .theme-c table.dt th { text-align:left; font-family:var(--disp); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); padding:10px 12px; border-bottom:1px solid var(--border); }
+  .theme-c table.dt td { padding:12px; border-bottom:1px solid rgba(38,48,92,.6); }
+  .theme-c table.dt tr:hover td { background:rgba(245,166,35,.05); }
+  .theme-c .mono { font-family:var(--font); font-variant-numeric:tabular-nums; }
+  .theme-c .pill { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700; letter-spacing:.04em; padding:5px 12px; border-radius:8px; }
+  .theme-c .pill .dot { width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor; }
+  .theme-c .pill.up { color:#062b1a; background:var(--pass); } .theme-c .pill.down { color:#3d0606; background:var(--danger); }
+  .theme-c .btn { display:inline-flex; align-items:center; gap:6px; font-family:var(--disp); font-size:13px; font-weight:600; letter-spacing:.02em; padding:9px 16px; border-radius:var(--radius); border:1px solid transparent; cursor:pointer; }
+  .theme-c .btn-p { background:var(--brand); color:var(--brand-ink); box-shadow:0 4px 18px rgba(245,166,35,.35); } .theme-c .btn-p:hover { background:var(--brand-h); }
+  .theme-c .btn-s { background:rgba(122,162,255,.1); color:var(--text); border-color:var(--border); } .theme-c .btn-s:hover { border-color:var(--info); }
+  .theme-c .btn-d { background:rgba(255,93,93,.14); color:var(--danger); border-color:rgba(255,93,93,.5); }
+  .theme-c .btn-g { background:transparent; color:var(--muted); } .theme-c .btn-g:hover { color:var(--text); }
+  .theme-c .btn:disabled { opacity:.4; cursor:not-allowed; box-shadow:none; }
+  .theme-c .btn.sm { font-size:12px; padding:6px 12px; }
+  .theme-c label.fl { display:block; font-family:var(--disp); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:13px 0 6px; }
+  .theme-c .inp { width:100%; background:rgba(7,11,26,.7); border:1px solid var(--border); color:var(--text); border-radius:var(--radius); padding:9px 12px; font-size:13.5px; outline:none; }
+  .theme-c .inp:focus { border-color:var(--brand); box-shadow:0 0 0 3px rgba(245,166,35,.18); }
+  .theme-c .inp.err { border-color:var(--danger); } .theme-c .err-text { color:var(--danger); font-size:12px; margin-top:4px; }
+  .theme-c .hint { color:var(--muted); font-size:12px; margin-top:4px; }
+  .theme-c .switch { position:relative; width:38px; height:21px; appearance:none; background:var(--surface2); border:1px solid var(--border); border-radius:999px; cursor:pointer; }
+  .theme-c .switch:checked { background:rgba(245,166,35,.3); border-color:var(--brand); }
+  .theme-c .switch::after { content:""; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:var(--muted); transition:.15s; }
+  .theme-c .switch:checked::after { left:19px; background:var(--brand); box-shadow:0 0 10px rgba(245,166,35,.8); }
+  .theme-c .dd { position:relative; }
+  .theme-c .dd-btn { width:100%; display:flex; align-items:center; gap:8px; background:rgba(7,11,26,.7); border:1px solid var(--border); color:var(--text); border-radius:var(--radius); padding:9px 12px; font-size:13.5px; cursor:pointer; }
+  .theme-c .dd-btn:hover, .theme-c .dd.open .dd-btn { border-color:var(--brand); }
+  .theme-c .dd-menu { display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; background:#101a45; border:1px solid var(--border); border-radius:var(--radius); padding:5px; z-index:5; box-shadow:0 16px 40px rgba(0,0,0,.6); }
+  .theme-c .dd.open .dd-menu { display:block; }
+  .theme-c .dd-menu button { display:flex; width:100%; align-items:center; gap:8px; background:none; border:0; color:var(--muted); font-size:13.5px; padding:9px 11px; border-radius:7px; cursor:pointer; text-align:left; }
+  .theme-c .dd-menu button:hover { background:rgba(245,166,35,.1); color:var(--text); }
+  .theme-c .alert { border-radius:var(--radius); padding:11px 13px; font-size:13px; margin-top:8px; display:flex; gap:9px; border-left:3px solid; background:rgba(13,20,48,.9); border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .theme-c .alert.ok { border-left-color:var(--pass); } .theme-c .alert.warn { border-left-color:var(--warn); }
+  .theme-c .alert.err { border-left-color:var(--danger); } .theme-c .alert.info { border-left-color:var(--info); }
+  .theme-c .overlay { display:none; position:absolute; inset:0; background:rgba(4,6,16,.72); backdrop-filter:blur(3px); z-index:10; align-items:center; justify-content:center; padding:16px; }
+  .theme-c .overlay.open { display:flex; }
+  .theme-c .modal { background:linear-gradient(180deg,#131c4a,#0d1430); border:1px solid var(--border); border-radius:16px; padding:20px; width:100%; max-width:310px; box-shadow:0 24px 64px rgba(0,0,0,.65); }
+  .theme-c .modal h4 { font-family:var(--disp); font-size:15px; margin-bottom:6px; } .theme-c .modal p { font-size:13px; color:var(--muted); line-height:1.6; }
+  .theme-c .modal .row { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+  .theme-c .toaststack { position:absolute; top:12px; right:12px; display:flex; flex-direction:column; gap:8px; z-index:20; width:235px; }
+  .theme-c .toast { background:#101a45; border:1px solid var(--border); border-top:2px solid var(--brand); border-radius:10px; padding:10px 12px; font-size:12.5px; box-shadow:0 12px 32px rgba(0,0,0,.6); animation:tin .2s ease-out; }
+  .theme-c .toast b { display:block; font-family:var(--disp); font-size:13px; } .theme-c .toast span { color:var(--muted); }
+  .theme-c .sw { display:inline-block; width:30px; height:15px; border-radius:7px; margin-right:6px; vertical-align:-2px; border:1px solid rgba(255,255,255,.2); }
+  .theme-c .t-big { font-family:var(--disp); font-size:24px; font-weight:700; } .theme-c .t-body { font-size:13.5px; color:var(--muted); margin-top:4px; }
+
+  /* ============ OPTION D — OWL (from owl/frontend) ============ */
+  .theme-d { --bg:#100e0c; --surface:#1a1714; --surface2:#241f1a; --text:#f6f3ef; --muted:#9c958b; --border:#36312b; --brand:#cabfb0; --pass:#4fb19d; --warn:#e0a93c; --fail:#e0556b; --stale:#6e7681; --radius:8px; --font:"Inter",system-ui,sans-serif; background:var(--bg); color:var(--text); font-family:var(--font); letter-spacing:-0.011em; }
+  .theme-d table.dt { width:100%; border-collapse:collapse; font-size:13.5px; }
+  .theme-d table.dt th { text-align:left; font-size:12px; font-weight:600; color:var(--muted); padding:10px 12px; border-bottom:1px solid var(--border); }
+  .theme-d table.dt td { padding:11px 12px; border-bottom:1px solid var(--border); }
+  .theme-d table.dt tr:hover td { background:rgba(202,191,176,.05); }
+  .theme-d .mono { font-family:var(--font); font-variant-numeric:tabular-nums; }
+  .theme-d .pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; border:1px solid var(--border); }
+  .theme-d .pill .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .theme-d .pill.up { color:var(--pass); border-color:rgba(79,177,157,.45); background:rgba(79,177,157,.08); }
+  .theme-d .pill.down { color:var(--fail); border-color:rgba(224,85,107,.45); background:rgba(224,85,107,.08); }
+  .theme-d .btn { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); cursor:pointer; }
+  .theme-d .btn-p { background:var(--text); color:var(--bg); border-color:var(--text); } .theme-d .btn-p:hover { opacity:.88; }
+  .theme-d .btn-s:hover { border-color:var(--brand); }
+  .theme-d .btn-d { color:var(--fail); border-color:rgba(224,85,107,.5); } .theme-d .btn-d:hover { background:rgba(224,85,107,.1); }
+  .theme-d .btn-g { background:transparent; border-color:transparent; color:var(--muted); } .theme-d .btn-g:hover { color:var(--text); background:var(--surface2); }
+  .theme-d .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .theme-d .btn.sm { font-size:12px; padding:5px 10px; }
+  .theme-d label.fl { display:block; font-size:13px; font-weight:600; margin:12px 0 5px; }
+  .theme-d .inp { width:100%; border-radius:8px; border:1px solid var(--border); background:var(--surface2); padding:8px 12px; font-size:14px; color:var(--text); outline:none; }
+  .theme-d .inp:focus { border-color:var(--brand); }
+  .theme-d .inp.err { border-color:var(--fail); } .theme-d .err-text { color:var(--fail); font-size:12px; margin-top:4px; }
+  .theme-d .hint { color:var(--muted); font-size:12px; margin-top:4px; }
+  .theme-d .switch { position:relative; width:36px; height:20px; appearance:none; background:var(--surface2); border:1px solid var(--border); border-radius:999px; cursor:pointer; transition:.15s; }
+  .theme-d .switch:checked { border-color:var(--brand); }
+  .theme-d .switch::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--muted); transition:.15s; }
+  .theme-d .switch:checked::after { left:18px; background:var(--text); }
+  .theme-d .dd { position:relative; }
+  .theme-d .dd-btn { width:100%; display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:10px 16px; font-size:14px; cursor:pointer; }
+  .theme-d .dd-btn:hover, .theme-d .dd.open .dd-btn { border-color:rgba(202,191,176,.6); }
+  .theme-d .dd-menu { display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:5; box-shadow:0 16px 40px rgba(0,0,0,.5); }
+  .theme-d .dd.open .dd-menu { display:block; }
+  .theme-d .dd-menu button { display:flex; width:100%; align-items:center; gap:8px; background:none; border:0; color:var(--muted); font-size:14px; padding:10px 12px; border-radius:8px; cursor:pointer; text-align:left; }
+  .theme-d .dd-menu button:hover { background:var(--surface2); color:var(--text); }
+  .theme-d .alert { border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:13px; margin-top:8px; display:flex; gap:8px; background:var(--surface); }
+  .theme-d .alert.ok { border-left:3px solid var(--pass); } .theme-d .alert.warn { border-left:3px solid var(--warn); }
+  .theme-d .alert.err { border-left:3px solid var(--fail); } .theme-d .alert.info { border-left:3px solid var(--muted); }
+  .theme-d .overlay { display:none; position:absolute; inset:0; background:rgba(16,14,12,.5); backdrop-filter:blur(4px); z-index:10; align-items:center; justify-content:center; padding:16px; }
+  .theme-d .overlay.open { display:flex; }
+  .theme-d .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; width:100%; max-width:310px; box-shadow:0 24px 64px rgba(0,0,0,.55); }
+  .theme-d .modal h4 { font-size:14.5px; margin-bottom:6px; } .theme-d .modal p { font-size:13px; color:var(--muted); line-height:1.6; }
+  .theme-d .modal .row { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+  .theme-d .toaststack { position:absolute; top:12px; right:12px; display:flex; flex-direction:column; gap:8px; z-index:20; width:230px; }
+  .theme-d .toast { position:relative; overflow:hidden; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 12px 12px 16px; font-size:12.5px; box-shadow:0 12px 32px rgba(0,0,0,.4); animation:tin .3s cubic-bezier(.16,1,.3,1); }
+  .theme-d .toast::before { content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:var(--pass); }
+  .theme-d .toast b { display:block; font-size:13px; } .theme-d .toast span { color:var(--muted); }
+  .theme-d .sw { display:inline-block; width:28px; height:14px; border-radius:3px; margin-right:6px; vertical-align:-2px; border:1px solid rgba(255,255,255,.15); }
+  .theme-d .t-big { font-size:22px; font-weight:700; } .theme-d .t-body { font-size:13.5px; color:var(--muted); margin-top:4px; }
+
+  .grid5 { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+  @media (max-width:1400px){ .grid5{grid-template-columns:repeat(3,1fr);} }
+  @media (max-width:1000px){ .grid5{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:620px){ .grid5{grid-template-columns:1fr;} }
+  .comment { margin-top:12px; background:#141417; border:1px solid #26262c; border-radius:10px; padding:10px 12px; }
+  .comment label { font-size:12px; color:#9a9aad; display:block; margin-bottom:6px; }
+  .comment label b { color:#ececf1; }
+  .comment textarea { width:100%; background:#0c0c0e; border:1px solid #34343e; color:#ececf1; border-radius:8px; padding:8px 10px; font-size:13px; min-height:54px; resize:vertical; font-family:inherit; }
+  .comment textarea:focus { outline:none; border-color:#4ade80; }
+
+  /* ============ OPTION E — GRG Line (from GRG/frontend: same warm tokens as D, underline line-fields, full-width press buttons, small badges, rise motion, glow login) ============ */
+  .theme-e { --bg:#100e0c; --surface:#1a1714; --surface2:#241f1a; --text:#f6f3ef; --muted:#9c958b; --border:#36312b; --brand:#cabfb0; --pass:#4fb19d; --warn:#e0a93c; --fail:#e0556b; --stale:#6e7681; --radius:10px; --font:"Inter",system-ui,sans-serif; background:var(--bg); color:var(--text); font-family:var(--font); letter-spacing:-0.011em; }
+  .theme-e table.dt { width:100%; border-collapse:collapse; font-size:13px; }
+  .theme-e table.dt th { text-align:left; font-size:11.5px; font-weight:600; color:var(--muted); padding:9px 10px; border-bottom:1px solid var(--border); }
+  .theme-e table.dt td { padding:10px; border-bottom:1px solid var(--border); }
+  .theme-e table.dt tr:hover td { background:rgba(202,191,176,.05); }
+  .theme-e .mono { font-family:var(--font); font-variant-numeric:tabular-nums; }
+  .theme-e .badge { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:99px; border:1px solid var(--border); color:var(--muted); }
+  .theme-e .badge .dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .theme-e .badge.on { color:var(--pass); border-color:rgba(79,177,157,.35); }
+  .theme-e .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; font-size:13.5px; font-weight:600; padding:11px 14px; border-radius:var(--radius); border:1px solid var(--text); background:var(--text); color:var(--bg); cursor:pointer; transition:opacity .15s, transform .05s; }
+  .theme-e .btn:hover { opacity:.9; } .theme-e .btn:active { transform:translateY(1px); }
+  .theme-e .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .theme-e .btn.auto { width:auto; } .theme-e .btn.sm { font-size:12px; padding:6px 12px; }
+  .theme-e .btn-d { background:var(--fail); border-color:var(--fail); color:var(--bg); }
+  .theme-e .btn-g { background:transparent; border-color:transparent; color:var(--muted); } .theme-e .btn-g:hover { color:var(--text); opacity:1; }
+  .theme-e .btn:focus-visible { outline:2px solid var(--brand); outline-offset:3px; }
+  .theme-e label.fl { display:block; font-size:12px; font-weight:600; margin:12px 0 2px; }
+  .theme-e .lf { position:relative; display:flex; align-items:center; }
+  .theme-e .lf > input { width:100%; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); font-size:14px; padding:7px 26px 8px 0; outline:none; }
+  .theme-e .lf > input:focus { border-bottom-color:var(--brand); }
+  .theme-e .lf.invalid > input { border-bottom-color:var(--fail); }
+  .theme-e .lf .end { position:absolute; right:0; background:none; border:0; color:var(--muted); cursor:pointer; font-size:14px; }
+  .theme-e .err-text { color:var(--fail); font-size:12px; margin-top:4px; }
+  .theme-e .hint { color:var(--muted); font-size:12px; margin-top:4px; }
+  .theme-e .dd { position:relative; }
+  .theme-e .dd-btn { width:100%; display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:9px 12px; font-size:13px; cursor:pointer; }
+  .theme-e .dd-btn:hover, .theme-e .dd.open .dd-btn { border-color:rgba(202,191,176,.6); }
+  .theme-e .dd-menu { display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; z-index:5; box-shadow:0 16px 40px rgba(0,0,0,.5); }
+  .theme-e .dd.open .dd-menu { display:block; }
+  .theme-e .dd-menu button { display:flex; width:100%; align-items:center; gap:8px; background:none; border:0; color:var(--muted); font-size:13px; padding:9px 11px; border-radius:8px; cursor:pointer; text-align:left; }
+  .theme-e .dd-menu button:hover { background:var(--surface2); color:var(--text); }
+  .theme-e .alert { border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:12.5px; margin-top:8px; display:flex; gap:8px; background:var(--surface); }
+  .theme-e .alert.ok { border-left:3px solid var(--pass); } .theme-e .alert.warn { border-left:3px solid var(--warn); }
+  .theme-e .alert.err { border-left:3px solid var(--fail); } .theme-e .alert.info { border-left:3px solid var(--muted); }
+  .theme-e .overlay { display:none; position:absolute; inset:0; background:rgba(16,14,12,.55); backdrop-filter:blur(4px); z-index:10; align-items:center; justify-content:center; padding:16px; }
+  .theme-e .overlay.open { display:flex; }
+  .theme-e .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; width:100%; max-width:300px; box-shadow:0 24px 64px rgba(0,0,0,.55); }
+  .theme-e .modal h4 { font-size:15px; font-weight:600; margin-bottom:6px; } .theme-e .modal p { font-size:13px; color:var(--muted); line-height:1.6; }
+  .theme-e .modal .row { display:flex; gap:10px; margin-top:18px; align-items:center; }
+  .theme-e .toaststack { position:absolute; top:12px; right:12px; display:flex; flex-direction:column; gap:8px; z-index:20; width:240px; }
+  .theme-e .toast { position:relative; overflow:hidden; background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:11px 30px 11px 15px; font-size:12.5px; box-shadow:0 14px 34px rgba(0,0,0,.5); animation:grgTin .3s cubic-bezier(.16,1,.3,1); }
+  .theme-e .toast::before { content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:var(--pass); }
+  .theme-e .toast.err::before { background:var(--fail); } .theme-e .toast.err .t-title { color:var(--fail); }
+  .theme-e .toast .t-title { font-size:12.5px; font-weight:600; } .theme-e .toast .t-msg { color:var(--muted); margin-top:2px; }
+  .theme-e .toast .t-x { position:absolute; top:8px; right:10px; background:none; border:0; color:var(--muted); cursor:pointer; font-size:15px; }
+  @keyframes grgTin { from { opacity:0; transform:translateX(14px);} }
+  .theme-e .sw { display:inline-block; width:28px; height:14px; border-radius:3px; margin-right:6px; vertical-align:-2px; border:1px solid rgba(255,255,255,.15); }
+  .theme-e .t-big { font-size:22px; font-weight:700; } .theme-e .t-body { font-size:13px; color:var(--muted); margin-top:4px; }
+  .theme-e .glow { background:radial-gradient(70% 60% at 50% 0%, rgba(79,177,157,.14), transparent 70%); border-radius:8px; }
+  .theme-e .spin { display:inline-block; width:14px; height:14px; border-radius:50%; border:2px solid currentColor; border-top-color:transparent; animation:grgSpin .7s linear infinite; vertical-align:-2px; }
+  @keyframes grgSpin { to { transform:rotate(360deg);} }
+
+  /* ---- shared motion keyframes (per-theme durations below) ---- */
+  @keyframes mxIn { from { opacity:0; transform:translateY(14px); } }
+  @keyframes mxPop { 0% { opacity:0; transform:scale(.92); } 60% { transform:scale(1.04); } 100% { opacity:1; transform:scale(1); } }
+  @keyframes mxShake { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-5px); } 40% { transform:translateX(5px); } 60% { transform:translateX(-3px); } 80% { transform:translateX(3px); } }
+  @keyframes mxSlide { from { opacity:0; transform:translateX(28px); } }
+  .theme-a .mx-go-in{animation:mxIn .18s ease-out} .theme-a .mx-go-pop{animation:mxPop .22s ease-out}
+  .theme-a .mx-go-shake{animation:mxShake .4s} .theme-a .mx-go-slide{animation:mxSlide .22s ease-out}
+  .theme-b .mx-go-in{animation:mxIn .25s ease-out} .theme-b .mx-go-pop{animation:mxPop .3s cubic-bezier(.34,1.56,.64,1)}
+  .theme-b .mx-go-shake{animation:mxShake .4s} .theme-b .mx-go-slide{animation:mxSlide .3s ease-out}
+  .theme-c .mx-go-in{animation:mxIn .4s ease-out} .theme-c .mx-go-pop{animation:mxPop .45s cubic-bezier(.34,1.56,.64,1)}
+  .theme-c .mx-go-shake{animation:mxShake .45s} .theme-c .mx-go-slide{animation:mxSlide .4s ease-out}
+  .theme-d .mx-go-in{animation:mxIn .55s cubic-bezier(.16,1,.3,1)} .theme-d .mx-go-pop{animation:mxPop .28s cubic-bezier(.34,1.56,.64,1)}
+  .theme-d .mx-go-shake{animation:mxShake .4s} .theme-d .mx-go-slide{animation:mxSlide .45s cubic-bezier(.16,1,.3,1)}
+  .theme-e .mx-go-in{animation:mxIn .55s cubic-bezier(.16,1,.3,1)} .theme-e .mx-go-pop{animation:mxPop .2s cubic-bezier(.34,1.56,.64,1)}
+  .theme-e .mx-go-shake{animation:mxShake .4s} .theme-e .mx-go-slide{animation:mxSlide .4s cubic-bezier(.16,1,.3,1)}
+  .mx-box{height:60px;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:700}
+  .theme-a .mx-box{background:rgba(45,212,191,.08);border:1px solid var(--border);color:var(--brand)}
+  .theme-b .mx-box{background:#eef0ff;border:1px solid var(--border);color:var(--brand)}
+  .theme-c .mx-box{background:rgba(245,166,35,.08);border:1px solid var(--border);color:var(--brand)}
+  .theme-d .mx-box{background:rgba(202,191,176,.07);border:1px solid var(--border);color:var(--brand)}
+  .theme-e .mx-box{background:rgba(202,191,176,.07);border:1px solid var(--border);color:var(--brand)}
+  /* ---- nav rail ---- */
+  .sbar{border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:2px;min-height:290px;border:1px solid;transition:width .2s}
+  .sbrand{display:flex;align-items:center;gap:8px;padding:2px 4px 10px;font-weight:700;font-size:13px}
+  .slogo{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0}
+  .scollapse{margin-left:auto;background:none;border:1px solid;border-radius:6px;font-size:11px;padding:2px 7px;cursor:pointer}
+  .snav{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:500;padding:8px 10px;border-radius:8px;text-decoration:none;position:relative;white-space:nowrap}
+  .snav i{font-style:normal;width:16px;text-align:center;flex-shrink:0}
+  .scount{margin-left:auto;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px}
+  .sfoot{margin-top:auto;display:flex;align-items:center;gap:8px;font-size:12px;padding:8px 4px 0;border-top:1px solid}
+  .savatar{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .theme-a .sbar{background:var(--surface);border-color:var(--border)} .theme-a .slogo{background:var(--brand);color:var(--brand-ink)}
+  .theme-a .snav{color:var(--muted)} .theme-a .snav.active{color:var(--text);background:rgba(45,212,191,.08)}
+  .theme-a .snav.active::before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--brand)}
+  .theme-a .scollapse{color:var(--muted);border-color:var(--border)} .theme-a .sfoot{border-color:var(--border);color:var(--muted)}
+  .theme-a .savatar{background:var(--surface2);color:var(--brand)} .theme-a .scount{background:rgba(45,212,191,.12);color:var(--brand)}
+  .theme-b .sbar{background:var(--surface);border-color:var(--border)} .theme-b .slogo{background:var(--brand);color:#fff}
+  .theme-b .snav{color:var(--muted)} .theme-b .snav.active{color:var(--brand-h);background:#eef0ff;font-weight:600}
+  .theme-b .scollapse{color:var(--muted);border-color:var(--border)} .theme-b .sfoot{border-color:var(--border);color:var(--muted)}
+  .theme-b .savatar{background:#eef0ff;color:var(--brand)} .theme-b .scount{background:#eef0ff;color:var(--brand)}
+  .theme-c .sbar{background:rgba(13,20,48,.85);border-color:var(--border)} .theme-c .slogo{background:var(--brand);color:var(--brand-ink)}
+  .theme-c .snav{color:var(--muted)} .theme-c .snav.active{color:var(--text);border:1px solid rgba(245,166,35,.5);box-shadow:0 0 14px rgba(245,166,35,.25)}
+  .theme-c .scollapse{color:var(--muted);border-color:var(--border)} .theme-c .sfoot{border-color:var(--border);color:var(--muted)}
+  .theme-c .savatar{background:rgba(245,166,35,.15);color:var(--brand)} .theme-c .scount{background:rgba(245,166,35,.15);color:var(--brand)}
+  .theme-d .sbar{background:var(--surface);border-color:var(--border)} .theme-d .slogo{background:var(--text);color:var(--bg)}
+  .theme-d .snav{color:var(--muted)} .theme-d .snav.active{color:var(--text);background:var(--surface2)}
+  .theme-d .scollapse{color:var(--muted);border-color:var(--border)} .theme-d .sfoot{border-color:var(--border);color:var(--muted)}
+  .theme-d .savatar{background:var(--surface2);color:var(--text)} .theme-d .scount{background:var(--surface2);color:var(--muted)}
+  .theme-e .sbar{background:rgba(26,23,20,.6);border-color:var(--border)} .theme-e .slogo{background:var(--text);color:var(--bg)}
+  .theme-e .snav{color:var(--muted)} .theme-e .snav.active{color:var(--text);background:var(--surface2)}
+  .theme-e .scollapse{color:var(--muted);border-color:var(--border)} .theme-e .sfoot{border-color:var(--border);color:var(--muted)}
+  .theme-e .savatar{background:var(--surface2);color:var(--text)} .theme-e .scount{background:var(--surface2);color:var(--brand)}
+  .theme-e .sbar.collapsed .lbl, .theme-e .sbar.collapsed .scount, .theme-e .sbar.collapsed .sfoot .who { display:none; }
+  /* ---- login ---- */
+  .login-card{border-radius:12px;padding:20px 18px;max-width:250px;margin:0 auto;border:1px solid;text-align:center}
+  .logo-dot{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:16px;margin:0 auto 10px}
+  .theme-a .login-card{background:var(--surface);border-color:var(--border)} .theme-a .logo-dot{background:var(--brand);color:var(--brand-ink)}
+  .theme-b .login-card{background:var(--surface);border-color:var(--border);box-shadow:0 16px 40px rgba(16,24,40,.12)} .theme-b .logo-dot{background:var(--brand);color:#fff}
+  .theme-c .login-card{background:linear-gradient(180deg,#131c4a,#0d1430);border-color:var(--border)} .theme-c .logo-dot{background:var(--brand);color:var(--brand-ink)}
+  .theme-d .login-card{background:var(--surface);border-color:var(--border)} .theme-d .logo-dot{background:var(--text);color:var(--bg)}
+  .theme-e .login-card{background:var(--surface);border-color:var(--border)} .theme-e .logo-dot{background:var(--pass);color:var(--bg)}
+  /* ---- scrollbars ---- */
+  .scrollbox{height:190px;overflow-y:auto;border-radius:8px;padding:6px;border:1px solid;scrollbar-width:thin}
+  .scrollbox .srow{font-size:12px;padding:7px 10px;border-radius:6px;font-variant-numeric:tabular-nums}
+  .theme-a .scrollbox{background:var(--surface);border-color:var(--border);scrollbar-color:var(--border) transparent}
+  .theme-a .scrollbox::-webkit-scrollbar{width:10px} .theme-a .scrollbox::-webkit-scrollbar-thumb{background:#2b3542;border-radius:8px;border:2px solid #11161d}
+  .theme-a .scrollbox::-webkit-scrollbar-thumb:hover{background:var(--brand)}
+  .theme-a .srow:nth-child(odd){background:rgba(255,255,255,.02)}
+  .theme-b .scrollbox{background:var(--surface);border-color:var(--border);scrollbar-color:#c3ccd7 transparent}
+  .theme-b .scrollbox::-webkit-scrollbar{width:10px} .theme-b .scrollbox::-webkit-scrollbar-thumb{background:#c3ccd7;border-radius:8px;border:2px solid #fff}
+  .theme-b .scrollbox::-webkit-scrollbar-thumb:hover{background:var(--brand)}
+  .theme-b .srow:nth-child(odd){background:#f6f7f9}
+  .theme-c .scrollbox{background:rgba(13,20,48,.85);border-color:var(--border);scrollbar-color:#2c3a75 transparent}
+  .theme-c .scrollbox::-webkit-scrollbar{width:10px} .theme-c .scrollbox::-webkit-scrollbar-thumb{background:#2c3a75;border-radius:8px;border:2px solid #0d1430}
+  .theme-c .scrollbox::-webkit-scrollbar-thumb:hover{background:var(--brand)}
+  .theme-c .srow:nth-child(odd){background:rgba(122,162,255,.04)}
+  .theme-d .scrollbox{background:var(--surface);border-color:var(--border);scrollbar-color:var(--border) transparent}
+  .theme-d .scrollbox::-webkit-scrollbar{width:10px} .theme-d .scrollbox::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px;border:2px solid var(--surface)}
+  .theme-d .scrollbox::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+  .theme-e .scrollbox{background:var(--surface);border-color:var(--border);scrollbar-color:var(--border) transparent}
+  .theme-e .scrollbox::-webkit-scrollbar{width:10px} .theme-e .scrollbox::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px;border:2px solid var(--surface)}
+  .theme-e .scrollbox::-webkit-scrollbar-thumb:hover{background:var(--brand)}
+  /* ---- pagination ---- */
+  .pgbar{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;padding:12px 4px 2px;border-top:1px solid;margin-top:12px}
+  .pgctl{display:flex;align-items:center;gap:6px}
+  .pgbtn{width:26px;height:26px;display:grid;place-items:center;border-radius:6px;border:1px solid;background:transparent;cursor:pointer;font-size:14px}
+  .pgnum{font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
+  .theme-a .pgbar{color:var(--muted);border-color:var(--border)} .theme-a .pgbtn{color:var(--muted);border-color:var(--border)}
+  .theme-a .pgbtn:hover{color:var(--brand);border-color:var(--brand)}
+  .theme-b .pgbar{color:var(--muted);border-color:var(--border)} .theme-b .pgbtn{color:var(--muted);border-color:var(--border);background:var(--surface)}
+  .theme-b .pgbtn:hover{color:var(--brand);border-color:var(--brand)}
+  .theme-c .pgbar{color:var(--muted);border-color:var(--border)} .theme-c .pgbtn{color:var(--muted);border-color:var(--border)}
+  .theme-c .pgbtn:hover{color:var(--brand);border-color:var(--brand)}
+  .theme-d .pgbar{color:var(--muted);border-color:var(--border)} .theme-d .pgbtn{color:var(--muted);border-color:transparent}
+  .theme-d .pgbtn:hover{background:var(--surface2);color:var(--text)}
+  .theme-e .pgbar{color:var(--muted);border-color:var(--border)} .theme-e .pgbtn{color:var(--muted);border-color:transparent}
+  .theme-e .pgbtn:hover{background:var(--surface2);color:var(--text)}
+
+  /* summary bar */
+  .summary { position: fixed; bottom: 0; left: 0; right: 0; background: #141417f2; border-top: 1px solid #34343e; padding: 12px 24px; display: flex; align-items: center; gap: 14px; font-size: 13px; z-index: 100; flex-wrap: wrap; }
+  .summary b { font-size: 13px; } .summary .pick-line { color: #c9c9d6; }
+  .summary .pick-line strong { color: #4ade80; }
+  .summary button { background: #4ade80; color: #052e12; border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer; margin-left: auto; }
+  .kbd-hint { font-size: 12px; color: #9a9aad; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <h1>Design language — 4 options</h1>
+    <p>Same components in five skins. <b>A/B/C</b> are new proposals; <b>D (OWL)</b> is lifted from <code>owl/frontend</code>; <b>E (GRG)</b> is lifted from <code>GRG/frontend</code> (same warm tokens, underline line-fields, full-width press buttons, glow login). Tick <b>✓ per section</b> — winners compose the final language — and use the <b>notes box</b> under each section for mixes ("tables from D, pills from B"). "All X" applies one option everywhere.</p>
+    <div class="bulk">
+      <button data-all="a">All A — Signal Dark</button>
+      <button data-all="b">All B — Paper Light</button>
+      <button data-all="c">All C — Midnight Ops</button>
+      <button data-all="d">All D — OWL</button>
+      <button data-all="e">All E — GRG</button>
+    </div>
+  </div>
+
+  <!-- ================= TABLES ================= -->
+  <section class="block" data-section="tables" data-label="Tables">
+    <h2>1 · Tables</h2>
+    <div class="sub">Interface inventory — status pills, tabular numbers, row hover, row action.</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="tables" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div class="microlabel">DC1 · 4 interfaces</div>
+          <table class="dt" style="margin-top:8px"><thead><tr><th>Interface</th><th>Status</th><th>Speed</th><th>Errors</th></tr></thead><tbody>
+            <tr><td class="mono">swp1</td><td><span class="pill up"><span class="dot"></span>up</span></td><td class="mono">10G</td><td class="mono">0</td></tr>
+            <tr><td class="mono">swp2</td><td><span class="pill up"><span class="dot"></span>up</span></td><td class="mono">25G</td><td class="mono">3</td></tr>
+            <tr><td class="mono">bond0</td><td><span class="pill up"><span class="dot"></span>up</span></td><td class="mono">50G</td><td class="mono">0</td></tr>
+            <tr><td class="mono">swp3</td><td><span class="pill down"><span class="dot"></span>down</span></td><td class="mono">—</td><td class="mono">1.2k</td></tr>
+          </tbody></table></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="tables" value="b">✓ use</label></header>
+        <div class="demo theme-b">
+          <table class="dt"><thead><tr><th>Interface</th><th>Status</th><th>Speed</th><th>Errors</th></tr></thead><tbody>
+            <tr><td class="mono"><b>swp1</b></td><td><span class="pill up"><span class="dot"></span>Up</span></td><td class="mono">10G</td><td class="mono">0</td></tr>
+            <tr><td class="mono"><b>swp2</b></td><td><span class="pill up"><span class="dot"></span>Up</span></td><td class="mono">25G</td><td class="mono">3</td></tr>
+            <tr><td class="mono"><b>bond0</b></td><td><span class="pill up"><span class="dot"></span>Up</span></td><td class="mono">50G</td><td class="mono">0</td></tr>
+            <tr><td class="mono"><b>swp3</b></td><td><span class="pill down"><span class="dot"></span>Down</span></td><td class="mono">—</td><td class="mono">1.2k</td></tr>
+          </tbody></table></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="tables" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div class="card"><h5 class="disp">DC1 · Interfaces</h5>
+          <table class="dt"><thead><tr><th>Interface</th><th>Status</th><th>Speed</th><th>Errors</th></tr></thead><tbody>
+            <tr><td class="mono"><b>swp1</b></td><td><span class="pill up"><span class="dot"></span>UP</span></td><td class="mono">10G</td><td class="mono">0</td></tr>
+            <tr><td class="mono"><b>swp2</b></td><td><span class="pill up"><span class="dot"></span>UP</span></td><td class="mono">25G</td><td class="mono">3</td></tr>
+            <tr><td class="mono"><b>bond0</b></td><td><span class="pill up"><span class="dot"></span>UP</span></td><td class="mono">50G</td><td class="mono">0</td></tr>
+            <tr><td class="mono"><b>swp3</b></td><td><span class="pill down"><span class="dot"></span>DOWN</span></td><td class="mono">—</td><td class="mono">1.2k</td></tr>
+          </tbody></table></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="tables" value="d">✓ use</label></header>
+        <div class="demo theme-d">
+          <table class="dt"><thead><tr><th>Interface</th><th>Status</th><th>Speed</th><th>Errors</th></tr></thead><tbody>
+            <tr><td class="mono">swp1</td><td><span class="pill up"><span class="dot"></span>up</span></td><td class="mono">10G</td><td class="mono">0</td></tr>
+            <tr><td class="mono">swp2</td><td><span class="pill up"><span class="dot"></span>up</span></td><td class="mono">25G</td><td class="mono">3</td></tr>
+            <tr><td class="mono">bond0</td><td><span class="pill up"><span class="dot"></span>up</span></td><td class="mono">50G</td><td class="mono">0</td></tr>
+            <tr><td class="mono">swp3</td><td><span class="pill down"><span class="dot"></span>down</span></td><td class="mono">—</td><td class="mono">1.2k</td></tr>
+          </tbody></table></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="tables" value="e">✓ use</label></header>
+        <div class="demo theme-e">
+          <table class="dt"><thead><tr><th>Interface</th><th>Status</th><th>Speed</th><th>Errors</th></tr></thead><tbody>
+            <tr><td class="mono">swp1</td><td><span class="badge on"><span class="dot"></span>up</span></td><td class="mono">10G</td><td class="mono">0</td></tr>
+            <tr><td class="mono">swp2</td><td><span class="badge on"><span class="dot"></span>up</span></td><td class="mono">25G</td><td class="mono">3</td></tr>
+            <tr><td class="mono">bond0</td><td><span class="badge on"><span class="dot"></span>up</span></td><td class="mono">50G</td><td class="mono">0</td></tr>
+            <tr><td class="mono">swp3</td><td><span class="badge"><span class="dot"></span>down</span></td><td class="mono">—</td><td class="mono">1.2k</td></tr>
+          </tbody></table></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — tables.</b> e.g. "table from D, pills from B"</label><textarea data-comment="tables" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= BUTTONS ================= -->
+  <section class="block" data-section="buttons" data-label="Buttons">
+    <h2>2 · Buttons</h2>
+    <div class="sub">Primary / secondary / danger / ghost, small size, disabled.</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="buttons" value="a">✓ use</label></header>
+        <div class="demo theme-a" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p">Apply changes</button><button class="btn btn-s">Stage</button><button class="btn btn-d">Delete</button><button class="btn btn-g">Cancel</button></div>
+          <div style="display:flex;gap:8px"><button class="btn btn-s sm">Small</button><button class="btn btn-p sm" disabled>Disabled</button></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="buttons" value="b">✓ use</label></header>
+        <div class="demo theme-b" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p">Apply changes</button><button class="btn btn-s">Stage</button><button class="btn btn-d">Delete</button><button class="btn btn-g">Cancel</button></div>
+          <div style="display:flex;gap:8px"><button class="btn btn-s sm">Small</button><button class="btn btn-p sm" disabled>Disabled</button></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="buttons" value="c">✓ use</label></header>
+        <div class="demo theme-c" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p">Apply changes</button><button class="btn btn-s">Stage</button><button class="btn btn-d">Delete</button><button class="btn btn-g">Cancel</button></div>
+          <div style="display:flex;gap:8px"><button class="btn btn-s sm">Small</button><button class="btn btn-p sm" disabled>Disabled</button></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="buttons" value="d">✓ use</label></header>
+        <div class="demo theme-d" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p">Apply changes</button><button class="btn btn-s">Stage</button><button class="btn btn-d">Delete</button><button class="btn btn-g">Cancel</button></div>
+          <div style="display:flex;gap:8px"><button class="btn btn-s sm">Small</button><button class="btn btn-p sm" disabled>Disabled</button></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="buttons" value="e">✓ use</label></header>
+        <div class="demo theme-e" style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn" style="width:100%">Apply changes</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-d auto sm">Delete</button><button class="btn btn-g auto sm">Cancel</button><button class="btn auto sm" disabled>Disabled</button></div>
+          <div class="hint">GRG house style: full-width inverted primary, press-down on click, brand focus ring.</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — buttons.</b> e.g. "primary from B, danger from E"</label><textarea data-comment="buttons" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= FORMS ================= -->
+  <section class="block" data-section="forms" data-label="Forms">
+    <h2>3 · Forms</h2>
+    <div class="sub">Label, input, hint, error state, switch.</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="forms" value="a">✓ use</label></header>
+        <div class="demo theme-a"><label class="fl">Hostname</label><input class="inp" value="leaf01"><div class="hint">Registered in DC1 inventory.</div>
+          <label class="fl">BGP ASN</label><input class="inp err" value="65OOPS"><div class="err-text">ASN must be 1–4294967295.</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px"><input type="checkbox" class="switch" checked> Auto-save on apply</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="forms" value="b">✓ use</label></header>
+        <div class="demo theme-b"><label class="fl">Hostname</label><input class="inp" value="leaf01"><div class="hint">Registered in DC1 inventory.</div>
+          <label class="fl">BGP ASN</label><input class="inp err" value="65OOPS"><div class="err-text">ASN must be 1–4294967295.</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13.5px"><input type="checkbox" class="switch" checked> Auto-save on apply</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="forms" value="c">✓ use</label></header>
+        <div class="demo theme-c"><label class="fl">Hostname</label><input class="inp" value="leaf01"><div class="hint">Registered in DC1 inventory.</div>
+          <label class="fl">BGP ASN</label><input class="inp err" value="65OOPS"><div class="err-text">ASN must be 1–4294967295.</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13.5px"><input type="checkbox" class="switch" checked> Auto-save on apply</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="forms" value="d">✓ use</label></header>
+        <div class="demo theme-d"><label class="fl">Hostname</label><input class="inp" value="leaf01"><div class="hint">Registered in DC1 inventory.</div>
+          <label class="fl">BGP ASN</label><input class="inp err" value="65OOPS"><div class="err-text">ASN must be 1–4294967295.</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13.5px"><input type="checkbox" class="switch" checked> Auto-save on apply</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="forms" value="e">✓ use</label></header>
+        <div class="demo theme-e"><label class="fl">Hostname</label><div class="lf"><input value="leaf01"></div><div class="hint">Registered in DC1 inventory.</div>
+          <label class="fl">BGP ASN</label><div class="lf invalid"><input value="65OOPS"><button class="end" title="Show">👁</button></div><div class="err-text">ASN must be 1–4294967295.</div>
+          <div style="margin-top:14px"><button class="btn auto sm"><span class="spin"></span>&nbsp;Signing in…</button></div>
+          <div class="hint">GRG house style: underline "line fields", eye toggle, red underline on error.</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — forms.</b> e.g. "line fields from E, error shake from D"</label><textarea data-comment="forms" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= DROPDOWNS ================= -->
+  <section class="block" data-section="dropdowns" data-label="Dropdowns">
+    <h2>4 · Dropdowns</h2>
+    <div class="sub">Click to open — searchable menu style per option (OWL's real one has search past 7 items).</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="dropdowns" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div class="dd"><button class="dd-btn"><span style="flex:1;text-align:left">DC1-leaf ▾</span></button>
+          <div class="dd-menu"><button>DC1-leaf ✓</button><button>DC1-spine</button><button>DC2-leaf</button><button>All switches</button></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="dropdowns" value="b">✓ use</label></header>
+        <div class="demo theme-b"><div class="dd"><button class="dd-btn"><span style="flex:1;text-align:left">DC1-leaf ▾</span></button>
+          <div class="dd-menu"><button>DC1-leaf ✓</button><button>DC1-spine</button><button>DC2-leaf</button><button>All switches</button></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="dropdowns" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div class="dd"><button class="dd-btn"><span style="flex:1;text-align:left">DC1-leaf ▾</span></button>
+          <div class="dd-menu"><button>DC1-leaf ✓</button><button>DC1-spine</button><button>DC2-leaf</button><button>All switches</button></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="dropdowns" value="d">✓ use</label></header>
+        <div class="demo theme-d"><div class="dd"><button class="dd-btn"><span style="flex:1;text-align:left">DC1-leaf ▾</span></button>
+          <div class="dd-menu"><button>DC1-leaf ✓</button><button>DC1-spine</button><button>DC2-leaf</button><button>All switches</button></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="dropdowns" value="e">✓ use</label></header>
+        <div class="demo theme-e"><div class="dd"><button class="dd-btn"><span style="flex:1;text-align:left">DC1-leaf ▾</span></button>
+          <div class="dd-menu"><button>DC1-leaf ✓</button><button>DC1-spine</button><button>DC2-leaf</button><button>All switches</button></div></div>
+          <div class="hint" style="margin-top:10px">Same portal-dropdown code as D (shared) — search appears past 7 items.</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — dropdowns.</b></label><textarea data-comment="dropdowns" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= MODALS ================= -->
+  <section class="block" data-section="modals" data-label="Modals">
+    <h2>5 · Modals</h2>
+    <div class="sub">Apply-confirm modal (dry-run summary + actions). Click "Preview" to open.</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="modals" value="a">✓ use</label></header>
+        <div class="demo theme-a"><button class="btn btn-s modal-open">Preview modal</button>
+          <div class="overlay"><div class="modal"><h4>Apply 3 staged changes?</h4><p class="mono" style="font-size:12px">~ interface/bond0/mtu 9000→9216<br>+ vrf/blue static 10.4.0.0/16</p><div class="row"><button class="btn btn-g sm modal-close">Cancel</button><button class="btn btn-p sm">Apply</button></div></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="modals" value="b">✓ use</label></header>
+        <div class="demo theme-b"><button class="btn btn-s modal-open">Preview modal</button>
+          <div class="overlay"><div class="modal"><h4>Apply 3 staged changes?</h4><p class="mono" style="font-size:12.5px">~ interface/bond0/mtu 9000→9216<br>+ vrf/blue static 10.4.0.0/16</p><div class="row"><button class="btn btn-s sm modal-close">Cancel</button><button class="btn btn-p sm">Apply</button></div></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="modals" value="c">✓ use</label></header>
+        <div class="demo theme-c"><button class="btn btn-s modal-open">Preview modal</button>
+          <div class="overlay"><div class="modal"><h4>Apply 3 staged changes?</h4><p class="mono" style="font-size:12.5px">~ interface/bond0/mtu 9000→9216<br>+ vrf/blue static 10.4.0.0/16</p><div class="row"><button class="btn btn-g sm modal-close">Cancel</button><button class="btn btn-p sm">Apply</button></div></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="modals" value="d">✓ use</label></header>
+        <div class="demo theme-d"><button class="btn btn-s modal-open">Preview modal</button>
+          <div class="overlay"><div class="modal"><h4>Apply 3 staged changes?</h4><p class="mono" style="font-size:12.5px">~ interface/bond0/mtu 9000→9216<br>+ vrf/blue static 10.4.0.0/16</p><div class="row"><button class="btn btn-g sm modal-close">Cancel</button><button class="btn btn-p sm">Apply</button></div></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="modals" value="e">✓ use</label></header>
+        <div class="demo theme-e"><button class="btn auto sm modal-open">Preview modal</button>
+          <div class="overlay"><div class="modal"><h4>Delete bond0?</h4><p>This removes the bond and returns members to standalone ports. This cannot be undone.</p><div class="row"><button class="btn btn-d auto sm">Delete bond0</button><button class="btn btn-g auto sm modal-close">Cancel</button></div></div></div>
+          <div class="hint" style="margin-top:10px">GRG ConfirmModal: solid fail button + plain cancel.</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — modals.</b> e.g. "apply modal from A, destructive from E"</label><textarea data-comment="modals" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= NOTIFICATIONS ================= -->
+  <section class="block" data-section="notifications" data-label="Notifications">
+    <h2>6 · Notifications &amp; alerts</h2>
+    <div class="sub">Toast demo (click "Fire toast") + inline alert banners.</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="notifications" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div class="toaststack"></div><button class="btn btn-s sm toast-fire">Fire toast</button>
+          <div class="alert ok">✓ <span><b>Applied.</b> rev 42 on leaf01.</span></div><div class="alert warn">! <span><b>Conflict.</b> bond0 changed by alice.</span></div><div class="alert err">✕ <span><b>Failed.</b> job 7: BGP peer down.</span></div><div class="alert info">i <span><b>Staged.</b> 3 changes unapplied.</span></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="notifications" value="b">✓ use</label></header>
+        <div class="demo theme-b"><div class="toaststack"></div><button class="btn btn-s sm toast-fire">Fire toast</button>
+          <div class="alert ok">✓ <span><b>Applied.</b> rev 42 on leaf01.</span></div><div class="alert warn">! <span><b>Conflict.</b> bond0 changed by alice.</span></div><div class="alert err">✕ <span><b>Failed.</b> job 7: BGP peer down.</span></div><div class="alert info">i <span><b>Staged.</b> 3 changes unapplied.</span></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="notifications" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div class="toaststack"></div><button class="btn btn-s sm toast-fire">Fire toast</button>
+          <div class="alert ok">✓ <span><b>Applied.</b> rev 42 on leaf01.</span></div><div class="alert warn">! <span><b>Conflict.</b> bond0 changed by alice.</span></div><div class="alert err">✕ <span><b>Failed.</b> job 7: BGP peer down.</span></div><div class="alert info">i <span><b>Staged.</b> 3 changes unapplied.</span></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="notifications" value="d">✓ use</label></header>
+        <div class="demo theme-d"><div class="toaststack"></div><button class="btn btn-s sm toast-fire">Fire toast</button>
+          <div class="alert ok">✓ <span><b>Applied.</b> rev 42 on leaf01.</span></div><div class="alert warn">! <span><b>Conflict.</b> bond0 changed by alice.</span></div><div class="alert err">✕ <span><b>Failed.</b> job 7: BGP peer down.</span></div><div class="alert info">i <span><b>Staged.</b> 3 changes unapplied.</span></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="notifications" value="e">✓ use</label></header>
+        <div class="demo theme-e"><div class="toaststack"></div><button class="btn auto sm toast-fire">Fire toast</button>
+          <div class="toast err" style="margin-top:10px"><div class="t-title">Sign-in failed</div><div class="t-msg">Invalid credentials for leaf01.</div><button class="t-x">×</button></div>
+          <div class="hint" style="margin-top:10px">GRG toast: title + message + close, error title colored, rail timer.</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — notifications.</b></label><textarea data-comment="notifications" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= COLORS & TYPE ================= -->
+  <section class="block" data-section="colors" data-label="Colors">
+    <h2>7 · Colors</h2>
+    <div class="sub">Palette swatches + usage. Typography is §8.</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="colors" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div class="t-big">Signal Dark</div><div class="t-body">Inter · JetBrains Mono for values · 6px radius · uppercase micro-labels</div>
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><span class="sw" style="background:#2dd4bf"></span><span class="sw" style="background:#34d399"></span><span class="sw" style="background:#fbbf24"></span><span class="sw" style="background:#f87171"></span><span class="sw" style="background:#60a5fa"></span><span class="sw" style="background:#11161d"></span></div>
+          <div class="mono" style="margin-top:10px;font-size:12px;color:var(--muted)">brand #2dd4bf · pass #34d399 · warn #fbbf24 · fail #f87171 · bg #0a0e13</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="colors" value="b">✓ use</label></header>
+        <div class="demo theme-b"><div class="t-big">Paper Light</div><div class="t-body">Inter · tabular numerals · 12px radius · airy 13–16px rhythm</div>
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><span class="sw" style="background:#4f46e5"></span><span class="sw" style="background:#15803d"></span><span class="sw" style="background:#b45309"></span><span class="sw" style="background:#dc2626"></span><span class="sw" style="background:#1d4ed8"></span><span class="sw" style="background:#ffffff;border-color:#dfe4ea"></span></div>
+          <div class="mono" style="margin-top:10px;font-size:12px;color:var(--muted)">brand #4f46e5 · pass #15803d · warn #b45309 · fail #dc2626 · bg #f6f7f9</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="colors" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div class="t-big">Midnight Ops</div><div class="t-body">Space Grotesk display · Inter body · 10px radius · card-first</div>
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><span class="sw" style="background:#f5a623"></span><span class="sw" style="background:#3ddc84"></span><span class="sw" style="background:#ff5d5d"></span><span class="sw" style="background:#7aa2ff"></span><span class="sw" style="background:#0d1430"></span></div>
+          <div class="mono" style="margin-top:10px;font-size:12px;color:var(--muted)">brand #f5a623 · pass #3ddc84 · fail #ff5d5d · info #7aa2ff · bg #070b1a</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="colors" value="d">✓ use</label></header>
+        <div class="demo theme-d"><div class="t-big">OWL warm mono</div><div class="t-body">Inter Variable · −0.011em tracking · 8–16px radius · greyscale + stone accent</div>
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><span class="sw" style="background:#cabfb0"></span><span class="sw" style="background:#4fb19d"></span><span class="sw" style="background:#e0a93c"></span><span class="sw" style="background:#e0556b"></span><span class="sw" style="background:#54d98c"></span><span class="sw" style="background:#100e0c"></span></div>
+          <div class="mono" style="margin-top:10px;font-size:12px;color:var(--muted)">brand #cabfb0 · pass #4fb19d · warn #e0a93c · fail #e0556b · bg #100e0c</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="colors" value="e">✓ use</label></header>
+        <div class="demo theme-e"><div class="glow" style="padding:14px"><div class="t-big">GRG Line</div><div class="t-body">Same warm tokens as D + teal glow wash for auth &amp; hero moments</div></div>
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><span class="sw" style="background:#cabfb0"></span><span class="sw" style="background:#4fb19d"></span><span class="sw" style="background:#e0a93c"></span><span class="sw" style="background:#e0556b"></span><span class="sw" style="background:#100e0c"></span></div>
+          <div class="mono" style="margin-top:10px;font-size:12px;color:var(--muted)">shared with D · plus glow rgba(79,177,157,.10–.14)</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — colors.</b></label><textarea data-comment="colors" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= TYPOGRAPHY ================= -->
+  <section class="block" data-section="typography" data-label="Typography">
+    <h2>8 · Typography</h2>
+    <div class="sub">Display / body / mono voices + stack rules.</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="typography" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div class="t-big">Aa — Display</div><div class="t-body">Body — banners, diffs and empty states read at this size.</div><div class="mono" style="margin-top:8px">swp1 · 10.0.0.1/24 · 65001</div><div class="hint" style="margin-top:8px">Inter UI · JetBrains Mono for all values · uppercase micro-labels for section eyebrows</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="typography" value="b">✓ use</label></header>
+        <div class="demo theme-b"><div class="t-big">Aa — Display</div><div class="t-body">Body — banners, diffs and empty states read at this size.</div><div class="mono" style="margin-top:8px">swp1 · 10.0.0.1/24 · 65001</div><div class="hint" style="margin-top:8px">Inter UI · tabular numerals everywhere · semibold headings, tight tracking</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="typography" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div class="t-big">Aa — Display</div><div class="t-body">Body — banners, diffs and empty states read at this size.</div><div class="mono" style="margin-top:8px">swp1 · 10.0.0.1/24 · 65001</div><div class="hint" style="margin-top:8px">Space Grotesk for display + eyebrows · Inter body · larger display scale</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="typography" value="d">✓ use</label></header>
+        <div class="demo theme-d"><div class="t-big">Aa — Display</div><div class="t-body">Body — banners, diffs and empty states read at this size.</div><div class="mono" style="margin-top:8px">swp1 · 10.0.0.1/24 · 65001</div><div class="hint" style="margin-top:8px">Inter Variable · −0.011em tracking · tabular numerals · quiet hierarchy</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="typography" value="e">✓ use</label></header>
+        <div class="demo theme-e"><div class="t-big">Aa — Display</div><div class="t-body">Body — banners, diffs and empty states read at this size.</div><div class="mono" style="margin-top:8px">swp1 · 10.0.0.1/24 · 65001</div><div class="hint" style="margin-top:8px">Same Inter stack as D (shared) · small caps 0.72rem badges for status</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — typography.</b></label><textarea data-comment="typography" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= NAVIGATION ================= -->
+  <section class="block" data-section="navigation" data-label="Navigation">
+    <h2>9 · Navigation / menu</h2>
+    <div class="sub">Left rail: brand, items, active state, user footer. (E's rail collapses — click ‹.)</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="navigation" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div class="sbar"><div class="sbrand"><span class="slogo">C</span><span class="lbl">Cumulus</span></div>
+          <a class="snav"><i>▦</i><span class="lbl">Dashboard</span></a><a class="snav active"><i>◉</i><span class="lbl">Interfaces</span></a><a class="snav"><i>▲</i><span class="lbl">VRFs</span></a><a class="snav"><i>◆</i><span class="lbl">BGP</span></a><a class="snav"><i>●</i><span class="lbl">Audit Log</span></a>
+          <div class="sfoot"><span class="savatar">Y</span><span class="lbl">yves · admin</span></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="navigation" value="b">✓ use</label></header>
+        <div class="demo theme-b"><div class="sbar"><div class="sbrand"><span class="slogo">C</span><span class="lbl">Cumulus</span></div>
+          <a class="snav"><i>▦</i><span class="lbl">Dashboard</span></a><a class="snav active"><i>◉</i><span class="lbl">Interfaces</span></a><a class="snav"><i>▲</i><span class="lbl">VRFs</span></a><a class="snav"><i>◆</i><span class="lbl">BGP</span></a><a class="snav"><i>●</i><span class="lbl">Audit Log</span></a>
+          <div class="sfoot"><span class="savatar">Y</span><span class="lbl">yves · admin</span></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="navigation" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div class="sbar"><div class="sbrand"><span class="slogo">C</span><span class="lbl">Cumulus</span></div>
+          <a class="snav"><i>▦</i><span class="lbl">Dashboard</span></a><a class="snav active"><i>◉</i><span class="lbl">Interfaces</span></a><a class="snav"><i>▲</i><span class="lbl">VRFs</span></a><a class="snav"><i>◆</i><span class="lbl">BGP</span></a><a class="snav"><i>●</i><span class="lbl">Audit Log</span></a>
+          <div class="sfoot"><span class="savatar">Y</span><span class="lbl">yves · admin</span></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="navigation" value="d">✓ use</label></header>
+        <div class="demo theme-d"><div class="sbar"><div class="sbrand"><span class="slogo">C</span><span class="lbl">Cumulus</span></div>
+          <a class="snav"><i>▦</i><span class="lbl">Dashboard</span></a><a class="snav active"><i>◉</i><span class="lbl">Interfaces</span></a><a class="snav"><i>▲</i><span class="lbl">VRFs</span></a><a class="snav"><i>◆</i><span class="lbl">BGP</span></a><a class="snav"><i>●</i><span class="lbl">Audit Log</span></a>
+          <div class="sfoot"><span class="savatar">Y</span><span class="lbl">yves · admin</span></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="navigation" value="e">✓ use</label></header>
+        <div class="demo theme-e"><div class="sbar" data-rail><div class="sbrand"><span class="slogo">G</span><span class="lbl">Cumulus</span><button class="scollapse" data-collapse title="Collapse">‹</button></div>
+          <a class="snav"><i>▦</i><span class="lbl">Dashboard</span></a><a class="snav active"><i>◉</i><span class="lbl">Interfaces</span><span class="scount">3</span></a><a class="snav"><i>▲</i><span class="lbl">VRFs</span></a><a class="snav"><i>◆</i><span class="lbl">BGP</span></a><a class="snav"><i>●</i><span class="lbl">Audit Log</span></a>
+          <div class="sfoot"><span class="savatar">Y</span><span class="who lbl">yves · admin</span></div></div>
+          <div class="hint" style="margin-top:8px">GRG shell: collapsible icon rail (persisted), count badges, icon-button footer.</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — navigation.</b> e.g. "rail from E, active state from A"</label><textarea data-comment="navigation" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= LOGIN ================= -->
+  <section class="block" data-section="login" data-label="Login">
+    <h2>10 · Login</h2>
+    <div class="sub">Sign-in card: brand, identifier + password, submit, footer note.</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="login" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div class="login-card"><div class="logo-dot">C</div><div style="font-weight:700">Sign in to Cumulus</div><div class="hint" style="margin-bottom:12px">DC fleet console</div>
+          <input class="inp" placeholder="username" style="margin-bottom:8px"><input class="inp" type="password" placeholder="••••••••" style="margin-bottom:12px"><button class="btn btn-p" style="width:100%">Sign in</button></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="login" value="b">✓ use</label></header>
+        <div class="demo theme-b"><div class="login-card"><div class="logo-dot">C</div><div style="font-weight:700">Sign in to Cumulus</div><div class="hint" style="margin-bottom:12px">DC fleet console</div>
+          <input class="inp" placeholder="username" style="margin-bottom:8px"><input class="inp" type="password" placeholder="••••••••" style="margin-bottom:12px"><button class="btn btn-p" style="width:100%">Sign in</button></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="login" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div class="login-card"><div class="logo-dot">C</div><div class="t-big" style="font-size:17px">Sign in to Cumulus</div><div class="hint" style="margin-bottom:12px">DC fleet console</div>
+          <input class="inp" placeholder="username" style="margin-bottom:8px"><input class="inp" type="password" placeholder="••••••••" style="margin-bottom:12px"><button class="btn btn-p" style="width:100%">Sign in</button></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="login" value="d">✓ use</label></header>
+        <div class="demo theme-d"><div class="login-card"><div class="logo-dot">C</div><div style="font-weight:700">Sign in to Cumulus</div><div class="hint" style="margin-bottom:12px">DC fleet console</div>
+          <input class="inp" placeholder="username" style="margin-bottom:8px"><input class="inp" type="password" placeholder="••••••••" style="margin-bottom:12px"><button class="btn btn-p" style="width:100%">Sign in</button></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="login" value="e">✓ use</label></header>
+        <div class="demo theme-e"><div class="glow" style="padding:14px 10px"><div class="login-card" style="border:0;background:transparent"><div class="logo-dot">G</div><div style="font-weight:700">Sign in to Cumulus</div><div class="hint" style="margin-bottom:10px">DC fleet console</div>
+          <div class="lf"><input placeholder="you@dc.rw"></div>
+          <div class="lf" style="margin-top:12px"><input type="password" placeholder="••••••••"><button class="end">👁</button></div>
+          <button class="btn" style="width:100%;margin-top:16px"><span class="spin"></span>&nbsp;Signing in…</button>
+          <div class="hint" style="margin-top:12px">Accounts are created by an administrator.</div></div></div>
+          <div class="hint" style="margin-top:8px">GRG login: teal glow, line fields, eye toggle, spinner submit.</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — login.</b></label><textarea data-comment="login" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= MOTION ================= -->
+  <section class="block" data-section="motion" data-label="Motion">
+    <h2>11 · Motion / animation</h2>
+    <div class="sub">Click each verb — same four moves, per-option timing. All options respect reduced-motion.</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="motion" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div class="mx-box" data-mx>watch me</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-g sm" data-mxbtn="mx-go-in">Enter</button><button class="btn btn-g sm" data-mxbtn="mx-go-pop">Pop</button><button class="btn btn-g sm" data-mxbtn="mx-go-shake">Shake</button><button class="btn btn-g sm" data-mxbtn="mx-go-slide">Slide</button></div>
+          <div class="hint" style="margin-top:8px">Snappy ~180–220ms ease-out. Errors shake, drawers slide, toasts nudge.</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="motion" value="b">✓ use</label></header>
+        <div class="demo theme-b"><div class="mx-box" data-mx>watch me</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-g sm" data-mxbtn="mx-go-in">Enter</button><button class="btn btn-g sm" data-mxbtn="mx-go-pop">Pop</button><button class="btn btn-g sm" data-mxbtn="mx-go-shake">Shake</button><button class="btn btn-g sm" data-mxbtn="mx-go-slide">Slide</button></div>
+          <div class="hint" style="margin-top:8px">Soft ~250–300ms, springy pop. Cards lift on enter.</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="motion" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div class="mx-box" data-mx>watch me</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-g sm" data-mxbtn="mx-go-in">Enter</button><button class="btn btn-g sm" data-mxbtn="mx-go-pop">Pop</button><button class="btn btn-g sm" data-mxbtn="mx-go-shake">Shake</button><button class="btn btn-g sm" data-mxbtn="mx-go-slide">Slide</button></div>
+          <div class="hint" style="margin-top:8px">Deliberate ~400–450ms. Weighty, cinematic transitions.</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="motion" value="d">✓ use</label></header>
+        <div class="demo theme-d"><div class="mx-box" data-mx>watch me</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-g sm" data-mxbtn="mx-go-in">Enter</button><button class="btn btn-g sm" data-mxbtn="mx-go-pop">Pop</button><button class="btn btn-g sm" data-mxbtn="mx-go-shake">Shake</button><button class="btn btn-g sm" data-mxbtn="mx-go-slide">Slide</button></div>
+          <div class="hint" style="margin-top:8px">OWL exact: fade-up .55s, pop .28s, shake .4s, step-slide .45s.</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="motion" value="e">✓ use</label></header>
+        <div class="demo theme-e"><div class="mx-box" data-mx>watch me <span class="spin" style="margin-left:8px"></span></div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-g sm" data-mxbtn="mx-go-in">Enter</button><button class="btn btn-g sm" data-mxbtn="mx-go-pop">Pop</button><button class="btn btn-g sm" data-mxbtn="mx-go-shake">Shake</button><button class="btn btn-g sm" data-mxbtn="mx-go-slide">Slide</button></div>
+          <div class="hint" style="margin-top:8px">GRG set: rise .55s, pop .2s, shake .4s, scale-in + spinner for busy states.</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — motion.</b> e.g. "A timings, keep D shake"</label><textarea data-comment="motion" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= SCROLLBARS ================= -->
+  <section class="block" data-section="scrollbars" data-label="Scrollbars">
+    <h2>12 · Scrollbars</h2>
+    <div class="sub">Thin themed scrollbars inside tables, drawers and dropdowns (page chrome keeps the OS default).</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="scrollbars" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div class="scrollbox"><div class="srow">swp1 — up — 10G</div><div class="srow">swp2 — up — 25G</div><div class="srow">swp3 — down — —</div><div class="srow">swp4 — up — 10G</div><div class="srow">bond0 — up — 50G</div><div class="srow">swp5 — up — 10G</div><div class="srow">swp6 — up — 25G</div><div class="srow">swp7 — down — —</div><div class="srow">swp8 — up — 10G</div><div class="srow">lo — up — —</div></div><div class="hint" style="margin-top:8px">Slate thumb, teal on hover.</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="scrollbars" value="b">✓ use</label></header>
+        <div class="demo theme-b"><div class="scrollbox"><div class="srow">swp1 — up — 10G</div><div class="srow">swp2 — up — 25G</div><div class="srow">swp3 — down — —</div><div class="srow">swp4 — up — 10G</div><div class="srow">bond0 — up — 50G</div><div class="srow">swp5 — up — 10G</div><div class="srow">swp6 — up — 25G</div><div class="srow">swp7 — down — —</div><div class="srow">swp8 — up — 10G</div><div class="srow">lo — up — —</div></div><div class="hint" style="margin-top:8px">Light grey thumb, indigo on hover.</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="scrollbars" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div class="scrollbox"><div class="srow">swp1 — up — 10G</div><div class="srow">swp2 — up — 25G</div><div class="srow">swp3 — down — —</div><div class="srow">swp4 — up — 10G</div><div class="srow">bond0 — up — 50G</div><div class="srow">swp5 — up — 10G</div><div class="srow">swp6 — up — 25G</div><div class="srow">swp7 — down — —</div><div class="srow">swp8 — up — 10G</div><div class="srow">lo — up — —</div></div><div class="hint" style="margin-top:8px">Navy thumb, amber on hover.</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="scrollbars" value="d">✓ use</label></header>
+        <div class="demo theme-d"><div class="scrollbox"><div class="srow">swp1 — up — 10G</div><div class="srow">swp2 — up — 25G</div><div class="srow">swp3 — down — —</div><div class="srow">swp4 — up — 10G</div><div class="srow">bond0 — up — 50G</div><div class="srow">swp5 — up — 10G</div><div class="srow">swp6 — up — 25G</div><div class="srow">swp7 — down — —</div><div class="srow">swp8 — up — 10G</div><div class="srow">lo — up — —</div></div><div class="hint" style="margin-top:8px">OWL thin scrollbars, both axes.</div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="scrollbars" value="e">✓ use</label></header>
+        <div class="demo theme-e"><div class="scrollbox"><div class="srow">swp1 — up — 10G</div><div class="srow">swp2 — up — 25G</div><div class="srow">swp3 — down — —</div><div class="srow">swp4 — up — 10G</div><div class="srow">bond0 — up — 50G</div><div class="srow">swp5 — up — 10G</div><div class="srow">swp6 — up — 25G</div><div class="srow">swp7 — down — —</div><div class="srow">swp8 — up — 10G</div><div class="srow">lo — up — —</div></div><div class="hint" style="margin-top:8px">Shared with D (same tokens).</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — scrollbars.</b></label><textarea data-comment="scrollbars" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+
+  <!-- ================= PAGINATION ================= -->
+  <section class="block" data-section="pagination" data-label="Pagination">
+    <h2>13 · Table pagination</h2>
+    <div class="sub">Footer pattern: range readout, rows-per-page, prev/next + position. (E is GRG's exact footer.)</div>
+    <div class="grid5">
+      <div class="variant"><header><span class="opttag" style="background:#2dd4bf22;color:#2dd4bf">A</span><span class="optname">Signal Dark</span><label class="pick"><input type="radio" name="pagination" value="a">✓ use</label></header>
+        <div class="demo theme-a"><div style="font-size:12px;color:var(--muted)">148 interfaces · DC1</div>
+          <div class="pgbar"><span>1–20 of 148</span><div class="pgctl"><span>20 ▾</span><button class="pgbtn">‹</button><span class="pgnum">1 / 8</span><button class="pgbtn">›</button></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4f46e522;color:#a5b4fc">B</span><span class="optname">Paper Light</span><label class="pick"><input type="radio" name="pagination" value="b">✓ use</label></header>
+        <div class="demo theme-b"><div style="font-size:12px;color:var(--muted)">148 interfaces · DC1</div>
+          <div class="pgbar"><span>1–20 of 148</span><div class="pgctl"><span>20 ▾</span><button class="pgbtn">‹</button><span class="pgnum">1 / 8</span><button class="pgbtn">›</button></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#f5a62322;color:#f5a623">C</span><span class="optname">Midnight Ops</span><label class="pick"><input type="radio" name="pagination" value="c">✓ use</label></header>
+        <div class="demo theme-c"><div style="font-size:12px;color:var(--muted)">148 interfaces · DC1</div>
+          <div class="pgbar"><span>1–20 of 148</span><div class="pgctl"><span>20 ▾</span><button class="pgbtn">‹</button><span class="pgnum">1 / 8</span><button class="pgbtn">›</button></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#cabfb022;color:#cabfb0">D · OWL</span><label class="pick"><input type="radio" name="pagination" value="d">✓ use</label></header>
+        <div class="demo theme-d"><div style="font-size:12px;color:var(--muted)">148 interfaces · DC1</div>
+          <div class="pgbar"><span>1–20 of 148</span><div class="pgctl"><span>20 ▾</span><button class="pgbtn">‹</button><span class="pgnum">1 / 8</span><button class="pgbtn">›</button></div></div></div></div>
+      <div class="variant"><header><span class="opttag" style="background:#4fb19d22;color:#4fb19d">E · GRG</span><label class="pick"><input type="radio" name="pagination" value="e">✓ use</label></header>
+        <div class="demo theme-e"><div style="font-size:12px;color:var(--muted)">148 interfaces · DC1</div>
+          <div class="pgbar"><span>1–20 of 148</span><div class="pgctl"><span style="font-size:11px">Rows per page</span><span>20 ▾</span><button class="pgbtn">‹</button><span class="pgnum">1 / 8</span><button class="pgbtn">›</button></div></div>
+          <div class="hint" style="margin-top:8px">GRG exact: range readout + compact rows dropdown + ‹ n/m ›.</div></div></div>
+    </div>
+    <div class="comment"><label><b>Notes — pagination.</b></label><textarea data-comment="pagination" placeholder="Type per-section notes here…"></textarea></div>
+  </section>
+</div>
+
+<div class="summary">
+  <b>Your language:</b><span class="pick-line" id="pickline">nothing chosen yet</span>
+  <button id="copypicks">Copy picks</button>
+</div>
+
+<script>
+  const SECTIONS = ["tables","buttons","forms","dropdowns","modals","notifications","colors","typography","navigation","login","motion","scrollbars","pagination"];
+  const NAMES = {a:"A – Signal Dark", b:"B – Paper Light", c:"C – Midnight Ops", d:"D – OWL", e:"E – GRG"};
+  const store = JSON.parse(localStorage.getItem("cumulus-design") || "{}");
+  const notes = JSON.parse(localStorage.getItem("cumulus-design-notes") || "{}");
+  function sync() {
+    const picks = {};
+    SECTIONS.forEach(s => {
+      const el = document.querySelector(`input[name="${s}"]:checked`);
+      picks[s] = el ? el.value : null;
+    });
+    const line = SECTIONS.map(s => `${s}: ${picks[s] ? NAMES[picks[s]] : "—"}`).join(" · ");
+    document.getElementById("pickline").innerHTML = line.replace(/([A-E] – [^·]+)/g, "<strong>$1</strong>");
+    localStorage.setItem("cumulus-design", JSON.stringify(picks));
+    return picks;
+  }
+  function noteVals() {
+    const out = {};
+    document.querySelectorAll("textarea[data-comment]").forEach(t => { out[t.dataset.comment] = t.value.trim(); });
+    return out;
+  }
+  document.querySelectorAll('input[type="radio"]').forEach(r => {
+    const s = r.name;
+    if (store[s] === r.value) r.checked = true;
+    r.addEventListener("change", sync);
+  });
+  document.querySelectorAll("[data-all]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      SECTIONS.forEach(s => { const el = document.querySelector(`input[name="${s}"][value="${btn.dataset.all}"]`); if (el) el.checked = true; });
+      sync();
+    });
+  });
+  document.getElementById("copypicks").addEventListener("click", () => {
+    const picks = sync();
+    const nv = noteVals();
+    const text = "Cumulus design language picks:\n" + SECTIONS.map(s => `- ${s}: ${picks[s] ? NAMES[picks[s]] : "(undecided)"}${nv[s] ? ` — note: ${nv[s]}` : ""}`).join("\n");
+    navigator.clipboard.writeText(text).then(() => alert("Copied:\n" + text));
+  });
+  document.querySelectorAll("textarea[data-comment]").forEach(t => {
+    const s = t.dataset.comment;
+    if (notes[s]) t.value = notes[s];
+    t.addEventListener("input", () => {
+      const all = noteVals();
+      localStorage.setItem("cumulus-design-notes", JSON.stringify(all));
+    });
+  });
+  // dropdowns
+  document.addEventListener("click", e => {
+    const btn = e.target.closest(".dd-btn");
+    document.querySelectorAll(".dd.open").forEach(d => { if (!btn || !d.contains(btn)) d.classList.remove("open"); });
+    if (btn) btn.closest(".dd").classList.toggle("open");
+    const opt = e.target.closest(".dd-menu button");
+    if (opt) {
+      const dd = opt.closest(".dd");
+      dd.querySelector(".dd-btn span").textContent = opt.textContent.replace(" ✓","") + " ▾";
+      dd.querySelectorAll(".dd-menu button").forEach(b => b.textContent = b.textContent.replace(" ✓",""));
+      opt.textContent += " ✓";
+    }
+  });
+  // modals
+  document.querySelectorAll(".modal-open").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); b.parentElement.querySelector(".overlay").classList.add("open"); }));
+  document.querySelectorAll(".modal-close").forEach(b => b.addEventListener("click", () => b.closest(".overlay").classList.remove("open")));
+  document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if (e.target === o) o.classList.remove("open"); }));
+  // toasts
+  document.querySelectorAll(".toast-fire").forEach(b => b.addEventListener("click", () => {
+    const stack = b.parentElement.querySelector(".toaststack");
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.innerHTML = "<b>Apply finished</b><span>rev 43 live on leaf01 · 2s ago</span>";
+    stack.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }));
+  // motion demos
+  document.querySelectorAll("[data-mxbtn]").forEach(b => b.addEventListener("click", () => {
+    const box = b.closest(".demo").querySelector("[data-mx]");
+    if (!box) return;
+    ["mx-go-in","mx-go-pop","mx-go-shake","mx-go-slide"].forEach(c => box.classList.remove(c));
+    void box.offsetWidth;
+    box.classList.add(b.dataset.mxbtn);
+  }));
+  // collapsible rail (E nav)
+  document.querySelectorAll("[data-collapse]").forEach(b => b.addEventListener("click", () => {
+    const rail = b.closest("[data-rail]");
+    if (rail) rail.classList.toggle("collapsed");
+  }));
+  sync();
+</script>
+</body>
+</html>
