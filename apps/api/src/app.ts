@@ -11,6 +11,7 @@ import { workflowRoutes } from './workflow/routes.js';
 import { fixtureRoutes } from './fixtures/routes.js';
 import { authRoutes } from './auth/routes.js';
 import { usersRoutes } from './users/routes.js';
+import { setupRoutes } from './setup/routes.js';
 import { authConfig, type AuthConfig } from './auth/config.js';
 import type { JsonRequest } from './nvue/tls.js';
 
@@ -38,6 +39,8 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
   await app.register(fixtureRoutes);
 
   const auth = options?.auth === undefined ? { cfg: authConfig() } : options.auth;
+  // Setup is public-but-empty-gated (first-boot only, 404s once a user exists).
+  if (auth !== false) await app.register(setupRoutes, { cfg: auth.cfg });
   if (auth !== false) {
     await app.register(inventoryRoutes, { cfg: auth.cfg });
     await app.register(switchAuthRoutes, { cfg: auth.cfg, fetchJsonFn: auth.fetchJsonFn });

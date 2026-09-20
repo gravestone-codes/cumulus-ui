@@ -3,7 +3,7 @@
  * Login/logout/me, disabled accounts, wrong passwords, idle expiry,
  * and logout dropping switch tokens.
  */
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { Pool, type Pool as PoolType } from 'pg';
 import { buildApp } from './app.js';
@@ -42,6 +42,10 @@ describe('password hashing (pure)', () => {
 
 describe.skipIf(!LIVE)('auth routes', () => {
   let pool: PoolType;
+
+  afterAll(async () => {
+    await pool.end();
+  });
 
   beforeAll(async () => {
     await migrate();

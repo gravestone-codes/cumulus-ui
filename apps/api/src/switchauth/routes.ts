@@ -8,7 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import { problem } from '../lib/problems.js';
 import { type AuthConfig } from '../auth/config.js';
 import { resolveCaller } from '../auth/caller.js';
-import { getSwitch } from '../inventory/store.js';
+import { getSwitch, markSeen } from '../inventory/store.js';
 import { getUserRoles, mayAccessSwitch } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
 import { getSwitchCredential } from '../users/store.js';
@@ -91,6 +91,7 @@ export async function switchAuthRoutes(app: FastifyInstance, deps: SwitchAuthDep
       );
       setSwitchToken(who.sub, id, token);
       // cred.password falls out of scope here — never stored, never logged.
+      await markSeen(id, true);
       await audit({
         userSub: who.sub,
         username: who.username,
@@ -101,6 +102,7 @@ export async function switchAuthRoutes(app: FastifyInstance, deps: SwitchAuthDep
       });
       return reply.code(204).send();
     } catch {
+      await markSeen(id, false);
       return problem(reply, 401, 'Unauthorized', 'switch rejected the credentials', request.url);
     }
   });

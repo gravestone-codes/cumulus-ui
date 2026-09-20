@@ -3,7 +3,7 @@
  * Skipped when unreachable — CI always provides it, so coverage is enforced there.
  * Routes are gated (0.8): tests authenticate as app-admin.
  */
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { Pool, type Pool as PoolType } from 'pg';
 import { buildApp } from './app.js';
@@ -40,6 +40,10 @@ describe('verifyFingerprint (pure)', () => {
 
 describe.skipIf(!LIVE)('inventory api', () => {
   let pool: PoolType;
+
+  afterAll(async () => {
+    await pool.end();
+  });
 
   beforeAll(async () => {
     await migrate();

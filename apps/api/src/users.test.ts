@@ -2,7 +2,7 @@
  * User management tests: platform users + switch-credential extension,
  * admin self-protection, and role grants through the API.
  */
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { Pool, type Pool as PoolType } from 'pg';
 import { buildApp } from './app.js';
@@ -31,6 +31,10 @@ if (!LIVE) console.warn('users tests skipped: DATABASE_URL unreachable');
 
 describe.skipIf(!LIVE)('users + switch credentials', () => {
   let pool: PoolType;
+
+  afterAll(async () => {
+    await pool.end();
+  });
 
   beforeAll(async () => {
     await migrate();

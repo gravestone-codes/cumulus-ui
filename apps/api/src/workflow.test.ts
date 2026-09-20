@@ -2,7 +2,7 @@
  * Workflow tests (roadmap 1.1): branch lifecycle + staging against a fake NVUE
  * that speaks our assumed revision protocol (revisions.ts documents the risk).
  */
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { Pool, type Pool as PoolType } from 'pg';
 import { buildApp } from './app.js';
@@ -33,6 +33,10 @@ if (!LIVE) console.warn('workflow tests skipped: DATABASE_URL unreachable');
 
 describe.skipIf(!LIVE)('branches + staging', () => {
   let pool: PoolType;
+
+  afterAll(async () => {
+    await pool.end();
+  });
   let fake: FakeNvue;
   let counter = 0;
   const nvueState = {

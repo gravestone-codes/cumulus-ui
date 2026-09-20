@@ -2,7 +2,7 @@
  * RBAC tests (roadmap 0.8). The gate matrix is pure; route tests seed sessions
  * directly (Keycloak itself is proven in auth.test.ts, hardware proves live).
  */
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { Pool, type Pool as PoolType } from 'pg';
 import { buildApp } from './app.js';
@@ -100,6 +100,10 @@ describe('gateCheck (pure, deny-by-default)', () => {
 
 describe.skipIf(!LIVE)('rbac routes + seeds', () => {
   let pool: PoolType;
+
+  afterAll(async () => {
+    await pool.end();
+  });
 
   beforeAll(async () => {
     await migrate();

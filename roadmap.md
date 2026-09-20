@@ -298,6 +298,22 @@ Tokens (OWL dark warm): `bg #100e0c · surface #1a1714 · surface-2 #241f1a · t
 
 ---
 
+## 8. Onboarding spec (locked)
+
+**Credentials: bring your own.** Every switch arrives with an initial user + password; the human supplies the IP, we connect with what they give. No credential creation, no rotation feature — password changes happen on the switch by the owner; our stored credential is then re-entered in the UI (a rejected mint surfaces exactly that instruction). Rotation arrives only if a compliance config ever demands it.
+
+**Architecture: live-read, no config replica.** After onboarding we read the switch's configs and populate the UI from live reads every time. The DB never holds switch configuration — with one deliberate exception: OCC before-images in `edit_sessions` (transient, TTL'd, required for conflict detection, never a replica).
+
+**State: derived live, cached with freshness (best, not easiest).** Onboarding/connection state is always derived from a live probe (security: never act on stale truth), cached per switch with `last_seen`/`last_check` for fast lists and offline resilience. Every cached display carries its age ("verified 4m ago", "unreachable — last known"); nothing is ever presented as current when it isn't (UX: fast, honest offline).
+
+**First boot:** zero users → `/setup` wizard (allowed only while the users table is empty; 404 after). Steps, ≤2 questions each: admin identity → password → done → auto-login → empty dashboard with one CTA. Genesis audit row seals the chain start. CLI stays as fallback only.
+
+**Switch ceremony (5 stages):** Add (address, name) → Group → Trust (TOFU fingerprint shown big, compare-with-console instruction; paranoid paste-to-verify mode) → Credential (stored sealed, test-mint immediately) → Verify (read-only platform probe rendered as health cards). TOFU mismatch later is a full-screen event with re-enrol path + audit row, never silent.
+
+**Bulk:** CSV import (address, name, group, credential) running the same 5 stages headlessly with per-row results; one login appliable to a whole group via FanOut.
+
+---
+
 ## DRY enforcement checklist (run at every milestone)
 
 - [ ] No second fetcher for an existing store identity (search by id-type before building)

@@ -2,7 +2,7 @@
  * Audit tests (roadmap 0.9). Chain integrity incl. parallel writers and
  * tamper detection; read endpoint gated through PermissionGate.
  */
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { Pool, type Pool as PoolType } from 'pg';
 import { buildApp } from './app.js';
@@ -62,6 +62,10 @@ describe.skipIf(!LIVE)('audit trail', () => {
   beforeAll(async () => {
     await migrate();
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  });
+
+  afterAll(async () => {
+    await pool.end();
   });
 
   it('appends a verifiable chain, even under parallel writers', async () => {

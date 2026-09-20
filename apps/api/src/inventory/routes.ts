@@ -11,14 +11,18 @@ import { resolveCaller } from '../auth/caller.js';
 import { gateCheck, getUserRoles } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
 import {
+  confirmTrust,
   createGroup,
   createSwitch,
   deleteSwitch,
   getSwitch,
   listGroups,
   listSwitches,
+  markSeen,
   setSwitchGroups,
 } from './store.js';
+import { requireAppAdmin } from '../users/routes.js';
+import { setSwitchCredential } from '../users/store.js';
 
 export interface InventoryDeps {
   cfg: AuthConfig;
@@ -167,5 +171,84 @@ export async function inventoryRoutes(app: FastifyInstance, deps: InventoryDeps)
     } catch (err) {
       return fail(reply, err, '/api/v1/inventory/groups');
     }
+  });
+
+  app.post('/api/v1/inventory/switches/:id/trust', async (request, reply) => {
+    const g = await gate(request, reply, cfg);
+    if (!g) return reply;
+    const { id } = request.params as { id: string };
+    const parsed = z.object({ fingerprint: z.string().min(1) }).safeParse(request.body);
+    if (!parsed.success)
+      return problem(reply, 400, 'Bad Request', 'compared fingerprint required', request.url);
+    if (!(await confirmTrust(id, parsed.data.fingerprint))) {
+      return problem(
+        reply,
+        409,
+        'Conflict',
+        'fingerprint does not match the enrolled pin — compare again',
+        request.url,
+      );
+    }
+    await audit({
+      userSub: g.sub,
+      username: g.username,
+      roles: g.roleIds,
+      switchId: id,
+      method: 'POST',
+      path: request.url,
+    });
+    return { ok: true, trust_verified: true };
+  });
+
+  const BulkRow = z.object({
+    id: z.string().min(1).max(64),
+    display_name: z.string().min(1).max(128),
+    base_url: z.string().url().startsWith('https://'),
+    group: z.string().min(1).optional(),
+    switch_username: z.string().min(1).max(128),
+    switch_password: z.string().min(1).max(512),
+  });
+
+  app.post('/api/v1/inventory/import', async (request, reply) => {
+    const admin = await requireAppAdmin(request, reply, cfg);
+    if (!admin) return reply;
+    const parsed = z.object({ rows: z.array(BulkRow).min(1).max(200) }).safeParse(request.body);
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'rows[] (max 200) required', request.url);
+    const results = [];
+    for (const row of parsed.data.rows) {
+      try {
+        const sw = await createSwitch({ id: row.id, display_name: row.display_name, base_url: row.base_url });
+        if (row.group) await setSwitchGroups(row.id, [row.group]);
+        await setSwitchCredential(
+          admin.who.sub,
+          row.id,
+          row.switch_username,
+          row.switch_password,
+          cfg.credKey,
+        );
+        await audit({
+          userSub: admin.who.sub,
+          username: admin.who.username,
+          roles: admin.roleIds,
+          switchId: row.id,
+          method: 'POST',
+          path: request.url,
+          after: { id: row.id, fingerprint: sw.cert_fingerprint },
+        });
+        results.push({
+          id: row.id,
+          ok: true as const,
+          fingerprint: sw.cert_fingerprint,
+          trust_verified: false,
+        });
+      } catch (err) {
+        results.push({
+          id: row.id,
+          ok: false as const,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    return { results };
   });
 }

@@ -59,14 +59,30 @@ export async function getSwitch(switchId: string): Promise<(Switch & { groups: s
   return row ? toSwitch(row) : null;
 }
 
-/** List all switches with their group ids. */
+/** Record a liveness observation (roadmap §8 freshness: always labeled with age at display). */
+export async function markSeen(switchId: string, ok: boolean): Promise<void> {
+  await db().query(
+    'UPDATE switches SET last_seen_at = CASE WHEN $2 THEN now() ELSE last_seen_at END, last_check_at = now(), last_check_ok = $2 WHERE id = $1',
+    [switchId, ok],
+  );
+}
+
+/** Mark the human TOFU decision. Only exact pin match flips the flag. */
+export async function confirmTrust(switchId: string, fingerprint: string): Promise<boolean> {
+  const { rowCount } = await db().query(
+    'UPDATE switches SET trust_verified = true WHERE id = $1 AND cert_fingerprint = $2',
+    [switchId, fingerprint],
+  );
+  return (rowCount ?? 0) > 0;
+}
 export async function listSwitches(): Promise<Array<Switch & { groups: string[] }>> {
   const { rows } = await db().query<SwitchRow>(`${WITH_GROUPS} GROUP BY s.id ORDER BY s.id`);
   return rows.map(toSwitch);
 }
 
-/** Switches in a group (for FanOut). Empty when the group is unknown or empty. */
-export async function getSwitchesByGroup(groupId: string): Promise<Array<Switch & { groups: string[] }>> {
+/** Switches in a group (for FanOut). Empty when the group is unknown or empty. */ export async function getSwitchesByGroup(
+  groupId: string,
+): Promise<Array<Switch & { groups: string[] }>> {
   const { rows } = await db().query<SwitchRow>(
     `${WITH_GROUPS} WHERE s.id IN (SELECT switch_id FROM switch_groups WHERE group_id = $1) GROUP BY s.id ORDER BY s.id`,
     [groupId],

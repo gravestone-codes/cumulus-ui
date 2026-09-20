@@ -11,7 +11,7 @@ import { resolveCaller } from '../auth/caller.js';
 import { gateCheck, getUserRoles, mayAccessSwitch } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
 import { clientFor, tokenFor } from '../nvue/clients.js';
-import { getSwitch } from '../inventory/store.js';
+import { getSwitch, markSeen } from '../inventory/store.js';
 import { BranchConflictError, discardBranch, getEditSession, openBranch } from './branches.js';
 import { heartbeat, presentOthers } from './presence.js';
 import { applySession, OverlapError, collectDiffs } from './apply.js';
@@ -252,6 +252,25 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
         parsed.data.body,
       );
     } catch (err) {
+      return switchProblem(reply, err, request.url);
+    }
+  });
+
+  app.post('/api/v1/switches/:id/verify', async (request, reply) => {
+    // Session-only like diff/presence: the ceremony already gates enrolment and
+    // credentials; this is a read-only proof-of-life. Config writes stay gated.
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const { id } = request.params as { id: string };
+    const sw = await getSwitch(id);
+    if (!sw) return problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
+    try {
+      const { client } = await clientFor(who.sub, id);
+      const { data } = await client.call({ path: '/system', method: 'GET', token: tokenFor(who.sub, id) });
+      await markSeen(id, true);
+      return { ok: true, switch: id, data };
+    } catch (err) {
+      await markSeen(id, false);
       return switchProblem(reply, err, request.url);
     }
   });
