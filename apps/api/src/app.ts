@@ -33,6 +33,9 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: process.env.LOG_LEVEL ?? 'info' },
     genReqId: () => randomUUID(), // roadmap decision 12: reqId spans UI→backend→switch
+    // Behind a TLS-terminating proxy, X-Forwarded-Proto tells the truth about
+    // the browser-facing scheme (used for the Secure cookie flag below).
+    trustProxy: true,
   });
   await app.register(helmet, {
     // Default helmet CSP minus `upgrade-insecure-requests`: the app is served

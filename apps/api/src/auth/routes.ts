@@ -43,7 +43,10 @@ export async function authRoutes(app: FastifyInstance, deps: AuthDeps): Promise<
     void reply.setCookie(COOKIE, session.id, {
       httpOnly: true,
       sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
+      // Secure only when the browser-facing scheme is actually HTTPS.
+      // Tying this to NODE_ENV broke production-over-HTTP LANs: browsers
+      // silently drop Secure cookies on http:// and every later call 401s.
+      secure: request.protocol === 'https',
       path: '/',
       maxAge: cfg.idleMinutes * 60,
     });

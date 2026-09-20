@@ -68,6 +68,9 @@ describe.skipIf(!LIVE)('auth routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.user).toMatchObject({ id: 'alice' });
       expect(String(res.headers['set-cookie'])).toContain('cumulus_session');
+      // Plain HTTP must NOT set Secure, or browsers silently drop the cookie
+      // and every later call 401s (production-over-HTTP LAN regression).
+      expect(String(res.headers['set-cookie'])).not.toMatch(/;\s*Secure/i);
       expect((await agent.get('/api/v1/auth/me')).body.user.id).toBe('alice');
 
       const bad = await request(app.server)
@@ -78,6 +81,21 @@ describe.skipIf(!LIVE)('auth routes', () => {
         .post('/api/v1/auth/login')
         .send({ username: 'ghost', password: 'x'.repeat(20) });
       expect(ghost.status).toBe(401);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('behind a TLS proxy the cookie is Secure', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    try {
+      const res = await request(app.server)
+        .post('/api/v1/auth/login')
+        .set('X-Forwarded-Proto', 'https')
+        .send({ username: 'alice', password: 'alice-password-123' });
+      expect(res.status).toBe(200);
+      expect(String(res.headers['set-cookie'])).toMatch(/;\s*Secure/i);
     } finally {
       await app.close();
     }

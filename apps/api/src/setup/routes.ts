@@ -70,7 +70,9 @@ export async function setupRoutes(app: FastifyInstance, deps: SetupDeps): Promis
       void reply.setCookie('cumulus_session', session.id, {
         httpOnly: true,
         sameSite: 'strict',
-        secure: process.env.NODE_ENV === 'production',
+        // Scheme-based, not env-based (see auth/routes.ts): Secure on http://
+        // makes browsers silently drop the cookie.
+        secure: request.protocol === 'https',
         path: '/',
         maxAge: cfg.idleMinutes * 60,
       });
