@@ -36,11 +36,25 @@ export async function queryRoutes(app: FastifyInstance, deps: { cfg: AuthConfig 
     const roles = await getUserRoles(who.sub);
     const roleIds = roles.map((r) => r.id);
     if (!mayAccessSwitch(roles, sw.groups)) {
-      await audit({ userSub: who.sub, username: who.username, roles: roleIds, switchId: id, method: 'GET', path: request.url });
+      await audit({
+        userSub: who.sub,
+        username: who.username,
+        roles: roleIds,
+        switchId: id,
+        method: 'GET',
+        path: request.url,
+      });
       return problem(reply, 403, 'Forbidden', `no role covers switch ${id}`, request.url);
     }
     if (!gateCheck(roles, { method: 'GET', path: parsed.data.path, switchGroups: sw.groups })) {
-      await audit({ userSub: who.sub, username: who.username, roles: roleIds, switchId: id, method: 'GET', path: request.url });
+      await audit({
+        userSub: who.sub,
+        username: who.username,
+        roles: roleIds,
+        switchId: id,
+        method: 'GET',
+        path: request.url,
+      });
       return problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
     }
     try {
@@ -57,7 +71,13 @@ export async function queryRoutes(app: FastifyInstance, deps: { cfg: AuthConfig 
       if (err instanceof GuardError) return problem(reply, 400, 'Bad Request', err.message, request.url);
       const status = (err as { status?: number }).status;
       if (status === 401 || status === 404) {
-        return problem(reply, status, status === 401 ? 'Unauthorized' : 'Not Found', (err as Error).message, request.url);
+        return problem(
+          reply,
+          status,
+          status === 401 ? 'Unauthorized' : 'Not Found',
+          (err as Error).message,
+          request.url,
+        );
       }
       throw err;
     }

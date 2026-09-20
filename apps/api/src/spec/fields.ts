@@ -52,14 +52,21 @@ export function dereference(node: unknown, doc: Doc, depth = 0, seen: string[] =
     const target = ref
       .slice(2)
       .split('/')
-      .reduce<unknown>((acc, seg) => (typeof acc === 'object' && acc !== null ? (acc as Record<string, unknown>)[seg] : undefined), doc);
+      .reduce<unknown>(
+        (acc, seg) =>
+          typeof acc === 'object' && acc !== null ? (acc as Record<string, unknown>)[seg] : undefined,
+        doc,
+      );
     if (target === undefined) return {};
     const { $ref: _dropped, ...siblings } = obj;
     void _dropped;
     const resolved = dereference(target, doc, depth + 1, [...seen, ref]);
     if (typeof resolved === 'object' && resolved !== null && !Array.isArray(resolved)) {
       const rest = dereference(siblings, doc, depth + 1, seen);
-      return { ...(resolved as Record<string, unknown>), ...((typeof rest === 'object' && rest !== null ? rest : {}) as Record<string, unknown>) };
+      return {
+        ...(resolved as Record<string, unknown>),
+        ...((typeof rest === 'object' && rest !== null ? rest : {}) as Record<string, unknown>),
+      };
     }
     return resolved;
   }
@@ -80,7 +87,10 @@ export function flattenComposites(schema: unknown): unknown {
       return {
         ...obj,
         properties: Object.fromEntries(
-          Object.entries(obj['properties'] as Record<string, unknown>).map(([k, v]) => [k, flattenComposites(v)]),
+          Object.entries(obj['properties'] as Record<string, unknown>).map(([k, v]) => [
+            k,
+            flattenComposites(v),
+          ]),
         ),
       };
     }
@@ -91,7 +101,10 @@ export function flattenComposites(schema: unknown): unknown {
     const flat = flattenComposites(branch) as Record<string, unknown>;
     if (typeof flat !== 'object' || flat === null || Array.isArray(flat)) continue;
     if (typeof flat['properties'] === 'object' && flat['properties'] !== null) {
-      Object.assign(merged['properties'] as Record<string, unknown>, flat['properties'] as Record<string, unknown>);
+      Object.assign(
+        merged['properties'] as Record<string, unknown>,
+        flat['properties'] as Record<string, unknown>,
+      );
     }
     if (Array.isArray(flat['required'])) {
       (merged['required'] as unknown[]).push(...flat['required']);
@@ -105,7 +118,11 @@ export function flattenComposites(schema: unknown): unknown {
 }
 
 /** Request-body schema for a manifest path template + method. Null when none. */
-export function requestBodySchema(pathTemplate: string, method: string, doc: Doc = specDoc()): FieldSchema | null {
+export function requestBodySchema(
+  pathTemplate: string,
+  method: string,
+  doc: Doc = specDoc(),
+): FieldSchema | null {
   const op = doc.paths?.[pathTemplate]?.[method.toLowerCase()];
   if (typeof op !== 'object' || op === null) return null;
   const body = (op as { requestBody?: unknown }).requestBody;

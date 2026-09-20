@@ -36,7 +36,10 @@ export function LineField({
   return (
     <label style={{ display: 'block' }}>
       <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{label}</span>
-      <span className={`lf${error ? ' invalid' : ''} ${shake.className ?? ''}`} onAnimationEnd={shake.onAnimationEnd}>
+      <span
+        className={`lf${error ? ' invalid' : ''} ${shake.className ?? ''}`}
+        onAnimationEnd={shake.onAnimationEnd}
+      >
         <input aria-label={label} {...props} />
       </span>
       <p className="field-err" role={error ? 'alert' : undefined}>
@@ -181,7 +184,13 @@ export function Confirm({
 }
 
 /* Alert: inline pass/warn/fail/note strip. Toasts (below) for transient echoes. */
-export function Alert({ tone = 'note', children }: { tone?: 'pass' | 'warn' | 'fail' | 'note'; children: ReactNode }) {
+export function Alert({
+  tone = 'note',
+  children,
+}: {
+  tone?: 'pass' | 'warn' | 'fail' | 'note';
+  children: ReactNode;
+}) {
   const color =
     tone === 'pass'
       ? 'var(--color-pass)'
@@ -229,7 +238,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={push}>
       {children}
-      <div aria-live="polite" style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 60, display: 'grid', gap: 8 }}>
+      <div
+        aria-live="polite"
+        style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 60, display: 'grid', gap: 8 }}
+      >
         {toasts.map((t) => (
           <div
             key={t.id}
@@ -289,7 +301,9 @@ export function NavRail({
     >
       <p style={{ fontSize: 15, fontWeight: 800, padding: '0 8px', margin: '0 0 2px' }}>Junction</p>
       {switchName && (
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', padding: '0 8px', margin: '0 0 16px' }}>{switchName}</p>
+        <p style={{ fontSize: 12, color: 'var(--color-muted)', padding: '0 8px', margin: '0 0 16px' }}>
+          {switchName}
+        </p>
       )}
       {items.map((item) => (
         <button
@@ -315,7 +329,9 @@ export function NavRail({
       ))}
       <span style={{ flex: 1 }} />
       {user && (
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', padding: '0 8px', margin: '0 0 4px' }}>{user}</p>
+        <p style={{ fontSize: 12, color: 'var(--color-muted)', padding: '0 8px', margin: '0 0 4px' }}>
+          {user}
+        </p>
       )}
       {onLogout && (
         <button
@@ -342,7 +358,14 @@ export function NavRail({
 /* AppShell: rail + content column. Domain screens mount inside, never beside. */
 export function AppShell({ rail, children }: { rail: ReactNode; children: ReactNode }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+    <div
+      style={{
+        display: 'flex',
+        minHeight: '100vh',
+        background: 'var(--color-bg)',
+        color: 'var(--color-text)',
+      }}
+    >
       {rail}
       <main style={{ flex: 1, padding: 28, maxWidth: 1100 }}>{children}</main>
     </div>

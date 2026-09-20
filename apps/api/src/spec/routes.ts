@@ -18,7 +18,11 @@ export async function specRoutes(app: FastifyInstance, deps: { cfg: AuthConfig }
     const who = await resolveCaller(request, cfg);
     if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
     const manifest = manifestJson as { routes: Record<string, string[]>; views: Record<string, string[]> };
-    return { version: (manifestJson as { version?: string }).version ?? 'unknown', routes: manifest.routes, views: manifest.views };
+    return {
+      version: (manifestJson as { version?: string }).version ?? 'unknown',
+      routes: manifest.routes,
+      views: manifest.views,
+    };
   });
 
   app.get('/api/v1/spec/fields', async (request, reply) => {

@@ -64,7 +64,10 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
     try {
       expect(await api.get('/api/v1/switches/swq/query')).toMatchObject({ status: 401 });
 
-      const list = await api.get('/api/v1/switches/swq/query').set('Cookie', op).query({ path: '/interface' });
+      const list = await api
+        .get('/api/v1/switches/swq/query')
+        .set('Cookie', op)
+        .query({ path: '/interface' });
       expect(list.status).toBe(200);
       expect(list.body.data).toEqual({ swp1: { state: 'up' }, swp2: { state: 'down' } });
 

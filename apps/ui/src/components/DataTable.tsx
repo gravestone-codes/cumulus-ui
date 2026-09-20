@@ -21,7 +21,8 @@ export function DataTable<T extends object>({
 }) {
   const table = useTable({ features: coreFeatures, columns, data: rows });
   if (loading) return <p style={{ color: 'var(--color-muted)', fontSize: 13 }}>Loading…</p>;
-  if (rows.length === 0) return <p style={{ color: 'var(--color-muted)', fontSize: 13 }}>Nothing here yet.</p>;
+  if (rows.length === 0)
+    return <p style={{ color: 'var(--color-muted)', fontSize: 13 }}>Nothing here yet.</p>;
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
       <thead>
