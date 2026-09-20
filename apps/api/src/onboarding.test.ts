@@ -6,7 +6,7 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { Pool, type Pool as PoolType } from 'pg';
 import { buildApp } from './app.js';
-import { migrate, db } from './db.js';
+import { migrate } from './db.js';
 import { type AuthConfig } from './auth/config.js';
 import { sessionCookie } from './test-sessions.js';
 import { startFakeNvue, json } from './test-nvue.js';

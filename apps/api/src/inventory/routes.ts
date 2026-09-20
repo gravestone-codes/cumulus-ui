@@ -18,7 +18,6 @@ import {
   getSwitch,
   listGroups,
   listSwitches,
-  markSeen,
   setSwitchGroups,
 } from './store.js';
 import { requireAppAdmin } from '../users/routes.js';
