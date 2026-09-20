@@ -9,6 +9,7 @@ import { api } from '../lib/api.js';
 import { AppShell, NavRail } from '../components/ui.js';
 import { ResourceList } from '../components/resource.js';
 import type { TableColumns } from '../components/DataTable.js';
+import { switchNav } from '../lib/nav.js';
 
 type IfaceRow = Record<string, unknown> & { __id: string };
 
@@ -33,9 +34,9 @@ export function Interfaces() {
       rail={
         <NavRail
           switchName={switchId}
-          items={[{ to: 'interfaces', label: 'Interfaces' }]}
-          active="interfaces"
-          onNav={(to) => navigate(`/switches/${switchId}/${to}`)}
+          items={switchNav(switchId)}
+          active={`/switches/${switchId}/interfaces`}
+          onNav={navigate}
           user={session.data?.user.display_name ?? session.data?.user.username}
           onLogout={logout}
         />

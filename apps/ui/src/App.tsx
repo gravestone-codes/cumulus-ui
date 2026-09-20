@@ -1,5 +1,5 @@
 /**
- * Routes: first-boot setup, login, onboarding, and a placeholder dashboard.
+ * Routes: first-boot setup, login, onboarding, and switch-scoped screens.
  * Gate decides the landing: uninitialized → /setup, anonymous → /login.
  */
 import { useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ import { Login } from './screens/Login.js';
 import { OnboardSwitch } from './screens/OnboardSwitch.js';
 import { BulkImport } from './screens/BulkImport.js';
 import { Interfaces } from './screens/Interfaces.js';
+import { SwitchHome } from './screens/SwitchHome.js';
 
 const queryClient = new QueryClient();
 
@@ -48,11 +49,17 @@ function Gate() {
 function Dashboard() {
   const navigate = useNavigate();
   const session = useSession();
+  const switches = useQuery({ queryKey: ['switches'], queryFn: () => api.switches(), retry: false });
+  useEffect(() => {
+    const first = switches.data?.[0];
+    if (first) navigate(`/switches/${first.id}`, { replace: true });
+  }, [switches.data, navigate]);
   async function logout() {
     await api.logout();
     await queryClient.invalidateQueries({ queryKey: ['me'] });
     navigate('/login', { replace: true });
   }
+  if (switches.isPending) return null;
   return (
     <div style={{ padding: 32, maxWidth: 640 }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Cumulus Junction</h1>
@@ -70,9 +77,13 @@ function Dashboard() {
           Sign out
         </button>
       </div>
-      <p style={{ color: 'var(--color-muted)', fontSize: 12, marginTop: 24 }}>
-        Domain screens (interfaces, VRFs, BGP…) arrive in Phase 2–3. This shell proves auth, routing and the
-        API loop.
+      {switches.isError && (
+        <p style={{ color: 'var(--color-fail)', fontSize: 13 }}>
+          Could not load switches: {switches.error.message}
+        </p>
+      )}
+      <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: '0 0 20px' }}>
+        No switches yet. Onboard one to open its menu.
       </p>
     </div>
   );
@@ -111,6 +122,14 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <Interfaces />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId',
+    element: (
+      <RequireAuth>
+        <SwitchHome />
       </RequireAuth>
     ),
   },
