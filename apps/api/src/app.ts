@@ -40,6 +40,9 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
     // silently rewrite subresource loads to https:// (white page, no error).
     // If ever deployed behind a TLS-terminating proxy only, revisit.
     contentSecurityPolicy: {
+      // useDefaults:false — helmet otherwise merges our directives OVER its
+      // defaults, keeping upgrade-insecure-requests (the white-page bug).
+      useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
         baseUri: ["'self'"],
