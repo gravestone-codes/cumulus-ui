@@ -1,4 +1,4 @@
-# Junction
+# Cumulus Junction
 
 Open-source UI + API proxy for NVIDIA Cumulus Linux (NVUE `/nvue_v1`).
 

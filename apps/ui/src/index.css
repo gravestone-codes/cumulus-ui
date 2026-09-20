@@ -85,6 +85,41 @@ body {
     color: var(--color-text);
   }
 
+  /* Validation: invalid fields shake once (retriggered by re-adding .shake).
+     Error lines below always reserve space (min-height) so forms never jump. */
+  @keyframes field-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-5px);
+    }
+    40% {
+      transform: translateX(5px);
+    }
+    60% {
+      transform: translateX(-3px);
+    }
+    80% {
+      transform: translateX(3px);
+    }
+  }
+  .lf.shake {
+    animation: field-shake 0.4s ease-in-out;
+  }
+  .field-err {
+    font-size: 12px;
+    color: var(--color-fail);
+    margin-top: 4px;
+    min-height: 20px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lf.shake {
+      animation: none;
+    }
+  }
+
   /* Full-width inverted primary with press-down (final language §7). */
   .btn {
     width: 100%;

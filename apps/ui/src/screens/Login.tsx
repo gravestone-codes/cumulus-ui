@@ -1,9 +1,10 @@
-/** Sign-in (final language: line fields, SVG eye, spinner submit). */
+/** Sign-in (final language: line fields, SVG eye, spinner submit, shake + reserved errors). */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../lib/api.js';
 import { EyeOff, EyeOpen } from '../components/Eye.js';
 import { DevReset } from '../components/DevReset.js';
+import { useFieldErrors } from '../components/fields.js';
 
 export function Login() {
   const navigate = useNavigate();
@@ -11,22 +12,21 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const fields = useFieldErrors();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
-    if (!username.trim() || !password) {
-      setError('Enter your username and password.');
-      return;
-    }
+    fields.clearAll();
+    if (!username.trim()) fields.flag('username', 'Enter your username.');
+    if (!password) fields.flag('password', 'Enter your password.');
+    if (!username.trim() || !password) return;
     setBusy(true);
-    setError(null);
     try {
       await api.login({ username: username.trim(), password });
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Sign-in failed.');
+      fields.flag('password', err instanceof ApiError ? err.message : 'Sign-in failed.');
       setPassword('');
       setBusy(false);
     }
@@ -44,25 +44,32 @@ export function Login() {
     >
       <form onSubmit={submit} style={{ width: '100%', maxWidth: 360 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', textAlign: 'center' }}>
-          Sign in to Junction
+          Sign in to Cumulus Junction
         </h1>
         <div style={{ height: 28 }} />
         <label style={{ fontSize: 12, fontWeight: 600 }}>Username</label>
-        <div className="lf">
+        <div {...fields.fieldProps('username')}>
           <input
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              fields.clear('username');
+            }}
             autoComplete="username"
             placeholder="admin"
             autoFocus
           />
         </div>
-        <label style={{ fontSize: 12, fontWeight: 600, marginTop: 16, display: 'block' }}>Password</label>
-        <div className="lf">
+        <fields.Err field="username" />
+        <label style={{ fontSize: 12, fontWeight: 600, marginTop: 8, display: 'block' }}>Password</label>
+        <div {...fields.fieldProps('password')}>
           <input
             type={show ? 'text' : 'password'}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              fields.clear('password');
+            }}
             autoComplete="current-password"
             placeholder="••••••••••••"
           />
@@ -75,8 +82,8 @@ export function Login() {
             {show ? <EyeOff /> : <EyeOpen />}
           </button>
         </div>
-        {error && <p style={{ color: 'var(--color-fail)', fontSize: 12, marginTop: 8 }}>{error}</p>}
-        <button type="submit" className="btn" style={{ marginTop: 24 }} disabled={busy}>
+        <fields.Err field="password" />
+        <button type="submit" className="btn" style={{ marginTop: 16 }} disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
         <p style={{ color: 'var(--color-muted)', fontSize: 12, textAlign: 'center', marginTop: 16 }}>
