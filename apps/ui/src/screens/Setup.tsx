@@ -77,11 +77,20 @@ export function Setup() {
               type="button"
               className="btn"
               style={{ marginTop: 24 }}
-              disabled={!id.trim() || !displayName.trim()}
-              onClick={() => setStep(1)}
+              onClick={() => {
+                if (!id.trim() || !displayName.trim()) {
+                  setError('Enter a username and a display name.');
+                  return;
+                }
+                setError(null);
+                setStep(1);
+              }}
             >
               Continue
             </button>
+            {error && step === 0 && (
+              <p style={{ color: 'var(--color-fail)', fontSize: 12, marginTop: 8 }}>{error}</p>
+            )}
           </>
         )}
         {step === 1 && (
@@ -114,7 +123,18 @@ export function Setup() {
               <button type="button" className="btn btn-secondary" onClick={() => setStep(0)}>
                 Back
               </button>
-              <button type="button" className="btn" disabled={busy || password.length < 12} onClick={finish}>
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={() => {
+                  if (password.length < 12) {
+                    setError('Password must be at least 12 characters.');
+                    return;
+                  }
+                  finish();
+                }}
+              >
                 {busy ? 'Creating…' : 'Create admin'}
               </button>
             </div>

@@ -143,8 +143,14 @@ export function OnboardSwitch() {
               type="button"
               className="btn"
               style={{ marginTop: 24 }}
-              disabled={busy || !id.trim() || !url.trim()}
-              onClick={add}
+              disabled={busy}
+              onClick={() => {
+                if (!id.trim() || !url.trim()) {
+                  setError('Enter a switch ID and management URL.');
+                  return;
+                }
+                add();
+              }}
             >
               {busy ? 'Reaching switch…' : 'Add switch'}
             </button>
@@ -261,8 +267,14 @@ export function OnboardSwitch() {
               <button
                 type="button"
                 className="btn"
-                disabled={busy || !username || !password}
-                onClick={credential}
+                disabled={busy}
+                onClick={() => {
+                  if (!username.trim() || !password) {
+                    setError('Enter the switch username and password.');
+                    return;
+                  }
+                  credential();
+                }}
               >
                 {busy ? 'Connecting…' : 'Connect'}
               </button>

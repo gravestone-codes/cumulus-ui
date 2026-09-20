@@ -16,6 +16,10 @@ export function Login() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
+    if (!username.trim() || !password) {
+      setError('Enter your username and password.');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -42,9 +46,7 @@ export function Login() {
         <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', textAlign: 'center' }}>
           Sign in to Cumulus
         </h1>
-        <p style={{ color: 'var(--color-muted)', fontSize: 13, textAlign: 'center', margin: '6px 0 28px' }}>
-          DC fleet console
-        </p>
+        <div style={{ height: 28 }} />
         <label style={{ fontSize: 12, fontWeight: 600 }}>Username</label>
         <div className="lf">
           <input
@@ -74,12 +76,7 @@ export function Login() {
           </button>
         </div>
         {error && <p style={{ color: 'var(--color-fail)', fontSize: 12, marginTop: 8 }}>{error}</p>}
-        <button
-          type="submit"
-          className="btn"
-          style={{ marginTop: 24 }}
-          disabled={busy || !username || !password}
-        >
+        <button type="submit" className="btn" style={{ marginTop: 24 }} disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
         <p style={{ color: 'var(--color-muted)', fontSize: 12, textAlign: 'center', marginTop: 16 }}>
