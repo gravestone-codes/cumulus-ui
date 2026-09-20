@@ -6,10 +6,12 @@ import { useEffect, useState } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { api } from './lib/api.js';
+import { ToastProvider } from './components/ui.js';
 import { Setup } from './screens/Setup.js';
 import { Login } from './screens/Login.js';
 import { OnboardSwitch } from './screens/OnboardSwitch.js';
 import { BulkImport } from './screens/BulkImport.js';
+import { Interfaces } from './screens/Interfaces.js';
 
 const queryClient = new QueryClient();
 
@@ -104,12 +106,22 @@ const router = createBrowserRouter([
       </RequireAuth>
     ),
   },
+  {
+    path: '/switches/:switchId/interfaces',
+    element: (
+      <RequireAuth>
+        <Interfaces />
+      </RequireAuth>
+    ),
+  },
 ]);
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ToastProvider>
+        <RouterProvider router={router} />
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

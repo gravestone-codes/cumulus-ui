@@ -11,6 +11,8 @@ import { switchAuthRoutes } from './switchauth/routes.js';
 import { rbacRoutes } from './rbac/routes.js';
 import { auditRoutes } from './audit/routes.js';
 import { workflowRoutes } from './workflow/routes.js';
+import { queryRoutes } from './query/routes.js';
+import { specRoutes } from './spec/routes.js';
 import { fixtureRoutes } from './fixtures/routes.js';
 import { authRoutes } from './auth/routes.js';
 import { usersRoutes } from './users/routes.js';
@@ -77,6 +79,8 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
     await app.register(rbacRoutes, { cfg: auth.cfg });
     await app.register(auditRoutes, { cfg: auth.cfg });
     await app.register(workflowRoutes, { cfg: auth.cfg });
+    await app.register(queryRoutes, { cfg: auth.cfg });
+    await app.register(specRoutes, { cfg: auth.cfg });
   }
 
   app.setNotFoundHandler(async (request, reply) => {

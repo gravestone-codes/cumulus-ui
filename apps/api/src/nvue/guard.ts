@@ -40,7 +40,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return proto === Object.prototype || proto === null;
 }
 
-const matcherCache = new WeakMap<object, Array<{ re: RegExp; methods: string[]; views: string[] }>>();
+const matcherCache = new WeakMap<
+  object,
+  Array<{ re: RegExp; template: string; methods: string[]; views: string[] }>
+>();
 
 /**
  * NVUE paths are templates (`/interface/{interface-id}`); calls carry concrete
@@ -60,11 +63,26 @@ function matchersFor(manifest: Pick<NvueManifest, 'routes' | 'views'>) {
           )
           .join('/')}$`,
       ),
+      template: tmpl,
       methods,
       views: manifest.views[tmpl] ?? [],
     }));
   matcherCache.set(manifest, list);
   return list;
+}
+
+/**
+ * Resolve a concrete (or template) path to its manifest template + methods.
+ * Shared by the call gate and the fields endpoint. Null when unknown.
+ */
+export function matchTemplate(
+  manifest: Pick<NvueManifest, 'routes' | 'views'>,
+  path: string,
+): { template: string; methods: string[]; views: string[] } | null {
+  const direct = manifest.routes[path];
+  if (direct) return { template: path, methods: direct, views: manifest.views[path] ?? [] };
+  const via = matchersFor(manifest).find((m) => m.re.test(path));
+  return via ?? null;
 }
 
 /** Validate a call against the manifest. Throws GuardError on any violation. */

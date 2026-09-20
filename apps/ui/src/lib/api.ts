@@ -82,6 +82,20 @@ export interface GroupRow {
 export interface ImportResult {
   results: Array<{ id: string; ok: boolean; fingerprint?: string; trust_verified?: boolean; error?: string }>;
 }
+export interface QueryResult<T = unknown> {
+  data: T;
+  cached: boolean;
+  rev?: string;
+  checked_at: string;
+}
+export interface SpecManifest {
+  version: string;
+  routes: Record<string, string[]>;
+  views: Record<string, string[]>;
+}
+export interface FieldSchema {
+  schema: unknown;
+}
 
 export const api = {
   setupStatus: () => request<SetupStatus>('/api/v1/setup/status'),
@@ -118,4 +132,16 @@ export const api = {
   verifySwitch: (id: string) =>
     post<{ ok: boolean; switch: string; data: unknown }>(`/api/v1/switches/${encodeURIComponent(id)}/verify`),
   importSwitches: (rows: CsvRow[]) => post<ImportResult>('/api/v1/inventory/import', { rows }),
+
+  query: <T = unknown>(switchId: string, path: string, opts?: { rev?: string; view?: string }) => {
+    const qs = new URLSearchParams({ path });
+    if (opts?.rev) qs.set('rev', opts.rev);
+    if (opts?.view) qs.set('view', opts.view);
+    return request<QueryResult<T>>(`/api/v1/switches/${encodeURIComponent(switchId)}/query?${qs}`);
+  },
+  manifest: () => request<SpecManifest>('/api/v1/spec/manifest'),
+  fields: (path: string, method: string) => {
+    const qs = new URLSearchParams({ path, method });
+    return request<FieldSchema>(`/api/v1/spec/fields?${qs}`);
+  },
 };

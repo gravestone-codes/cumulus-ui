@@ -22,6 +22,7 @@ COPY --from=build /app/deploy/node_modules ./node_modules
 COPY --from=build /app/deploy/package.json ./
 COPY --from=build /app/deploy/migrations ./migrations
 COPY --from=build /app/deploy/fixtures ./fixtures
+COPY --from=build /app/packages/spec/openapi.json ./openapi.json
 COPY --from=build /app/apps/ui/dist ./public
 EXPOSE 3000
 CMD ["dist/index.js"]
