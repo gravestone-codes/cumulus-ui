@@ -1,6 +1,135 @@
 @import 'tailwindcss';
 
-/* Design tokens land here in Phase 2 (roadmap §7). Until then: dark canvas only. */
+/* Final design language (§7): OWL warm dark tokens, Paper Light type rules. */
+@theme {
+  --color-bg: #100e0c;
+  --color-surface: #1a1714;
+  --color-surface-2: #241f1a;
+  --color-text: #f6f3ef;
+  --color-muted: #9c958b;
+  --color-border: #36312b;
+  --color-brand: #cabfb0;
+  --color-pass: #4fb19d;
+  --color-warn: #e0a93c;
+  --color-fail: #e0556b;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
   color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand);
+}
+
+@layer components {
+  /* Underline line-field (final language §7: wordless, label only). */
+  .lf {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .lf > input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.95rem;
+    padding: 0.45rem 1.6rem 0.5rem 0;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .lf > input:focus {
+    border-bottom-color: var(--color-brand);
+  }
+  .lf.invalid > input {
+    border-bottom-color: var(--color-fail);
+  }
+  .lf .end {
+    position: absolute;
+    right: 0;
+    background: none;
+    border: none;
+    color: var(--color-muted);
+    cursor: pointer;
+    display: flex;
+    padding: 2px;
+  }
+  .lf .end:hover {
+    color: var(--color-text);
+  }
+
+  /* Full-width inverted primary with press-down (final language §7). */
+  .btn {
+    width: 100%;
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.7rem 1rem;
+    border-radius: 0.6rem;
+    border: 1px solid var(--color-text);
+    background: var(--color-text);
+    color: var(--color-bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition:
+      opacity 0.15s ease,
+      transform 0.05s ease;
+  }
+  .btn:hover {
+    opacity: 0.9;
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn.auto {
+    width: auto;
+  }
+  .btn-danger {
+    background: var(--color-fail);
+    border-color: var(--color-fail);
+    color: var(--color-bg);
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--color-brand);
+    opacity: 1;
+  }
 }

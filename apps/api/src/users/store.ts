@@ -99,6 +99,14 @@ export async function listUsers(): Promise<PlatformUser[]> {
   return rows;
 }
 
+/** Fetch one user by id (never the hash). Null when unknown. */
+export async function getUserById(id: string): Promise<PlatformUser | null> {
+  const { rows } = await db().query<PlatformUser>('SELECT id, display_name, disabled FROM users WHERE id = $1', [
+    id.toLowerCase(),
+  ]);
+  return rows[0] ?? null;
+}
+
 /** Update display name / disabled / password. Returns null when unknown. */
 export async function updateUser(
   id: string,

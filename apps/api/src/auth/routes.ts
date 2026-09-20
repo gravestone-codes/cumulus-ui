@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { problem } from '../lib/problems.js';
 import { type AuthConfig } from './config.js';
 import { createSession, deleteSession, getSession } from './session.js';
-import { verifyUser } from '../users/store.js';
+import { verifyUser, getUserById } from '../users/store.js';
 import { dropUserTokens } from '../switchauth/sessions.js';
 import { getUserRoles } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
@@ -76,8 +76,10 @@ export async function authRoutes(app: FastifyInstance, deps: AuthDeps): Promise<
     const session = id ? await getSession(id, cfg) : null;
     if (!session) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
     const stored = await getUserRoles(session.identity.sub);
+    const user = await getUserById(session.identity.sub);
+    if (!user) return problem(reply, 401, 'Unauthorized', 'account removed', request.url);
     return {
-      user: { id: session.identity.sub, username: session.identity.username },
+      user: { id: user.id, username: user.id, display_name: user.display_name },
       roles: stored.map((r) => r.id),
     };
   });

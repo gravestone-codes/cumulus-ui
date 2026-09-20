@@ -36,6 +36,18 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:18
+        env:
+          POSTGRES_DB: cumulus
+          POSTGRES_USER: cumulus
+          POSTGRES_PASSWORD: cumulus
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgres://cumulus:cumulus@localhost:5432/cumulus
+      SWITCH_CRED_KEY: ci-e2e-cred-key-long-enough-123456
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
