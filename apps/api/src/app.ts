@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { inventoryRoutes } from './inventory/routes.js';
 import { switchAuthRoutes } from './switchauth/routes.js';
 import { rbacRoutes } from './rbac/routes.js';
@@ -68,7 +69,8 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
   // been built (unit tests, API-only dev) — e2e/prod always build first.
   // Registered last so /api/* routes and the 404 handler keep precedence;
   // the wildcard only serves the SPA shell for non-API paths.
-  const publicDir = process.env.STATIC_DIR ?? '../ui/dist';
+  // Absolute path: fastify-static refuses relative roots (broke CI e2e).
+  const publicDir = resolve(process.cwd(), process.env.STATIC_DIR ?? join('..', 'ui', 'dist'));
   if (existsSync(publicDir)) {
     // wildcard:false — our own /* route below owns SPA fallback so /api/*
     // unknowns still reach the problem+json 404 handler.
