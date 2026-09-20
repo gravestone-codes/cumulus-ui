@@ -34,7 +34,26 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
     logger: { level: process.env.LOG_LEVEL ?? 'info' },
     genReqId: () => randomUUID(), // roadmap decision 12: reqId spans UI→backend→switch
   });
-  await app.register(helmet);
+  await app.register(helmet, {
+    // Default helmet CSP minus `upgrade-insecure-requests`: the app is served
+    // over plain HTTP on management LANs, and that directive makes browsers
+    // silently rewrite subresource loads to https:// (white page, no error).
+    // If ever deployed behind a TLS-terminating proxy only, revisit.
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        fontSrc: ["'self'", 'https:', 'data:'],
+        formAction: ["'self'"],
+        frameAncestors: ["'self'"],
+        imgSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        scriptSrcAttr: ["'none'"],
+        styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+      },
+    },
+  });
   await app.register(cookie);
   await app.register(rateLimit, { max: 200, timeWindow: '1 minute' });
 
