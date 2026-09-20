@@ -13,8 +13,8 @@ test('first boot setup, login loop, dev reset', async ({ page }) => {
 
   // Setup wizard (2 questions per step).
   await page.waitForURL('/setup');
-  await page.getByPlaceholder('boss', { exact: true }).fill('e2e-boss');
-  await page.getByPlaceholder('Boss', { exact: true }).fill('E2E Boss');
+  await page.getByPlaceholder('admin', { exact: true }).fill('e2e-boss');
+  await page.getByPlaceholder('Names', { exact: true }).fill('E2E Boss');
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.locator('input[type="password"]').first().fill('e2e-password-123');
   await page.locator('input[type="password"]').nth(1).fill('e2e-password-123');
@@ -25,7 +25,7 @@ test('first boot setup, login loop, dev reset', async ({ page }) => {
   // Sign out → login form → back in with password.
   await page.getByRole('button', { name: 'Sign out' }).click();
   await page.waitForURL('/login');
-  await page.getByPlaceholder('boss').fill('e2e-boss');
+  await page.getByPlaceholder('admin', { exact: true }).fill('e2e-boss');
   await page.locator('input[type="password"]').fill('e2e-password-123');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL('/dashboard');

@@ -48,7 +48,7 @@ export function Setup() {
           Welcome to Cumulus
         </h1>
         <p style={{ color: 'var(--color-muted)', fontSize: 13, textAlign: 'center', margin: '6px 0 28px' }}>
-          {step === 0 ? 'Step 1 of 2 — your administrator identity' : 'Step 2 of 2 — secure it'}
+          {step === 0 ? 'Step 1 of 2 your administrator identity' : 'Step 2 of 2 secure it'}
         </p>
         {step === 0 && (
           <>
@@ -57,7 +57,7 @@ export function Setup() {
               <input
                 value={id}
                 onChange={(e) => setId(e.target.value)}
-                placeholder="boss"
+                placeholder="admin"
                 autoFocus
                 autoComplete="username"
               />
@@ -69,7 +69,7 @@ export function Setup() {
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Boss"
+                placeholder="Names"
                 autoComplete="nickname"
               />
             </div>

@@ -51,7 +51,7 @@ export function Login() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
-            placeholder="boss"
+            placeholder="admin"
             autoFocus
           />
         </div>
