@@ -20,7 +20,9 @@ test('first boot setup, login loop, dev reset', async ({ page }) => {
   await page.locator('input[type="password"]').nth(1).fill('e2e-password-123');
   await page.getByRole('button', { name: 'Create admin' }).click();
   await page.waitForURL('/dashboard');
-  await expect(page.getByText('Signed in as E2E Boss')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByText('Fleet health')).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Primary' }).getByText('E2E Boss')).toBeVisible();
 
   // Sign out → login form → back in with password.
   await page.getByRole('button', { name: 'Sign out' }).click();
