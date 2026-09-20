@@ -10,6 +10,11 @@ services:
     ports:
       # Host 5433: local Postgres.app keeps 5432 for other projects.
       - '5433:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cumulus -d cumulus']
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
   api:
     build:
@@ -18,11 +23,13 @@ services:
     environment:
       PORT: 3000
       DATABASE_URL: postgres://cumulus:cumulus@db:5432/cumulus
+      STATIC_DIR: /app/public
       SWITCH_CRED_KEY: change-me-in-production-32-chars-min
     ports:
       - '3000:3000'
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata: {}

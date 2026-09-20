@@ -2,6 +2,9 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+# Hard-link (not symlink) workspace deps: required for `pnpm deploy` (Docker).
+injectWorkspacePackages: true
+
 allowBuilds:
   esbuild: true
 

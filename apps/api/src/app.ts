@@ -2,7 +2,9 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
 import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { inventoryRoutes } from './inventory/routes.js';
 import { switchAuthRoutes } from './switchauth/routes.js';
 import { rbacRoutes } from './rbac/routes.js';
@@ -61,5 +63,22 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
       instance: request.url,
     });
   });
+
+  // UI bundle (decision 11: same-origin serving). Skipped when the UI hasn't
+  // been built (unit tests, API-only dev) — e2e/prod always build first.
+  // Registered last so /api/* routes and the 404 handler keep precedence;
+  // the wildcard only serves the SPA shell for non-API paths.
+  const publicDir = process.env.STATIC_DIR ?? '../ui/dist';
+  if (existsSync(publicDir)) {
+    // wildcard:false — our own /* route below owns SPA fallback so /api/*
+    // unknowns still reach the problem+json 404 handler.
+    await app.register(fastifyStatic, { root: publicDir, wildcard: false });
+    app.get('/*', (request, reply) => {
+      if (request.url.startsWith('/api/')) return reply.callNotFound();
+      return reply.sendFile('index.html');
+    });
+  } else {
+    app.log.warn({ publicDir }, 'UI bundle missing — serving API only');
+  }
   return app;
 }

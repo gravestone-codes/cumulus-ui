@@ -5,7 +5,23 @@ import { purgeAudit } from './audit/store.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const retentionDays = Number(process.env.AUDIT_RETENTION_DAYS ?? 90);
-await migrate();
+
+/** Migrate with retries — the DB is often still initializing on fresh volumes. */
+async function migrateWithRetry(attempts = 10, delayMs = 3000): Promise<void> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await migrate();
+      return;
+    } catch (err) {
+      last = err;
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  throw last;
+}
+
+await migrateWithRetry();
 const app = await buildApp();
 setInterval(
   () => {
