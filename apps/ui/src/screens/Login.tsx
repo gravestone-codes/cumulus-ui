@@ -44,7 +44,7 @@ export function Login() {
     >
       <form onSubmit={submit} style={{ width: '100%', maxWidth: 360 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', textAlign: 'center' }}>
-          Sign in to Cumulus
+          Sign in to Junction
         </h1>
         <div style={{ height: 28 }} />
         <label style={{ fontSize: 12, fontWeight: 600 }}>Username</label>

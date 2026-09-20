@@ -45,7 +45,7 @@ export function Setup() {
     >
       <div style={{ width: '100%', maxWidth: 360 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', textAlign: 'center' }}>
-          Welcome to Cumulus
+          Welcome to Junction
         </h1>
         <p style={{ color: 'var(--color-muted)', fontSize: 13, textAlign: 'center', margin: '6px 0 28px' }}>
           {step === 0 ? 'Step 1 of 2 your administrator identity' : 'Step 2 of 2 secure it'}

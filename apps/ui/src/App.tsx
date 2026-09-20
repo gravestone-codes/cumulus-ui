@@ -53,7 +53,7 @@ function Dashboard() {
   }
   return (
     <div style={{ padding: 32, maxWidth: 640 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Cumulus</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Junction</h1>
       <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: '6px 0 20px' }}>
         Signed in as {session.data?.user.display_name ?? session.data?.user.username ?? '…'}
       </p>
