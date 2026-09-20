@@ -36,7 +36,7 @@ export function BulkImport() {
     <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', padding: 32 }}>
       <div style={{ width: '100%', maxWidth: 640 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Bulk onboarding</h1>
-        <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: '6px 0 16px' }}>
+        <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '6px 0 16px' }}>
           One line per switch. Trust stays unverified until the interactive ceremony confirms each
           fingerprint.
         </p>
@@ -53,12 +53,12 @@ export function BulkImport() {
               borderRadius: 8,
               color: 'var(--color-text)',
               fontFamily: 'monospace',
-              fontSize: 12,
+              fontSize: 13,
               padding: 10,
             }}
           />
         </div>
-        {error && <p style={{ color: 'var(--color-fail)', fontSize: 12, marginTop: 8 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
         <button
           type="button"
           className="btn"
@@ -69,13 +69,13 @@ export function BulkImport() {
           {busy ? 'Importing…' : 'Import switches'}
         </button>
         {result && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 20 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, marginTop: 20 }}>
             <thead>
               <tr
                 style={{
                   textAlign: 'left',
                   color: 'var(--color-muted)',
-                  fontSize: 11,
+                  fontSize: 12,
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                 }}
@@ -110,7 +110,7 @@ export function BulkImport() {
                     style={{
                       padding: '9px 10px',
                       borderBottom: '1px solid var(--color-border)',
-                      fontSize: 11,
+                      fontSize: 12,
                       wordBreak: 'break-all',
                     }}
                   >

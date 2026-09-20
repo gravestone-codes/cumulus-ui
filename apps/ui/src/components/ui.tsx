@@ -35,7 +35,7 @@ export function LineField({
 }) {
   return (
     <label style={{ display: 'block' }}>
-      <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>{label}</span>
       <span
         className={`lf${error ? ' invalid' : ''} ${shake.className ?? ''}`}
         onAnimationEnd={shake.onAnimationEnd}
@@ -62,7 +62,7 @@ export function LineDropdown({
 }) {
   return (
     <label style={{ display: 'block' }}>
-      <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>{label}</span>
       <span className={`lf${error ? ' invalid' : ''}`}>
         <select
           aria-label={label}
@@ -170,7 +170,7 @@ export function Confirm({
 }) {
   return (
     <Modal open={open} onClose={onCancel} title={title}>
-      <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: '0 0 20px' }}>{body}</p>
+      <p style={{ fontSize: 15, color: 'var(--color-muted)', margin: '0 0 20px' }}>{body}</p>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <Button auto variant="secondary" onClick={onCancel} disabled={busy}>
           Cancel
@@ -206,7 +206,7 @@ export function Alert({
         border: `1px solid ${color}`,
         borderRadius: 8,
         padding: '10px 12px',
-        fontSize: 13,
+        fontSize: 14,
         color: 'var(--color-text)',
         background: 'color-mix(in srgb, transparent 80%, currentColor 20%)',
       }}
@@ -251,7 +251,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               borderLeft: `3px solid var(--color-${t.tone})`,
               borderRadius: 8,
               padding: '10px 14px',
-              fontSize: 13,
+              fontSize: 14,
               maxWidth: 320,
             }}
           >
@@ -408,7 +408,7 @@ export function NavRail({
             borderRadius: 6,
             background: 'var(--color-text)',
             color: 'var(--color-bg)',
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 800,
             display: 'inline-flex',
             alignItems: 'center',
@@ -431,7 +431,7 @@ export function NavRail({
               color: 'var(--color-muted)',
               cursor: 'pointer',
               font: 'inherit',
-              fontSize: 14,
+              fontSize: 15,
               padding: 2,
             }}
           >
@@ -440,7 +440,7 @@ export function NavRail({
         )}
       </div>
       {switchName && !collapsed && (
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', padding: '0 8px', margin: '0 0 16px' }}>
+        <p style={{ fontSize: 13, color: 'var(--color-muted)', padding: '0 8px', margin: '0 0 16px' }}>
           {switchName}
         </p>
       )}
@@ -460,7 +460,7 @@ export function NavRail({
             opacity: item.disabled ? 0.5 : 1,
             cursor: item.disabled ? 'not-allowed' : 'pointer',
             font: 'inherit',
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 500,
             padding: '8px 10px',
             display: 'flex',
@@ -481,7 +481,7 @@ export function NavRail({
       {user && (
         <p
           style={{
-            fontSize: 12,
+            fontSize: 13,
             color: 'var(--color-muted)',
             padding: '0 8px',
             margin: '0 0 4px',
@@ -502,7 +502,7 @@ export function NavRail({
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: 'var(--color-text)',
               flexShrink: 0,
@@ -524,7 +524,7 @@ export function NavRail({
             color: 'var(--color-muted)',
             cursor: 'pointer',
             font: 'inherit',
-            fontSize: 13,
+            fontSize: 14,
             padding: '8px 10px',
           }}
         >

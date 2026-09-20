@@ -20,14 +20,32 @@ export function switchNav(switchId: string): Array<NavItem & { to: string }> {
 
 /**
  * Global rail: always mounted, even with zero switches. Dashboard = fleet
- * at-a-glance, Switches = inventory, Software = this platform (users, roles,
- * audit, settings). Switch controls live only under /switches/:id — the URL
- * namespaces keep platform and switch controls unmixed by construction.
+ * at-a-glance, Switches = inventory, Groups = fan-out scopes, Settings =
+ * this platform (users, roles, prefs). Switch controls live only under
+ * /switches/:id — the URL namespaces keep platform and switch controls
+ * unmixed by construction.
  */
 export function globalNav(): Array<NavItem & { to: string }> {
   return [
     { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { to: '/switches', label: 'Switches', icon: 'switches' },
-    { to: '/software', label: 'Software', icon: 'software' },
+    { to: '/groups', label: 'Groups', icon: 'switches' },
+    { to: '/settings', label: 'Settings', icon: 'software' },
+  ];
+}
+
+/**
+ * Group rail: the same domain items as a switch, applied to every member.
+ * Domain entries stay disabled until fan-out reads land; the Overview names
+ * the guardrail contract (per-switch-unique paths are refused group-wide).
+ */
+export function groupNav(groupId: string): Array<NavItem & { to: string }> {
+  const base = `/groups/${groupId}`;
+  return [
+    { to: base, label: 'Overview', icon: 'dashboard' },
+    { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces', disabled: true },
+    { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs', disabled: true },
+    { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
+    { to: `${base}/audit`, label: 'Audit Log', icon: 'audit', disabled: true },
   ];
 }

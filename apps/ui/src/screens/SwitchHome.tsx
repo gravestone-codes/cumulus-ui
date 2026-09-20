@@ -34,7 +34,7 @@ export function SwitchHome() {
       }
     >
       <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 6px' }}>{switchId}</h1>
-      <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: '0 0 20px' }}>
+      <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '0 0 20px' }}>
         Pick a domain. Every value on these screens is read live from the switch.
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

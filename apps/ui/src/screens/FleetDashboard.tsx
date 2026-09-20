@@ -22,7 +22,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
         minWidth: 0,
       }}
     >
-      <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-muted)', margin: '0 0 12px' }}>
+      <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-muted)', margin: '0 0 12px' }}>
         {title}
       </h2>
       {children}
@@ -46,7 +46,7 @@ function FleetHealth({ switches }: { switches: SwitchRow[] }) {
         {stats.map(([label, n, color]) => (
           <div key={label}>
             <div style={{ fontSize: 26, fontWeight: 800, color }}>{n}</div>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>{label}</div>
+            <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>{label}</div>
           </div>
         ))}
       </div>
@@ -60,11 +60,11 @@ function NeedsAttention({ switches }: { switches: SwitchRow[] }) {
   return (
     <Card title="Needs attention">
       {flagged.length === 0 ? (
-        <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: 0 }}>Everything checks out.</p>
+        <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Everything checks out.</p>
       ) : (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
           {flagged.map((s) => (
-            <li key={s.id} style={{ fontSize: 13 }}>
+            <li key={s.id} style={{ fontSize: 14 }}>
               <button
                 type="button"
                 onClick={() => navigate(`/switches/${s.id}`)}
@@ -98,11 +98,11 @@ function RecentActivity() {
   return (
     <Card title="Recent activity">
       {activity.isPending ? (
-        <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
+        <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
       ) : activity.data.length === 0 ? (
-        <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: 0 }}>No audited actions yet.</p>
+        <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>No audited actions yet.</p>
       ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, fontSize: 13 }}>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, fontSize: 14 }}>
           {activity.data.map((a) => (
             <li key={a.id} style={{ color: 'var(--color-muted)' }}>
               <span style={{ color: 'var(--color-text)' }}>{a.username}</span> {a.method} {a.path}

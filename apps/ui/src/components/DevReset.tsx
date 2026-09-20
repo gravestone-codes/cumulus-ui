@@ -42,7 +42,7 @@ export function DevReset() {
             margin: '0 auto',
           }}
         >
-          <p style={{ fontSize: 13, marginBottom: 8 }}>
+          <p style={{ fontSize: 14, marginBottom: 8 }}>
             Wipes <b>all</b> users, switches, sessions and audit history. Type <b>RESET</b> to confirm.
           </p>
           <div className="lf" style={{ marginBottom: 10 }}>
@@ -53,7 +53,7 @@ export function DevReset() {
               aria-label="Type RESET to confirm"
             />
           </div>
-          {error && <p style={{ color: 'var(--color-fail)', fontSize: 12 }}>{error}</p>}
+          {error && <p style={{ color: 'var(--color-fail)', fontSize: 13 }}>{error}</p>}
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               type="button"

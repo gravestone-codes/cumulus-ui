@@ -1,7 +1,8 @@
 /**
- * Software: everything about this platform (Junction itself) — users, roles,
- * groups, audit, settings. Switch controls never live here; they live under
- * /switches/:id. Cards show live counts; editors arrive with the admin slice.
+ * Settings: everything about this platform (Junction itself) — users, roles,
+ * groups, preferences. Switch controls never live here; they live under
+ * /switches/:id (or a group scope). Cards show live counts; editors arrive
+ * with the admin slice.
  */
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -14,7 +15,15 @@ function useCount(queryKey: string[], run: () => Promise<unknown[]>) {
   return q.data?.length ?? null;
 }
 
-function SoftCard({ title, count, hint }: { title: string; count: number | null | undefined; hint: string }) {
+function SettingCard({
+  title,
+  count,
+  hint,
+}: {
+  title: string;
+  count: number | null | undefined;
+  hint: string;
+}) {
   return (
     <section
       style={{
@@ -24,34 +33,34 @@ function SoftCard({ title, count, hint }: { title: string; count: number | null 
         padding: 16,
       }}
     >
-      <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-muted)', margin: '0 0 8px' }}>
+      <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-muted)', margin: '0 0 8px' }}>
         {title}
       </h2>
       <div style={{ fontSize: 26, fontWeight: 800 }}>{count ?? '—'}</div>
-      <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: '8px 0 0' }}>{hint}</p>
+      <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '8px 0 0' }}>{hint}</p>
     </section>
   );
 }
 
-export function Software() {
+export function Settings() {
   const users = useCount(['users'], () => api.platformUsers());
   const roles = useCount(['roles'], () => api.platformRoles());
   const groups = useCount(['groups'], () => api.groups());
   return (
-    <GlobalShell active="/software">
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 6px' }}>Software</h1>
-      <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: '0 0 16px' }}>
-        This platform — who can sign in, what they may do, and what happened. Counts hide when your role may
-        not see them.
+    <GlobalShell active="/settings">
+      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 6px' }}>Settings</h1>
+      <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '0 0 16px' }}>
+        This platform — who can sign in, what they may do, how switches are grouped. Counts hide when your
+        role may not see them.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-        <SoftCard
+        <SettingCard
           title="Users"
           count={users}
           hint="Platform sign-ins. Editors arrive with the admin slice."
         />
-        <SoftCard title="Roles" count={roles} hint="Deny-by-default gates. Custom roles included." />
-        <SoftCard title="Groups" count={groups} hint="Switch groupings for fan-out and scopes." />
+        <SettingCard title="Roles" count={roles} hint="Deny-by-default gates. Custom roles included." />
+        <SettingCard title="Groups" count={groups} hint="Fan-out scopes, managed during onboarding." />
       </div>
     </GlobalShell>
   );

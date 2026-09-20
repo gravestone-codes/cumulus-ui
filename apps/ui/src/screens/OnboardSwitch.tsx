@@ -123,11 +123,11 @@ export function OnboardSwitch() {
 
         {stage === 0 && (
           <>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Switch ID</label>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Switch ID</label>
             <div className="lf">
               <input value={id} onChange={(e) => setId(e.target.value)} placeholder="leaf01" autoFocus />
             </div>
-            <label style={{ fontSize: 12, fontWeight: 600, marginTop: 16, display: 'block' }}>
+            <label style={{ fontSize: 13, fontWeight: 600, marginTop: 16, display: 'block' }}>
               Management URL
             </label>
             <div className="lf">
@@ -138,7 +138,7 @@ export function OnboardSwitch() {
                 inputMode="url"
               />
             </div>
-            {error && <p style={{ color: 'var(--color-fail)', fontSize: 12, marginTop: 8 }}>{error}</p>}
+            {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
             <button
               type="button"
               className="btn"
@@ -159,7 +159,7 @@ export function OnboardSwitch() {
 
         {stage === 1 && (
           <>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Group</label>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Group</label>
             <div className="lf">
               <select
                 value={group}
@@ -183,13 +183,13 @@ export function OnboardSwitch() {
                 ))}
               </select>
             </div>
-            <label style={{ fontSize: 12, fontWeight: 600, marginTop: 16, display: 'block' }}>
+            <label style={{ fontSize: 13, fontWeight: 600, marginTop: 16, display: 'block' }}>
               Or new group
             </label>
             <div className="lf">
               <input value={newGroup} onChange={(e) => setNewGroup(e.target.value)} placeholder="DC1-leaf" />
             </div>
-            {error && <p style={{ color: 'var(--color-fail)', fontSize: 12, marginTop: 8 }}>{error}</p>}
+            {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setStage(0)}>
                 Back
@@ -203,7 +203,7 @@ export function OnboardSwitch() {
 
         {stage === 2 && (
           <>
-            <p style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 12 }}>
+            <p style={{ fontSize: 14, color: 'var(--color-muted)', marginBottom: 12 }}>
               Compare this fingerprint with the switch console (
               <span className="mono" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 nv show system api
@@ -213,7 +213,7 @@ export function OnboardSwitch() {
             <div
               className="mono"
               style={{
-                fontSize: 12,
+                fontSize: 13,
                 wordBreak: 'break-all',
                 background: 'var(--color-surface)',
                 border: '1px solid var(--color-border)',
@@ -223,7 +223,7 @@ export function OnboardSwitch() {
             >
               {fingerprint ?? '—'}
             </div>
-            {error && <p style={{ color: 'var(--color-fail)', fontSize: 12, marginTop: 8 }}>{error}</p>}
+            {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setStage(1)}>
                 Back
@@ -237,7 +237,7 @@ export function OnboardSwitch() {
 
         {stage === 3 && (
           <>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Switch username</label>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Switch username</label>
             <div className="lf">
               <input
                 value={username}
@@ -247,7 +247,7 @@ export function OnboardSwitch() {
                 autoFocus
               />
             </div>
-            <label style={{ fontSize: 12, fontWeight: 600, marginTop: 16, display: 'block' }}>
+            <label style={{ fontSize: 13, fontWeight: 600, marginTop: 16, display: 'block' }}>
               Switch password
             </label>
             <div className="lf">
@@ -259,7 +259,7 @@ export function OnboardSwitch() {
                 autoComplete="current-password"
               />
             </div>
-            {error && <p style={{ color: 'var(--color-fail)', fontSize: 12, marginTop: 8 }}>{error}</p>}
+            {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
               <button type="button" className="btn btn-secondary" onClick={() => setStage(2)}>
                 Back
@@ -284,10 +284,10 @@ export function OnboardSwitch() {
 
         {stage === 4 && !verified && (
           <>
-            <p style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 12 }}>
+            <p style={{ fontSize: 14, color: 'var(--color-muted)', marginBottom: 12 }}>
               Read-only proof of life before finishing.
             </p>
-            {error && <p style={{ color: 'var(--color-fail)', fontSize: 12, marginTop: 8 }}>{error}</p>}
+            {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
             <button type="button" className="btn" disabled={busy} onClick={verify}>
               {busy ? 'Probing…' : 'Verify switch'}
             </button>
@@ -302,14 +302,14 @@ export function OnboardSwitch() {
                 border: '1px solid var(--color-border)',
                 borderRadius: 12,
                 padding: 16,
-                fontSize: 13,
+                fontSize: 14,
               }}
             >
               <p style={{ fontWeight: 700, marginBottom: 8, color: 'var(--color-pass)' }}>✓ {id} is live</p>
               <pre
                 className="mono"
                 style={{
-                  fontSize: 12,
+                  fontSize: 13,
                   color: 'var(--color-muted)',
                   whiteSpace: 'pre-wrap',
                   maxHeight: 220,

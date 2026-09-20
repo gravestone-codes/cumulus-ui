@@ -109,7 +109,7 @@ body {
     animation: field-shake 0.4s ease-in-out;
   }
   .field-err {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--color-fail);
     margin-top: 4px;
     min-height: 20px;

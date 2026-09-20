@@ -47,7 +47,7 @@ export function Login() {
           Sign in to Cumulus Junction
         </h1>
         <div style={{ height: 28 }} />
-        <label style={{ fontSize: 12, fontWeight: 600 }}>Username</label>
+        <label style={{ fontSize: 13, fontWeight: 600 }}>Username</label>
         <div {...fields.fieldProps('username')}>
           <input
             value={username}
@@ -61,7 +61,7 @@ export function Login() {
           />
         </div>
         <fields.Err field="username" />
-        <label style={{ fontSize: 12, fontWeight: 600, marginTop: 8, display: 'block' }}>Password</label>
+        <label style={{ fontSize: 13, fontWeight: 600, marginTop: 8, display: 'block' }}>Password</label>
         <div {...fields.fieldProps('password')}>
           <input
             type={show ? 'text' : 'password'}
@@ -86,7 +86,7 @@ export function Login() {
         <button type="submit" className="btn" style={{ marginTop: 16 }} disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
-        <p style={{ color: 'var(--color-muted)', fontSize: 12, textAlign: 'center', marginTop: 16 }}>
+        <p style={{ color: 'var(--color-muted)', fontSize: 13, textAlign: 'center', marginTop: 16 }}>
           Contact your administrator for access.
         </p>
         <DevReset />

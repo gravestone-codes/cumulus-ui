@@ -61,12 +61,12 @@ export function Setup() {
         <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', textAlign: 'center' }}>
           Welcome to Cumulus Junction
         </h1>
-        <p style={{ color: 'var(--color-muted)', fontSize: 13, textAlign: 'center', margin: '6px 0 28px' }}>
+        <p style={{ color: 'var(--color-muted)', fontSize: 14, textAlign: 'center', margin: '6px 0 28px' }}>
           {step === 0 ? 'Step 1 of 2 your administrator identity' : 'Step 2 of 2 secure it'}
         </p>
         {step === 0 && (
           <>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Username</label>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Username</label>
             <div {...fields.fieldProps('id')}>
               <input
                 value={id}
@@ -80,7 +80,7 @@ export function Setup() {
               />
             </div>
             <fields.Err field="id" />
-            <label style={{ fontSize: 12, fontWeight: 600, marginTop: 8, display: 'block' }}>
+            <label style={{ fontSize: 13, fontWeight: 600, marginTop: 8, display: 'block' }}>
               Display name
             </label>
             <div {...fields.fieldProps('displayName')}>
@@ -102,7 +102,7 @@ export function Setup() {
         )}
         {step === 1 && (
           <>
-            <label style={{ fontSize: 12, fontWeight: 600 }}>Password</label>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Password</label>
             <div {...fields.fieldProps('password')}>
               <input
                 type="password"
@@ -117,8 +117,8 @@ export function Setup() {
               />
             </div>
             <fields.Err field="password" />
-            <p style={{ color: 'var(--color-muted)', fontSize: 12, marginTop: 4 }}>At least 12 characters.</p>
-            <label style={{ fontSize: 12, fontWeight: 600, marginTop: 12, display: 'block' }}>
+            <p style={{ color: 'var(--color-muted)', fontSize: 13, marginTop: 4 }}>At least 12 characters.</p>
+            <label style={{ fontSize: 13, fontWeight: 600, marginTop: 12, display: 'block' }}>
               Confirm password
             </label>
             <div {...fields.fieldProps('confirm')}>

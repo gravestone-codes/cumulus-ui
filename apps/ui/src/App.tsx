@@ -15,7 +15,9 @@ import { Interfaces } from './screens/Interfaces.js';
 import { SwitchHome } from './screens/SwitchHome.js';
 import { FleetDashboard } from './screens/FleetDashboard.js';
 import { Switches } from './screens/Switches.js';
-import { Software } from './screens/Software.js';
+import { Groups } from './screens/Groups.js';
+import { GroupHome } from './screens/GroupHome.js';
+import { Settings } from './screens/Settings.js';
 
 const queryClient = new QueryClient();
 
@@ -70,10 +72,26 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/software',
+    path: '/groups',
     element: (
       <RequireAuth>
-        <Software />
+        <Groups />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/groups/:groupId',
+    element: (
+      <RequireAuth>
+        <GroupHome />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/settings',
+    element: (
+      <RequireAuth>
+        <Settings />
       </RequireAuth>
     ),
   },

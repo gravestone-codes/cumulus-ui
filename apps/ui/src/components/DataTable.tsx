@@ -20,11 +20,11 @@ export function DataTable<T extends object>({
   onRowClick?: (row: T) => void;
 }) {
   const table = useTable({ features: coreFeatures, columns, data: rows });
-  if (loading) return <p style={{ color: 'var(--color-muted)', fontSize: 13 }}>Loading…</p>;
+  if (loading) return <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>Loading…</p>;
   if (rows.length === 0)
-    return <p style={{ color: 'var(--color-muted)', fontSize: 13 }}>Nothing here yet.</p>;
+    return <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>Nothing here yet.</p>;
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15 }}>
       <thead>
         {table.getHeaderGroups().map((hg) => (
           <tr key={hg.id}>
@@ -33,7 +33,7 @@ export function DataTable<T extends object>({
                 key={h.id}
                 style={{
                   textAlign: 'left',
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: 'var(--color-muted)',
                   padding: '8px 10px',

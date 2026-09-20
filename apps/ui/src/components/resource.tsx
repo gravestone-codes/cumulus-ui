@@ -74,7 +74,7 @@ export function ResourceList<T extends object>({
         onRowClick={onSelect ? (row) => onSelect(rowId(row)) : undefined}
       />
       {list.data?.cached && (
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 8 }}>
+        <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 8 }}>
           Served from cache (switch unreachable). Checked {list.data.checked_at}.
         </p>
       )}
