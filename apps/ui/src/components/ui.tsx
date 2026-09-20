@@ -270,7 +270,7 @@ export interface NavItem {
   icon?: NavIcon;
 }
 
-export type NavIcon = 'dashboard' | 'interfaces' | 'vrfs' | 'bgp' | 'audit';
+export type NavIcon = 'dashboard' | 'interfaces' | 'vrfs' | 'bgp' | 'audit' | 'switches' | 'software';
 
 /* Hand-drawn stroke icon set (final.html §9). One set, keyed by item. */
 const NAV_ICONS: Record<NavIcon, ReactNode> = {
@@ -331,6 +331,36 @@ const NAV_ICONS: Record<NavIcon, ReactNode> = {
       <circle cx="4" cy="6" r="1" fill="currentColor" />
       <circle cx="4" cy="12" r="1" fill="currentColor" />
       <circle cx="4" cy="18" r="1" fill="currentColor" />
+    </svg>
+  ),
+  switches: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="6" rx="1.5" />
+      <rect x="3" y="14" width="18" height="6" rx="1.5" />
+      <circle cx="7" cy="7" r="1" fill="currentColor" />
+      <circle cx="7" cy="17" r="1" fill="currentColor" />
+    </svg>
+  ),
+  software: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    >
+      <path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z" />
+      <path d="M12 11l8-4.5M12 11v9M12 11L4 6.5" />
     </svg>
   ),
 };

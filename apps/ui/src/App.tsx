@@ -13,6 +13,9 @@ import { OnboardSwitch } from './screens/OnboardSwitch.js';
 import { BulkImport } from './screens/BulkImport.js';
 import { Interfaces } from './screens/Interfaces.js';
 import { SwitchHome } from './screens/SwitchHome.js';
+import { FleetDashboard } from './screens/FleetDashboard.js';
+import { Switches } from './screens/Switches.js';
+import { Software } from './screens/Software.js';
 
 const queryClient = new QueryClient();
 
@@ -46,49 +49,6 @@ function Gate() {
   ) : null;
 }
 
-function Dashboard() {
-  const navigate = useNavigate();
-  const session = useSession();
-  const switches = useQuery({ queryKey: ['switches'], queryFn: () => api.switches(), retry: false });
-  useEffect(() => {
-    const first = switches.data?.[0];
-    if (first) navigate(`/switches/${first.id}`, { replace: true });
-  }, [switches.data, navigate]);
-  async function logout() {
-    await api.logout();
-    await queryClient.invalidateQueries({ queryKey: ['me'] });
-    navigate('/login', { replace: true });
-  }
-  if (switches.isPending) return null;
-  return (
-    <div style={{ padding: 32, maxWidth: 640 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Cumulus Junction</h1>
-      <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: '6px 0 20px' }}>
-        Signed in as {session.data?.user.display_name ?? session.data?.user.username ?? '…'}
-      </p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button type="button" className="btn btn-secondary auto" onClick={() => navigate('/switches/new')}>
-          Onboard a switch
-        </button>
-        <button type="button" className="btn btn-secondary auto" onClick={() => navigate('/switches/bulk')}>
-          Bulk import
-        </button>
-        <button type="button" className="btn btn-secondary auto" onClick={logout}>
-          Sign out
-        </button>
-      </div>
-      {switches.isError && (
-        <p style={{ color: 'var(--color-fail)', fontSize: 13 }}>
-          Could not load switches: {switches.error.message}
-        </p>
-      )}
-      <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: '0 0 20px' }}>
-        No switches yet. Onboard one to open its menu.
-      </p>
-    </div>
-  );
-}
-
 const router = createBrowserRouter([
   { path: '/', element: <Gate /> },
   { path: '/setup', element: <Setup /> },
@@ -97,7 +57,23 @@ const router = createBrowserRouter([
     path: '/dashboard',
     element: (
       <RequireAuth>
-        <Dashboard />
+        <FleetDashboard />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches',
+    element: (
+      <RequireAuth>
+        <Switches />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/software',
+    element: (
+      <RequireAuth>
+        <Software />
       </RequireAuth>
     ),
   },

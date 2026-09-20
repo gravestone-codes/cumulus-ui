@@ -17,3 +17,17 @@ export function switchNav(switchId: string): Array<NavItem & { to: string }> {
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit', disabled: true },
   ];
 }
+
+/**
+ * Global rail: always mounted, even with zero switches. Dashboard = fleet
+ * at-a-glance, Switches = inventory, Software = this platform (users, roles,
+ * audit, settings). Switch controls live only under /switches/:id — the URL
+ * namespaces keep platform and switch controls unmixed by construction.
+ */
+export function globalNav(): Array<NavItem & { to: string }> {
+  return [
+    { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { to: '/switches', label: 'Switches', icon: 'switches' },
+    { to: '/software', label: 'Software', icon: 'software' },
+  ];
+}

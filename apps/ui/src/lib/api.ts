@@ -82,6 +82,28 @@ export interface GroupRow {
 export interface ImportResult {
   results: Array<{ id: string; ok: boolean; fingerprint?: string; trust_verified?: boolean; error?: string }>;
 }
+export interface AuditRow {
+  id: number;
+  ts: string;
+  user_sub: string;
+  username: string;
+  roles: string[];
+  switch_id: string | null;
+  method: string;
+  path: string;
+  rev: string | null;
+  job_id: string | null;
+}
+export interface PlatformUserRow {
+  id: string;
+  display_name: string;
+  disabled: boolean;
+  roles: string[];
+}
+export interface RoleRow {
+  id: string;
+  display_name: string;
+}
 export interface QueryResult<T = unknown> {
   data: T;
   cached: boolean;
@@ -132,6 +154,9 @@ export const api = {
   verifySwitch: (id: string) =>
     post<{ ok: boolean; switch: string; data: unknown }>(`/api/v1/switches/${encodeURIComponent(id)}/verify`),
   importSwitches: (rows: CsvRow[]) => post<ImportResult>('/api/v1/inventory/import', { rows }),
+  audit: (limit = 8) => request<AuditRow[]>(`/api/v1/audit?limit=${limit}`),
+  platformUsers: () => request<PlatformUserRow[]>('/api/v1/users'),
+  platformRoles: () => request<RoleRow[]>('/api/v1/roles'),
 
   query: <T = unknown>(switchId: string, path: string, opts?: { rev?: string; view?: string }) => {
     const qs = new URLSearchParams({ path });
