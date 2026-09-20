@@ -267,9 +267,75 @@ export interface NavItem {
   to: string;
   label: string;
   disabled?: boolean;
+  icon?: NavIcon;
 }
 
-/* NavRail: switch context on top, domain links below. Disabled = not yet sliced. */
+export type NavIcon = 'dashboard' | 'interfaces' | 'vrfs' | 'bgp' | 'audit';
+
+/* Hand-drawn stroke icon set (final.html §9). One set, keyed by item. */
+const NAV_ICONS: Record<NavIcon, ReactNode> = {
+  dashboard: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  ),
+  interfaces: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    >
+      <path d="M3 12h4l3-7 4 14 3-7h4" />
+    </svg>
+  ),
+  vrfs: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3l9 5-9 5-9-5 9-5z" />
+      <path d="M3 13l9 5 9-5" />
+    </svg>
+  ),
+  bgp: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="18" cy="6" r="2.5" />
+      <circle cx="12" cy="18" r="2.5" />
+      <path d="M7.5 8l3.5 7.5M16.5 8L13 15.5M8.5 6h7" />
+    </svg>
+  ),
+  audit: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    >
+      <path d="M8 6h13M8 12h13M8 18h13" />
+      <circle cx="4" cy="6" r="1" fill="currentColor" />
+      <circle cx="4" cy="12" r="1" fill="currentColor" />
+      <circle cx="4" cy="18" r="1" fill="currentColor" />
+    </svg>
+  ),
+};
+
+/* NavRail: collapsible (§9 — click ‹), switch context, domain links, user chip. */
 export function NavRail({
   switchName,
   items,
@@ -277,6 +343,8 @@ export function NavRail({
   onNav,
   user,
   onLogout,
+  collapsed = false,
+  onToggleCollapse,
 }: {
   switchName?: string;
   items: NavItem[];
@@ -284,12 +352,14 @@ export function NavRail({
   onNav: (to: string) => void;
   user?: string;
   onLogout?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }) {
   return (
     <nav
       aria-label="Primary"
       style={{
-        width: 220,
+        width: collapsed ? 60 : 220,
         flexShrink: 0,
         borderRight: '1px solid var(--color-border)',
         padding: '20px 12px',
@@ -299,8 +369,47 @@ export function NavRail({
         minHeight: '100vh',
       }}
     >
-      <p style={{ fontSize: 15, fontWeight: 800, padding: '0 8px', margin: '0 0 2px' }}>Junction</p>
-      {switchName && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px', marginBottom: 2 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 6,
+            background: 'var(--color-text)',
+            color: 'var(--color-bg)',
+            fontSize: 13,
+            fontWeight: 800,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          C
+        </span>
+        {!collapsed && <span style={{ fontSize: 15, fontWeight: 800, flex: 1 }}>Cumulus</span>}
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            title={collapsed ? 'Expand' : 'Collapse'}
+            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-muted)',
+              cursor: 'pointer',
+              font: 'inherit',
+              fontSize: 14,
+              padding: 2,
+            }}
+          >
+            {collapsed ? '›' : '‹'}
+          </button>
+        )}
+      </div>
+      {switchName && !collapsed && (
         <p style={{ fontSize: 12, color: 'var(--color-muted)', padding: '0 8px', margin: '0 0 16px' }}>
           {switchName}
         </p>
@@ -310,30 +419,71 @@ export function NavRail({
           key={item.to}
           type="button"
           disabled={item.disabled}
+          title={collapsed ? item.label : undefined}
           onClick={() => onNav(item.to)}
           style={{
             textAlign: 'left',
             background: active === item.to ? 'var(--color-surface-2)' : 'transparent',
             border: 'none',
             borderRadius: 8,
-            color: item.disabled ? 'var(--color-muted)' : 'var(--color-text)',
+            color: active === item.to ? 'var(--color-text)' : 'var(--color-muted)',
             opacity: item.disabled ? 0.5 : 1,
             cursor: item.disabled ? 'not-allowed' : 'pointer',
             font: 'inherit',
             fontSize: 14,
+            fontWeight: 500,
             padding: '8px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            whiteSpace: 'nowrap',
           }}
         >
-          {item.label}
+          {item.icon && (
+            <span style={{ display: 'inline-flex', flexShrink: 0 }} aria-hidden="true">
+              {NAV_ICONS[item.icon]}
+            </span>
+          )}
+          {!collapsed && item.label}
         </button>
       ))}
       <span style={{ flex: 1 }} />
       {user && (
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', padding: '0 8px', margin: '0 0 4px' }}>
-          {user}
+        <p
+          style={{
+            fontSize: 12,
+            color: 'var(--color-muted)',
+            padding: '0 8px',
+            margin: '0 0 4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-border)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'var(--color-text)',
+              flexShrink: 0,
+            }}
+          >
+            {user.slice(0, 1).toUpperCase()}
+          </span>
+          {!collapsed && user}
         </p>
       )}
-      {onLogout && (
+      {onLogout && !collapsed && (
         <button
           type="button"
           onClick={onLogout}
@@ -354,7 +504,6 @@ export function NavRail({
     </nav>
   );
 }
-
 /* AppShell: rail + content column. Domain screens mount inside, never beside. */
 export function AppShell({ rail, children }: { rail: ReactNode; children: ReactNode }) {
   return (

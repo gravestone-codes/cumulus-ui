@@ -10,10 +10,10 @@ import type { NavItem } from '../components/ui.js';
 export function switchNav(switchId: string): Array<NavItem & { to: string }> {
   const base = `/switches/${switchId}`;
   return [
-    { to: base, label: 'Dashboard' },
-    { to: `${base}/interfaces`, label: 'Interfaces' },
-    { to: `${base}/vrfs`, label: 'VRFs', disabled: true },
-    { to: `${base}/bgp`, label: 'BGP', disabled: true },
-    { to: `${base}/audit`, label: 'Audit Log', disabled: true },
+    { to: base, label: 'Dashboard', icon: 'dashboard' },
+    { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
+    { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs', disabled: true },
+    { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
+    { to: `${base}/audit`, label: 'Audit Log', icon: 'audit', disabled: true },
   ];
 }

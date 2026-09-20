@@ -2,6 +2,7 @@
  * Switch home: landing for a chosen switch inside the app shell.
  * Domain cards link into slices; unsliced domains arrive per roadmap order.
  */
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -11,6 +12,7 @@ import { switchNav } from '../lib/nav.js';
 export function SwitchHome() {
   const { switchId = '' } = useParams();
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(false);
   const session = useQuery({ queryKey: ['me'], queryFn: () => api.me(), retry: false });
   async function logout() {
     await api.logout();
@@ -24,6 +26,8 @@ export function SwitchHome() {
           items={switchNav(switchId)}
           active={`/switches/${switchId}`}
           onNav={navigate}
+          collapsed={collapsed}
+          onToggleCollapse={() => setCollapsed((c) => !c)}
           user={session.data?.user.display_name ?? session.data?.user.username}
           onLogout={logout}
         />
