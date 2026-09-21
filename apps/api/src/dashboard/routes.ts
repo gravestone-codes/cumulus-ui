@@ -13,14 +13,26 @@ import { resolveCaller } from '../auth/caller.js';
 import { db } from '../db.js';
 
 /** Server-owned catalog. A widget ships here first; the UI catalog mirrors it. */
-export const WIDGET_CATALOG = ['fleet-health', 'needs-attention', 'recent-activity'] as const;
+export const WIDGET_CATALOG = [
+  'fleet-stats',
+  'reachability',
+  'recent-activity',
+  'traffic',
+  'interfaces-by-device',
+] as const;
 export type WidgetId = (typeof WIDGET_CATALOG)[number];
 
 const DEFAULT_WIDGETS: Array<{ id: WidgetId }> = [
-  { id: 'fleet-health' },
-  { id: 'needs-attention' },
-  { id: 'recent-activity' },
+  { id: 'fleet-stats' },
+  { id: 'reachability' },
+  { id: 'traffic' },
 ];
+
+/** Retired ids map forward so existing prefs keep working across renames. */
+const RETIRED_IDS: Record<string, WidgetId> = {
+  'fleet-health': 'fleet-stats',
+  'needs-attention': 'fleet-stats',
+};
 
 const WidgetEntry = z.object({
   id: z.enum(WIDGET_CATALOG),
@@ -37,9 +49,11 @@ export async function getDashboardPrefs(userSub: string): Promise<DashboardPrefs
   );
   const widgets = rows[0]?.widgets;
   if (!Array.isArray(widgets) || widgets.length === 0) return { widgets: DEFAULT_WIDGETS };
-  const known = widgets.filter(
-    (w) => typeof w?.id === 'string' && (WIDGET_CATALOG as readonly string[]).includes(w.id),
-  );
+  const known = widgets.flatMap((w) => {
+    const id = typeof w?.id === 'string' ? (w.id as string) : '';
+    const mapped = (WIDGET_CATALOG as readonly string[]).includes(id) ? (id as WidgetId) : RETIRED_IDS[id];
+    return mapped ? [{ ...w, id: mapped }] : [];
+  });
   return { widgets: known.length > 0 ? known : DEFAULT_WIDGETS };
 }
 

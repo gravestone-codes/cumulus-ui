@@ -1,6 +1,6 @@
 /**
  * Personal dashboard prefs tests: defaults for new users, add/remove
- * persistence per user, unknown widgets rejected, auth required.
+ * persistence per user, unknown widgets rejected, retired ids map forward.
  */
 import { describe, expect, it, beforeAll } from 'vitest';
 import request from 'supertest';
@@ -36,7 +36,7 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
   });
 
-  it('defaults, persists per user, rejects unknown widgets', async () => {
+  it('defaults, persists per user, rejects unknown widgets, maps retired ids', async () => {
     const app = await buildApp({ auth: { cfg: CFG } });
     await app.ready();
     const alice = await sessionCookie(pool, 'qd-alice');
@@ -48,9 +48,9 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
       const fresh = await api.get('/api/v1/me/dashboard').set('Cookie', alice);
       expect(fresh.status).toBe(200);
       expect(fresh.body.widgets.map((w: { id: string }) => w.id)).toEqual([
-        'fleet-health',
-        'needs-attention',
-        'recent-activity',
+        'fleet-stats',
+        'reachability',
+        'traffic',
       ]);
 
       const saved = await api
@@ -75,6 +75,14 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
       const empty = await api.put('/api/v1/me/dashboard').set('Cookie', alice).send({ widgets: [] });
       expect(empty.status).toBe(200);
       expect(empty.body.widgets).toHaveLength(3);
+
+      await pool.query(
+        `INSERT INTO user_dashboard_widgets (user_sub, widgets) VALUES ('qd-bob', $1::jsonb)
+         ON CONFLICT (user_sub) DO UPDATE SET widgets = EXCLUDED.widgets`,
+        [JSON.stringify([{ id: 'fleet-health' }, { id: 'needs-attention' }, { id: 'nope' }])],
+      );
+      const migrated = await api.get('/api/v1/me/dashboard').set('Cookie', bob);
+      expect(migrated.body.widgets.map((w: { id: string }) => w.id)).toEqual(['fleet-stats', 'fleet-stats']);
     } finally {
       await pool.query(`DELETE FROM sessions WHERE user_sub IN ('qd-alice', 'qd-bob')`);
       await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('qd-alice', 'qd-bob')`);

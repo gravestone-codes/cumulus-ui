@@ -21,7 +21,8 @@ test('first boot setup, login loop, dev reset', async ({ page }) => {
   await page.getByRole('button', { name: 'Create admin' }).click();
   await page.waitForURL('/dashboard');
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-  await expect(page.getByText('Fleet health')).toBeVisible();
+  await expect(page.getByText('Fleet at a glance')).toBeVisible();
+  await expect(page.getByText('Packets over time')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Primary' }).getByText('E2E Boss')).toBeVisible();
 
   // Sign out → login form → back in with password.
