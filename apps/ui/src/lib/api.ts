@@ -157,6 +157,10 @@ export const api = {
   audit: (limit = 8) => request<AuditRow[]>(`/api/v1/audit?limit=${limit}`),
   platformUsers: () => request<PlatformUserRow[]>('/api/v1/users'),
   platformRoles: () => request<RoleRow[]>('/api/v1/roles'),
+  dashboard: () =>
+    request<{ widgets: Array<{ id: string; config?: Record<string, unknown> }> }>('/api/v1/me/dashboard'),
+  saveDashboard: (widgets: Array<{ id: string; config?: Record<string, unknown> }>) =>
+    request<{ widgets: Array<{ id: string }> }>('/api/v1/me/dashboard', { method: 'PUT', json: { widgets } }),
 
   query: <T = unknown>(switchId: string, path: string, opts?: { rev?: string; view?: string }) => {
     const qs = new URLSearchParams({ path });

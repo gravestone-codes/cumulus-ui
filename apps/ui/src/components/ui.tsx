@@ -399,7 +399,16 @@ export function NavRail({
         minHeight: '100vh',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px', marginBottom: 2 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: collapsed ? 'column' : 'row',
+          alignItems: 'center',
+          gap: 6,
+          padding: '0 8px',
+          marginBottom: 2,
+        }}
+      >
         <span
           aria-hidden="true"
           style={{
