@@ -8,7 +8,21 @@
  */
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { api } from '../lib/api.js';
 import type { SwitchRow } from '../lib/api.js';
 import { Alert, Button, Modal } from '../components/ui.js';
@@ -26,14 +40,37 @@ const TOOLTIP_STYLE = {
   cursor: { fill: 'var(--color-muted)', fillOpacity: 0.07 },
 };
 
+function SampleBadge() {
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        color: 'var(--color-warn)',
+        border: '1px solid var(--color-warn)',
+        borderRadius: 6,
+        padding: '2px 6px',
+        marginLeft: 8,
+        verticalAlign: 'middle',
+      }}
+    >
+      Sample
+    </span>
+  );
+}
+
 function Card({
   title,
   hint,
+  sample,
   onRemove,
   children,
 }: {
   title: string;
   hint?: string;
+  sample?: boolean;
   onRemove?: () => void;
   children: React.ReactNode;
 }) {
@@ -48,7 +85,10 @@ function Card({
         position: 'relative',
       }}
     >
-      <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 2px' }}>{title}</h3>
+      <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 2px' }}>
+        {title}
+        {sample && <SampleBadge />}
+      </h3>
       {hint && <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '0 0 16px' }}>{hint}</p>}
       {onRemove && (
         <button
@@ -108,47 +148,40 @@ function Stat({ label, value, sub, tone }: { label: string; value: string; sub?:
   );
 }
 
-function EmptyChart({ label }: { label: string }) {
-  return (
-    <div
-      style={{
-        height: 256,
-        display: 'grid',
-        placeItems: 'center',
-        border: '1px dashed var(--color-border)',
-        borderRadius: 12,
-        color: 'var(--color-muted)',
-        fontSize: 14,
-        textAlign: 'center',
-        padding: 16,
-      }}
-    >
-      {label}
-    </div>
-  );
+/** Compact packet/counter formatting: 1500 -> 1.5k, 2.4e9 -> 2.4G. */
+function packets(v: number): string {
+  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}G`;
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
+  return String(Math.round(v));
 }
 
 function FleetStats({ switches }: { switches: SwitchRow[] }) {
-  const reachable = switches.filter((s) => s.last_check_ok).length;
-  const failing = switches.filter((s) => s.last_check_ok === false).length;
-  const untrusted = switches.filter((s) => !s.trust_verified).length;
-  return (
-    <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-      <Stat label="Switches" value={String(switches.length)} sub={`${reachable} reachable`} />
-      <Stat
-        label="Failing checks"
-        value={String(failing)}
-        sub="Last check failed"
-        tone={failing > 0 ? 'var(--color-fail)' : undefined}
-      />
-      <Stat
-        label="Trust pending"
-        value={String(untrusted)}
-        sub="Awaiting TOFU decision"
-        tone={untrusted > 0 ? 'var(--color-warn)' : undefined}
-      />
-    </div>
-  );
+  const sample = switches.length === 0;
+  const n = sample ? 12 : switches.length;
+  const reachable = sample ? 11 : switches.filter((x) => x.last_check_ok).length;
+  const failing = sample ? 1 : switches.filter((x) => x.last_check_ok === false).length;
+  const untrusted = sample ? 2 : switches.filter((x) => !x.trust_verified).length;
+  return {
+    sample,
+    node: (
+      <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+        <Stat label="Switches" value={String(n)} sub={`${reachable} reachable`} />
+        <Stat
+          label="Failing checks"
+          value={String(failing)}
+          sub="Last check failed"
+          tone={failing > 0 ? 'var(--color-fail)' : undefined}
+        />
+        <Stat
+          label="Trust pending"
+          value={String(untrusted)}
+          sub="Awaiting TOFU decision"
+          tone={untrusted > 0 ? 'var(--color-warn)' : undefined}
+        />
+      </div>
+    ),
+  };
 }
 
 const REACH_HEX: Record<string, string> = {
@@ -158,45 +191,143 @@ const REACH_HEX: Record<string, string> = {
 };
 
 function Reachability({ switches }: { switches: SwitchRow[] }) {
-  const counts = { Reachable: 0, Unreachable: 0, Unknown: 0 };
-  switches.forEach((s) => {
-    if (s.last_check_ok === true) counts.Reachable++;
-    else if (s.last_check_ok === false) counts.Unreachable++;
-    else counts.Unknown++;
-  });
-  const data = Object.entries(counts)
-    .filter(([, n]) => n > 0)
-    .map(([name, value]) => ({ name, value }));
-  if (data.length === 0) return <EmptyChart label="No switches onboarded yet." />;
-  return (
-    <div style={{ height: 256 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie data={data} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
-            {data.map((s) => (
-              <Cell key={s.name} fill={REACH_HEX[s.name]} />
-            ))}
-          </Pie>
-          <Tooltip {...TOOLTIP_STYLE} />
-          <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  const sample = switches.length === 0;
+  const data = sample
+    ? [
+        { name: 'Reachable', value: 9 },
+        { name: 'Unreachable', value: 2 },
+        { name: 'Unknown', value: 1 },
+      ]
+    : Object.entries({
+        Reachable: switches.filter((x) => x.last_check_ok === true).length,
+        Unreachable: switches.filter((x) => x.last_check_ok === false).length,
+        Unknown: switches.filter((x) => x.last_check_ok !== true && x.last_check_ok !== false).length,
+      })
+        .filter(([, value]) => value > 0)
+        .map(([name, value]) => ({ name, value }));
+  return {
+    sample,
+    node: (
+      <div style={{ height: 256 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={55}
+              outerRadius={85}
+              paddingAngle={2}
+            >
+              {data.map((s) => (
+                <Cell key={s.name} fill={REACH_HEX[s.name]} />
+              ))}
+            </Pie>
+            <Tooltip {...TOOLTIP_STYLE} />
+            <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    ),
+  };
 }
+
+const SAMPLE_TRAFFIC = [
+  { day: 'Sep 7', label: 'Sep 7', packets: 1_240_000_000 },
+  { day: 'Sep 8', label: 'Sep 8', packets: 1_890_000_000 },
+  { day: 'Sep 9', label: 'Sep 9', packets: 1_520_000_000 },
+  { day: 'Sep 10', label: 'Sep 10', packets: 2_310_000_000 },
+  { day: 'Sep 11', label: 'Sep 11', packets: 2_870_000_000 },
+  { day: 'Sep 12', label: 'Sep 12', packets: 2_120_000_000 },
+  { day: 'Sep 13', label: 'Sep 13', packets: 3_340_000_000 },
+  { day: 'Sep 14', label: 'Sep 14', packets: 2_960_000_000 },
+  { day: 'Sep 15', label: 'Sep 15', packets: 3_810_000_000 },
+  { day: 'Sep 16', label: 'Sep 16', packets: 3_220_000_000 },
+  { day: 'Sep 17', label: 'Sep 17', packets: 4_150_000_000 },
+  { day: 'Sep 18', label: 'Sep 18', packets: 3_730_000_000 },
+  { day: 'Sep 19', label: 'Sep 19', packets: 4_480_000_000 },
+  { day: 'Sep 20', label: 'Sep 20', packets: 4_020_000_000 },
+];
 
 function Traffic() {
-  return (
-    <EmptyChart label="Packet counters over time land with fan-out reads. Onboard switches first, then watch this space." />
-  );
+  return {
+    sample: true,
+    node: (
+      <div style={{ height: 256 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={SAMPLE_TRAFFIC} margin={{ left: 8, right: 8 }}>
+            <defs>
+              <linearGradient id="trafficFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-pass)" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="var(--color-pass)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} interval={2} />
+            <YAxis
+              tickFormatter={(v) => packets(Number(v))}
+              tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+              width={56}
+            />
+            <Tooltip {...TOOLTIP_STYLE} formatter={(v) => packets(typeof v === 'number' ? v : Number(v))} />
+            <Area
+              type="monotone"
+              dataKey="packets"
+              name="Packets"
+              stroke="var(--color-pass)"
+              strokeWidth={2}
+              fill="url(#trafficFill)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    ),
+  };
 }
+
+const SAMPLE_DEVICES = [
+  { name: 'spine01', packets: 8_410_000_000 },
+  { name: 'spine02', packets: 7_930_000_000 },
+  { name: 'leaf03', packets: 4_220_000_000 },
+  { name: 'leaf01', packets: 3_870_000_000 },
+  { name: 'leaf02', packets: 3_120_000_000 },
+  { name: 'leaf04', packets: 1_940_000_000 },
+  { name: 'mgmt01', packets: 210_000_000 },
+];
 
 function InterfacesByDevice() {
-  return (
-    <EmptyChart label="Per-device interface stats land with fan-out reads — sortable per device, biggest talkers first." />
-  );
+  return {
+    sample: true,
+    node: (
+      <div style={{ height: 256 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={SAMPLE_DEVICES} layout="vertical" margin={{ left: 8 }}>
+            <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" horizontal={false} />
+            <XAxis
+              type="number"
+              tickFormatter={(v) => packets(Number(v))}
+              tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+              width={70}
+            />
+            <Tooltip {...TOOLTIP_STYLE} formatter={(v) => packets(typeof v === 'number' ? v : Number(v))} />
+            <Bar
+              dataKey="packets"
+              name="Packets"
+              fill="var(--color-pass)"
+              radius={[0, 4, 4, 0]}
+              maxBarSize={14}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    ),
+  };
 }
-
 function RecentActivity() {
   const activity = useQuery({ queryKey: ['audit-recent'], queryFn: () => api.audit(8), retry: false });
   if (activity.isError) return null;
@@ -219,39 +350,37 @@ function RecentActivity() {
 }
 
 /** Client mirror of the server WIDGET_CATALOG. Blurbs feed the picker. */
-const REGISTRY: Record<
-  string,
-  { title: string; hint: string; blurb: string; render: (s: SwitchRow[]) => React.ReactNode }
-> = {
+type WidgetRender = (s: SwitchRow[]) => { sample: boolean; node: React.ReactNode };
+const REGISTRY: Record<string, { title: string; hint: string; blurb: string; render: WidgetRender }> = {
   'fleet-stats': {
     title: 'Fleet at a glance',
     hint: 'Inventory counts from the platform database.',
     blurb: 'Switch, reachability and trust counts.',
-    render: (s) => <FleetStats switches={s} />,
+    render: (s) => ({ ...FleetStats({ switches: s }) }),
   },
   reachability: {
     title: 'Switches by reachability',
     hint: 'Last check outcome per onboarded switch.',
     blurb: 'Reachable / unreachable / unknown pie.',
-    render: (s) => <Reachability switches={s} />,
+    render: (s) => ({ ...Reachability({ switches: s }) }),
   },
   traffic: {
     title: 'Packets over time',
     hint: 'Needs fan-out counter reads.',
     blurb: 'Traffic trend across the fleet.',
-    render: () => <Traffic />,
+    render: () => ({ ...Traffic() }),
   },
   'interfaces-by-device': {
     title: 'Interfaces by device',
     hint: 'Needs fan-out counter reads.',
     blurb: 'Per-device interface stats, sortable.',
-    render: () => <InterfacesByDevice />,
+    render: () => ({ ...InterfacesByDevice() }),
   },
   'recent-activity': {
     title: 'Recent activity',
     hint: 'Latest audited actions across the platform.',
     blurb: 'Audit trail tail.',
-    render: () => <RecentActivity />,
+    render: () => ({ sample: false, node: <RecentActivity /> }),
   },
 };
 
@@ -299,18 +428,22 @@ export function FleetDashboard() {
         <div
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}
         >
-          {active.map(({ id, title, hint, render }) => (
-            <Card
-              key={id}
-              title={title}
-              hint={hint}
-              onRemove={
-                customizing && active.length > 1 ? () => setIds(ids.filter((x) => x !== id)) : undefined
-              }
-            >
-              {render(switches.data)}
-            </Card>
-          ))}
+          {active.map(({ id, title, hint, render }) => {
+            const r = render(switches.data ?? []);
+            return (
+              <Card
+                key={id}
+                title={title}
+                hint={hint}
+                sample={r.sample}
+                onRemove={
+                  customizing && active.length > 1 ? () => setIds(ids.filter((x) => x !== id)) : undefined
+                }
+              >
+                {r.node}
+              </Card>
+            );
+          })}
         </div>
       )}
       {customizing && missing.length > 0 && (
