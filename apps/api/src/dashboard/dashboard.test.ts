@@ -82,7 +82,7 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
         [JSON.stringify([{ id: 'fleet-health' }, { id: 'needs-attention' }, { id: 'nope' }])],
       );
       const migrated = await api.get('/api/v1/me/dashboard').set('Cookie', bob);
-      expect(migrated.body.widgets.map((w: { id: string }) => w.id)).toEqual(['fleet-stats', 'fleet-stats']);
+      expect(migrated.body.widgets.map((w: { id: string }) => w.id)).toEqual(['fleet-stats']);
     } finally {
       await pool.query(`DELETE FROM sessions WHERE user_sub IN ('qd-alice', 'qd-bob')`);
       await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('qd-alice', 'qd-bob')`);

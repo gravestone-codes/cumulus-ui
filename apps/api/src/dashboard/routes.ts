@@ -49,10 +49,13 @@ export async function getDashboardPrefs(userSub: string): Promise<DashboardPrefs
   );
   const widgets = rows[0]?.widgets;
   if (!Array.isArray(widgets) || widgets.length === 0) return { widgets: DEFAULT_WIDGETS };
+  const seen = new Set<string>();
   const known = widgets.flatMap((w) => {
     const id = typeof w?.id === 'string' ? (w.id as string) : '';
     const mapped = (WIDGET_CATALOG as readonly string[]).includes(id) ? (id as WidgetId) : RETIRED_IDS[id];
-    return mapped ? [{ ...w, id: mapped }] : [];
+    if (!mapped || seen.has(mapped)) return [];
+    seen.add(mapped);
+    return [{ ...w, id: mapped }];
   });
   return { widgets: known.length > 0 ? known : DEFAULT_WIDGETS };
 }
