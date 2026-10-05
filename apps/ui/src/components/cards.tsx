@@ -1,21 +1,22 @@
 import type { ReactNode } from 'react';
 /**
- * Shared dashboard cards (fleet + switch scopes): Card shell with SAMPLE
- * badge and remove slot, Stat tile, EmptyChart placeholder. One definition —
- * dashboards compose, never copy.
+ * Shared dashboard cards (fleet + switch scopes): minimal, quiet, modern.
+ * Card shell with neutral SAMPLE marker and remove slot; Stat tile with
+ * tabular numerals; StatRow lays tiles in a divided row; packets() compacts
+ * counters. One definition — dashboards compose, never copy.
  */
 
 export function SampleBadge() {
   return (
     <span
       style={{
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 700,
         textTransform: 'uppercase',
-        letterSpacing: '0.06em',
-        color: 'var(--color-warn)',
-        border: '1px solid var(--color-warn)',
-        borderRadius: 6,
+        letterSpacing: '0.08em',
+        color: 'var(--color-muted)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 5,
         padding: '2px 6px',
         marginLeft: 8,
         verticalAlign: 'middle',
@@ -44,17 +45,17 @@ export function Card({
       style={{
         background: 'var(--color-surface)',
         border: '1px solid var(--color-border)',
-        borderRadius: 16,
-        padding: 20,
+        borderRadius: 12,
+        padding: 16,
         minWidth: 0,
         position: 'relative',
       }}
     >
-      <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 2px' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 2px' }}>
         {title}
         {sample && <SampleBadge />}
       </h3>
-      {hint && <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '0 0 16px' }}>{hint}</p>}
+      {hint && <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: '0 0 12px' }}>{hint}</p>}
       {onRemove && (
         <button
           type="button"
@@ -63,8 +64,8 @@ export function Card({
           title={`Remove ${title}`}
           style={{
             position: 'absolute',
-            top: 10,
-            right: 10,
+            top: 8,
+            right: 8,
             background: 'transparent',
             border: 'none',
             color: 'var(--color-muted)',
@@ -94,31 +95,65 @@ export function Stat({
   tone?: string;
 }) {
   return (
-    <div style={{ minWidth: 120 }}>
+    <div style={{ minWidth: 0 }}>
       <p
         style={{
-          fontSize: 12,
-          fontWeight: 600,
+          fontSize: 11,
+          fontWeight: 700,
           textTransform: 'uppercase',
-          letterSpacing: '0.06em',
+          letterSpacing: '0.08em',
           color: 'var(--color-muted)',
-          margin: '0 0 8px',
+          margin: '0 0 6px',
+          whiteSpace: 'nowrap',
         }}
       >
         {label}
       </p>
       <p
         style={{
-          fontSize: 26,
-          fontWeight: 600,
+          fontSize: value.length > 4 ? 22 : 30,
+          fontWeight: 700,
           letterSpacing: '-0.02em',
+          fontVariantNumeric: 'tabular-nums',
           margin: 0,
           color: tone ?? 'var(--color-text)',
         }}
       >
         {value}
       </p>
-      {sub && <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '4px 0 0' }}>{sub}</p>}
+      {sub && (
+        <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: '2px 0 0', whiteSpace: 'nowrap' }}>
+          {sub}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* StatRow: tiles in one divided row (dividers only between). Collapses to a
+   2-up grid on narrow cards instead of squeezing. */
+export function StatRow({ children }: { children: ReactNode[] }) {
+  const tiles = Array.isArray(children) ? children : [children];
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+        columnGap: 0,
+      }}
+    >
+      {tiles.map((tile, i) => (
+        <div
+          key={i}
+          style={{
+            padding: '2px 16px 2px 0',
+            borderLeft: i === 0 ? 'none' : '1px solid var(--color-border)',
+            paddingLeft: i === 0 ? 0 : 16,
+          }}
+        >
+          {tile}
+        </div>
+      ))}
     </div>
   );
 }

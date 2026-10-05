@@ -7,7 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { Alert, AppShell, NavRail, usePinnedRail } from '../components/ui.js';
-import { Card, Stat } from '../components/cards.js';
+import { Card, Stat, StatRow } from '../components/cards.js';
 import { switchNav } from '../lib/nav.js';
 
 function timeAgo(iso: string | null | undefined): string {
@@ -92,15 +92,15 @@ export function SwitchHome() {
           ) : ifaces.isPending ? (
             <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
           ) : (
-            <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+            <StatRow>
               <Stat label="Total" value={String(entries.length)} />
               <Stat label="Up" value={String(up)} tone={up > 0 ? 'var(--color-pass)' : undefined} />
               <Stat label="Down / other" value={String(entries.length - up)} />
-            </div>
+            </StatRow>
           )}
         </Card>
         <Card title="Health" hint="Trust and last check.">
-          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+          <StatRow>
             <Stat
               label="Trust"
               value={row ? (row.trust_verified ? 'Verified' : 'Pending') : '—'}
@@ -111,7 +111,7 @@ export function SwitchHome() {
               value={row?.last_check_ok === true ? 'Yes' : row?.last_check_ok === false ? 'No' : 'Unknown'}
             />
             <Stat label="Last seen" value={timeAgo(row?.last_seen_at)} />
-          </div>
+          </StatRow>
         </Card>
         <Card title="Recent activity" hint={`Audited actions on ${switchId}.`}>
           {activity.isError ? null : activity.isPending ? (

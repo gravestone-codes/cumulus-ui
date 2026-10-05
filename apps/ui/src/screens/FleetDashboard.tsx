@@ -27,7 +27,7 @@ import { api } from '../lib/api.js';
 import type { SwitchRow } from '../lib/api.js';
 import { Alert, Button, Hint, Modal } from '../components/ui.js';
 import { GlobalShell } from './GlobalShell.js';
-import { Card, Stat, packets } from '../components/cards.js';
+import { Card, Stat, StatRow, packets } from '../components/cards.js';
 
 const TOOLTIP_STYLE = {
   contentStyle: {
@@ -50,21 +50,21 @@ function FleetStats({ switches }: { switches: SwitchRow[] }) {
   return {
     sample,
     node: (
-      <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+      <StatRow>
         <Stat label="Switches" value={String(n)} sub={`${reachable} reachable`} />
         <Stat
-          label="Failing checks"
+          label="Failing"
           value={String(failing)}
           sub="Last check failed"
           tone={failing > 0 ? 'var(--color-fail)' : undefined}
         />
         <Stat
-          label="Trust pending"
+          label="Untrusted"
           value={String(untrusted)}
           sub="Awaiting TOFU decision"
           tone={untrusted > 0 ? 'var(--color-warn)' : undefined}
         />
-      </div>
+      </StatRow>
     ),
   };
 }
@@ -93,16 +93,16 @@ function Reachability({ switches }: { switches: SwitchRow[] }) {
   return {
     sample,
     node: (
-      <div style={{ height: 256 }}>
+      <div style={{ height: 208 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               dataKey="value"
               nameKey="name"
-              innerRadius={55}
-              outerRadius={85}
-              paddingAngle={2}
+              innerRadius={64}
+              outerRadius={80}
+              paddingAngle={3}
             >
               {data.map((s) => (
                 <Cell key={s.name} fill={REACH_HEX[s.name]} />
