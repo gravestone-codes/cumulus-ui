@@ -26,7 +26,8 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://cumulus:cumulus@db:5432/cumulus
       STATIC_DIR: /app/public
-      SWITCH_CRED_KEY: change-me-in-production-32-chars-min
+      # Real key lives in the server's gitignored .env; the default is dev-only.
+      SWITCH_CRED_KEY: ${SWITCH_CRED_KEY:-change-me-in-production-32-chars-min}
     ports:
       - '3000:3000'
     depends_on:
