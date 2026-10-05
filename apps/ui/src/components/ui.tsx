@@ -5,7 +5,8 @@
  * identical everywhere. No switch-derived constants here — labels/options
  * arrive via props from backend data.
  */
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 
 /* Button: inverted primary, secondary outline, danger. Full-width by §7. */
@@ -426,7 +427,7 @@ export function NavRail({
               font: 'inherit',
               fontSize: 15,
               padding: 2,
-              order: -1,
+              order: 2,
             }}
           >
             ›
@@ -699,6 +700,130 @@ export function Hint({ text }: { text: string }) {
         </span>
       )}
     </span>
+  );
+}
+
+/* RowMenu: kebab trigger per table row, menu through a portal (never
+   clipped by table overflow). Flips upward near the viewport bottom.
+   Items carry danger/disabled/title — same contract as GRG's RowMenu. */
+export interface RowMenuItem {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+  title?: string;
+}
+
+const MENU_W = 200;
+
+export function RowMenu({ items, label }: { items: RowMenuItem[]; label: string }) {
+  const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!btnRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const close = () => setOpen(false);
+    document.addEventListener('mousedown', onDoc);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  function toggle() {
+    if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+    setOpen((o) => !o);
+  }
+
+  const height = items.length * 40 + 12;
+  const flipUp = rect ? rect.bottom + height + 8 > window.innerHeight : false;
+  const left = rect == null ? 0 : Math.min(Math.max(8, rect.right - MENU_W), window.innerWidth - MENU_W - 8);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={toggle}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 6,
+          color: 'var(--color-muted)',
+          cursor: 'pointer',
+          font: 'inherit',
+          padding: '6px 8px',
+          display: 'inline-flex',
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="5" r="1.6" />
+          <circle cx="12" cy="12" r="1.6" />
+          <circle cx="12" cy="19" r="1.6" />
+        </svg>
+      </button>
+      {open &&
+        rect &&
+        createPortal(
+          <div
+            role="menu"
+            aria-label={label}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              width: MENU_W,
+              top: flipUp ? rect.top - height - 6 : rect.bottom + 6,
+              left,
+              zIndex: 70,
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 12,
+              padding: 6,
+              boxShadow: '0 16px 40px rgba(0,0,0,.5)',
+            }}
+          >
+            {items.map((it) => (
+              <button
+                key={it.label}
+                type="button"
+                disabled={it.disabled}
+                title={it.title}
+                onClick={() => {
+                  setOpen(false);
+                  it.onClick();
+                }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: 6,
+                  color: it.danger ? 'var(--color-fail)' : 'var(--color-text)',
+                  cursor: it.disabled ? 'not-allowed' : 'pointer',
+                  opacity: it.disabled ? 0.4 : 1,
+                  font: 'inherit',
+                  fontSize: 14,
+                  padding: '10px 12px',
+                }}
+              >
+                {it.label}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 

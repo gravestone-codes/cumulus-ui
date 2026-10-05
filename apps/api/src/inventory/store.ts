@@ -199,3 +199,15 @@ export async function createGroup(input: unknown): Promise<Group> {
   if (!row) throw new Error('insert returned no row');
   return row;
 }
+
+/** Delete a group. Refuses when switches still belong to it (caller unassigns first). */
+export async function deleteGroup(groupId: string): Promise<{ deleted: boolean; members: number }> {
+  const { rows } = await db().query<{ n: string }>(
+    'SELECT count(*) n FROM switch_groups WHERE group_id = $1',
+    [groupId],
+  );
+  const members = Number(rows[0]?.n ?? 0);
+  if (members > 0) return { deleted: false, members };
+  const gone = await db().query('DELETE FROM groups WHERE id = $1', [groupId]);
+  return { deleted: (gone.rowCount ?? 0) > 0, members: 0 };
+}

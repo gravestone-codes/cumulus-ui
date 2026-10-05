@@ -149,6 +149,8 @@ export const api = {
   groups: () => request<GroupRow[]>('/api/v1/inventory/groups'),
   createGroup: (body: { id: string; display_name: string }) =>
     post<GroupRow>('/api/v1/inventory/groups', body),
+  deleteGroup: (id: string) =>
+    request<{ ok: true }>(`/api/v1/inventory/groups/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   setMyCredential: (switchId: string, body: { switch_username: string; switch_password: string }) =>
     put<{ ok: true }>(`/api/v1/me/switch-credentials/${encodeURIComponent(switchId)}`, body),

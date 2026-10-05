@@ -14,6 +14,7 @@ import {
   confirmTrust,
   createGroup,
   createSwitch,
+  deleteGroup,
   deleteSwitch,
   getSwitch,
   listGroups,
@@ -172,6 +173,31 @@ export async function inventoryRoutes(app: FastifyInstance, deps: InventoryDeps)
     } catch (err) {
       return fail(reply, err, '/api/v1/inventory/groups');
     }
+  });
+
+  app.delete('/api/v1/inventory/groups/:id', async (request, reply) => {
+    const g = await gate(request, reply, cfg);
+    if (!g) return reply;
+    const { id } = request.params as { id: string };
+    const result = await deleteGroup(id);
+    if (!result.deleted && result.members > 0) {
+      return problem(
+        reply,
+        409,
+        'Conflict',
+        `${result.members} switch(es) still belong to ${id} — unassign them first`,
+        request.url,
+      );
+    }
+    if (!result.deleted) return problem(reply, 404, 'Not Found', `no group ${id}`, request.url);
+    await audit({
+      userSub: g.sub,
+      username: g.username,
+      roles: g.roleIds,
+      method: 'DELETE',
+      path: request.url,
+    });
+    return { ok: true };
   });
 
   app.post('/api/v1/inventory/switches/:id/trust', async (request, reply) => {

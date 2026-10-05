@@ -176,4 +176,43 @@ describe.skipIf(!LIVE)('inventory api', () => {
       await app.close();
     }
   });
+
+  it('group delete refuses members, then deletes cleanly', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool, 'inv-grouper', { appRoles: ['app-admin'] });
+    const api = request(app.server);
+    try {
+      await api.delete('/api/v1/inventory/switches/gs01').set('Cookie', cookie);
+      await pool.query(`DELETE FROM groups WHERE id = 'G-GONE'`);
+      await api
+        .post('/api/v1/inventory/groups')
+        .set('Cookie', cookie)
+        .send({ id: 'G-GONE', display_name: 'G' });
+      await api
+        .post('/api/v1/inventory/switches')
+        .set('Cookie', cookie)
+        .send({ id: 'gs01', display_name: 'gs01', base_url: 'https://gs01:8765', cert_fingerprint: 'SHA256:AA' });
+      await api
+        .put('/api/v1/inventory/switches/gs01/groups')
+        .set('Cookie', cookie)
+        .send({ groups: ['G-GONE'] });
+      expect(await api.delete('/api/v1/inventory/groups/G-GONE').set('Cookie', cookie)).toMatchObject({
+        status: 409,
+      });
+      await api.put('/api/v1/inventory/switches/gs01/groups').set('Cookie', cookie).send({ groups: [] });
+      expect(await api.delete('/api/v1/inventory/groups/G-GONE').set('Cookie', cookie)).toMatchObject({
+        status: 200,
+      });
+      expect(await api.delete('/api/v1/inventory/groups/G-GONE').set('Cookie', cookie)).toMatchObject({
+        status: 404,
+      });
+      await api.delete('/api/v1/inventory/switches/gs01').set('Cookie', cookie);
+    } finally {
+      await pool.query(`DELETE FROM sessions WHERE user_sub = 'inv-grouper'`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub = 'inv-grouper'`);
+      await pool.query(`DELETE FROM users WHERE id = 'inv-grouper'`);
+      await app.close();
+    }
+  });
 });

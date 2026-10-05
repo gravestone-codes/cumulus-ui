@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
 import type { GroupRow } from '../lib/api.js';
-import { Alert, Button, EmptyState, LineField, Modal, useToast } from '../components/ui.js';
+import { Alert, Button, Confirm, EmptyState, LineField, Modal, RowMenu, useToast } from '../components/ui.js';
 import { DataTable } from '../components/DataTable.js';
 import type { TableColumns } from '../components/DataTable.js';
 import { GlobalShell } from './GlobalShell.js';
@@ -24,6 +24,7 @@ export function Groups() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [confirming, setConfirming] = useState<(GroupRow & { members: number }) | null>(null);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const groups = useQuery({ queryKey: ['groups'], queryFn: () => api.groups(), retry: false });
@@ -44,6 +45,37 @@ export function Groups() {
     ...g,
     members: (switches.data ?? []).filter((s) => s.groups.includes(g.id)).length,
   }));
+  const remove = useMutation({
+    mutationFn: (id: string) => api.deleteGroup(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      toast('pass', `Group ${id} deleted.`);
+    },
+    onError: (err) => toast('fail', err instanceof ApiError ? err.message : 'Deletion failed.'),
+  });
+  const columns: TableColumns<GroupRow & { members: number }> = [
+    ...COLUMNS,
+    {
+      header: '',
+      id: 'actions',
+      cell: ({ row }) => (
+        <RowMenu
+          label={`Actions for ${row.original.id}`}
+          items={[
+            { label: 'Open', onClick: () => navigate(`/groups/${row.original.id}`) },
+            {
+              label: 'Delete group',
+              danger: true,
+              disabled: row.original.members > 0,
+              title:
+                row.original.members > 0 ? `Unassign ${row.original.members} member(s) first` : undefined,
+              onClick: () => setConfirming(row.original),
+            },
+          ]}
+        />
+      ),
+    },
+  ];
   const loading = groups.isPending || switches.isPending;
   return (
     <GlobalShell active="/groups">
@@ -61,11 +93,24 @@ export function Groups() {
       </div>
       {groups.isError && <Alert tone="fail">Could not load groups: {groups.error.message}</Alert>}
       <DataTable
-        columns={COLUMNS}
+        columns={columns}
         rows={rows}
         loading={loading}
         empty={<EmptyState icon="switches" text="No groups yet." />}
         onRowClick={(row) => navigate(`/groups/${row.id}`)}
+      />
+      <Confirm
+        open={confirming !== null}
+        title={confirming ? `Delete group ${confirming.id}?` : 'Delete group?'}
+        body="Members keep their switches; only the scope is deleted. Refused while switches still belong to it."
+        confirmLabel="Delete group"
+        danger
+        busy={remove.isPending}
+        onConfirm={() => {
+          if (confirming) remove.mutate(confirming.id);
+          setConfirming(null);
+        }}
+        onCancel={() => setConfirming(null)}
       />
       <Modal open={creatorOpen} onClose={() => setCreatorOpen(false)} title="New group">
         <LineField
