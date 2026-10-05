@@ -389,7 +389,7 @@ export function NavRail({
     <nav
       aria-label="Primary"
       style={{
-        width: collapsed ? 64 : 220,
+        width: collapsed ? 72 : 220,
         flexShrink: 0,
         borderRight: '1px solid var(--color-border)',
         padding: collapsed ? '20px 8px' : '20px 12px',
@@ -404,12 +404,32 @@ export function NavRail({
           display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
-          gap: collapsed ? 4 : 8,
-          padding: collapsed ? '0 4px' : '0 8px',
+          gap: 8,
+          padding: '0 8px',
           marginBottom: 2,
           whiteSpace: 'nowrap',
         }}
       >
+        {onToggleCollapse && collapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            title="Expand"
+            aria-label="Expand navigation"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--color-muted)',
+              cursor: 'pointer',
+              font: 'inherit',
+              fontSize: 15,
+              padding: 2,
+              order: -1,
+            }}
+          >
+            ›
+          </button>
+        )}
         <span
           aria-hidden="true"
           style={{
@@ -429,12 +449,12 @@ export function NavRail({
           C
         </span>
         {!collapsed && <span style={{ fontSize: 15, fontWeight: 800, flex: 1 }}>Cumulus</span>}
-        {onToggleCollapse && (
+        {onToggleCollapse && !collapsed && (
           <button
             type="button"
             onClick={onToggleCollapse}
-            title={collapsed ? 'Expand' : 'Collapse'}
-            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+            title="Collapse"
+            aria-label="Collapse navigation"
             style={{
               background: 'transparent',
               border: 'none',
@@ -445,7 +465,7 @@ export function NavRail({
               padding: 2,
             }}
           >
-            {collapsed ? '›' : '‹'}
+            ‹
           </button>
         )}
       </div>
@@ -472,10 +492,10 @@ export function NavRail({
             font: 'inherit',
             fontSize: 15,
             fontWeight: 500,
-            padding: collapsed ? '8px 0' : '8px 10px',
+            padding: collapsed ? '8px 8px' : '8px 10px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
+            justifyContent: 'flex-start',
             gap: 10,
             whiteSpace: 'nowrap',
           }}
@@ -618,8 +638,75 @@ function UserChip({
     </div>
   );
 }
-/* EmptyState: centered icon + line for empty collections. Callers own the words. */
-export function EmptyState({ icon, text }: { icon?: NavIcon; text: string }) {
+/* Hint: (?) marker with a hover/focus tooltip. Explanations live here —
+   labels stay terse and prose paragraphs stay out of screens. */
+export function Hint({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', marginLeft: 6, verticalAlign: 'middle' }}>
+      <button
+        type="button"
+        aria-label={`More info: ${text}`}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: '50%',
+          border: '1px solid var(--color-border)',
+          background: 'transparent',
+          color: 'var(--color-muted)',
+          cursor: 'help',
+          font: 'inherit',
+          fontSize: 12,
+          fontWeight: 700,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+        }}
+      >
+        ?
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          style={{
+            position: 'absolute',
+            bottom: 'calc(100% + 8px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            minWidth: 200,
+            maxWidth: 280,
+            background: 'var(--color-surface-2)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 8,
+            padding: '8px 10px',
+            fontSize: 13,
+            fontWeight: 400,
+            color: 'var(--color-text)',
+            zIndex: 60,
+            boxShadow: '0 16px 40px rgba(0,0,0,.5)',
+          }}
+        >
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/* EmptyState: centered icon + line for empty collections. Callers own the words. */ export function EmptyState({
+  icon,
+  text,
+}: {
+  icon?: NavIcon;
+  text: string;
+}) {
   return (
     <div
       style={{

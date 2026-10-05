@@ -25,7 +25,7 @@ import {
 } from 'recharts';
 import { api } from '../lib/api.js';
 import type { SwitchRow } from '../lib/api.js';
-import { Alert, Button, Modal } from '../components/ui.js';
+import { Alert, Button, Hint, Modal } from '../components/ui.js';
 import { GlobalShell } from './GlobalShell.js';
 
 const TOOLTIP_STYLE = {
@@ -415,7 +415,8 @@ export function FleetDashboard() {
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>Dashboard</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '4px 0 0' }}>
-            Every workload, at a glance. Personal to you — Customize to make it yours.
+            Every workload, at a glance.
+            <Hint text="Personal to you. Customize to add or remove widgets." />
           </p>
         </div>
         <span style={{ flex: 1 }} />

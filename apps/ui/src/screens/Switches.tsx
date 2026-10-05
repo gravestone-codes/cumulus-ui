@@ -12,7 +12,7 @@ import type { TableColumns } from '../components/DataTable.js';
 import { GlobalShell } from './GlobalShell.js';
 
 const COLUMNS: TableColumns<SwitchRow> = [
-  { header: 'ID', accessorKey: 'id' },
+  { header: 'Hostname', accessorKey: 'id' },
   { header: 'Name', accessorFn: (r) => r.display_name || '—' },
   { header: 'Groups', accessorFn: (r) => (r.groups.length > 0 ? r.groups.join(', ') : '—') },
   {

@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, type GroupRow } from '../lib/api.js';
+import { Hint } from '../components/ui.js';
 
 const STAGES = ['Add', 'Group', 'Trust', 'Credential', 'Verify'] as const;
 
@@ -131,12 +132,13 @@ export function OnboardSwitch() {
 
         {stage === 0 && (
           <>
-            <label style={{ fontSize: 13, fontWeight: 600 }}>Switch ID</label>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Switch hostname</label>
             <div className="lf">
               <input value={id} onChange={(e) => setId(e.target.value)} placeholder="leaf01" autoFocus />
             </div>
             <label style={{ fontSize: 13, fontWeight: 600, marginTop: 16, display: 'block' }}>
               Management URL
+              <Hint text="The NVUE HTTPS API. On by default since Cumulus 5.6, port 8765 unless moved via nv set system api." />
             </label>
             <div className="lf">
               <input
@@ -147,8 +149,7 @@ export function OnboardSwitch() {
               />
             </div>
             <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 8 }}>
-              The NVUE HTTPS API — on by default since Cumulus 5.6, port 8765 unless you changed it via{' '}
-              <span className="mono">nv set system api</span>.
+              Port defaults to 8765 when omitted.
             </p>
             {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
@@ -161,13 +162,13 @@ export function OnboardSwitch() {
                 disabled={busy}
                 onClick={() => {
                   if (!id.trim() || !url.trim()) {
-                    setError('Enter a switch ID and management URL.');
+                    setError('Enter a switch hostname and management URL.');
                     return;
                   }
                   add();
                 }}
               >
-                {busy ? 'Reaching switch…' : 'Add switch'}
+                {busy ? 'Reaching switch…' : 'Next'}
               </button>
             </div>
           </>

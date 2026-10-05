@@ -6,6 +6,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+import { Hint } from '../components/ui.js';
 import { GlobalShell } from './GlobalShell.js';
 
 function useCount(queryKey: string[], run: () => Promise<unknown[]>) {
@@ -48,10 +49,12 @@ export function Settings() {
   const groups = useCount(['groups'], () => api.groups());
   return (
     <GlobalShell active="/settings">
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 6px' }}>Settings</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 6px' }}>
+        Settings
+        <Hint text="This platform: who can sign in, what they may do, how switches are grouped. Counts hide when your role may not see them." />
+      </h1>
       <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '0 0 16px' }}>
-        This platform — who can sign in, what they may do, how switches are grouped. Counts hide when your
-        role may not see them.
+        Who can sign in, what they may do, how switches are grouped.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         <SettingCard

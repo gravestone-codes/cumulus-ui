@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { Alert, AppShell, NavRail } from '../components/ui.js';
+import { Alert, AppShell, Hint, NavRail } from '../components/ui.js';
 import { groupNav } from '../lib/nav.js';
 
 const UNIQUE_EXAMPLES = 'interface IPs, MAC addresses, BGP router-ids, hostnames';
@@ -39,10 +39,14 @@ export function GroupHome() {
         />
       }
     >
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 6px' }}>{groupId}</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 6px' }}>
+        {groupId}
+        <Hint
+          text={`Group scope: one change fans out to every member. Group-safe paths (NTP, DNS, syslog, VLANs) apply everywhere. Per-switch-unique paths (${UNIQUE_EXAMPLES}) are refused here, change those per switch.`}
+        />
+      </h1>
       <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '0 0 16px' }}>
-        Group scope: one change fans out to every member. Group-safe paths (NTP, DNS, syslog, VLANs) apply
-        everywhere; per-switch-unique paths ({UNIQUE_EXAMPLES}) are refused here — change those per switch.
+        One change fans out to every member.
       </p>
       {switches.isError && <Alert tone="fail">Could not load switches: {switches.error.message}</Alert>}
       {!switches.isPending && members.length === 0 && (
