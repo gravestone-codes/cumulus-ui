@@ -3,17 +3,16 @@
  * Software). Owns collapse state, session and logout once — global screens
  * mount inside, never beside. Switch-scoped screens use their own rail.
  */
-import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { AppShell, NavRail } from '../components/ui.js';
+import { AppShell, NavRail, usePinnedRail } from '../components/ui.js';
 import { globalNav } from '../lib/nav.js';
 
 export function GlobalShell({ active, children }: { active: string; children: ReactNode }) {
   const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, toggleCollapsed] = usePinnedRail('global');
   const session = useQuery({ queryKey: ['me'], queryFn: () => api.me(), retry: false });
   async function logout() {
     await api.logout();
@@ -29,7 +28,7 @@ export function GlobalShell({ active, children }: { active: string; children: Re
           user={session.data?.user.display_name ?? session.data?.user.username}
           onLogout={logout}
           collapsed={collapsed}
-          onToggleCollapse={() => setCollapsed((c) => !c)}
+          onToggleCollapse={toggleCollapsed}
         />
       }
     >

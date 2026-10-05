@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
-import { Alert, AppShell, Button, Confirm, NavRail, useToast } from '../components/ui.js';
+import { Alert, AppShell, Button, Confirm, NavRail, usePinnedRail, useToast } from '../components/ui.js';
 import { switchNav } from '../lib/nav.js';
 
 export function SwitchHome() {
@@ -16,7 +16,7 @@ export function SwitchHome() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, toggleCollapsed] = usePinnedRail('scope');
   const [confirming, setConfirming] = useState(false);
   const session = useQuery({ queryKey: ['me'], queryFn: () => api.me(), retry: false });
   const switches = useQuery({ queryKey: ['switches'], queryFn: () => api.switches(), retry: false });
@@ -38,12 +38,14 @@ export function SwitchHome() {
     <AppShell
       rail={
         <NavRail
-          switchName={switchId}
+          brand={false}
+          back={{ label: 'Switches', to: '/switches' }}
+          scope={{ kind: 'switch', name: switchId }}
           items={switchNav(switchId)}
           active={`/switches/${switchId}`}
           onNav={navigate}
           collapsed={collapsed}
-          onToggleCollapse={() => setCollapsed((c) => !c)}
+          onToggleCollapse={toggleCollapsed}
           user={session.data?.user.display_name ?? session.data?.user.username}
           onLogout={logout}
         />

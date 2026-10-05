@@ -366,9 +366,55 @@ const NAV_ICONS: Record<NavIcon, ReactNode> = {
   ),
 };
 
-/* NavRail: collapsible (§9 — click ‹), switch context, domain links, user chip. */
+/* Pinned rail preference: collapse state survives reloads, per rail. */
+export function usePinnedRail(key: string): [boolean, () => void] {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem(`rail:${key}`) === '1';
+    } catch {
+      return false;
+    }
+  });
+  function toggle() {
+    setCollapsed((c) => {
+      try {
+        window.localStorage.setItem(`rail:${key}`, c ? '0' : '1');
+      } catch {
+        /* private mode: pin lasts the session */
+      }
+      return !c;
+    });
+  }
+  return [collapsed, toggle];
+}
+
+/* ScopePill: SWITCH / GROUP marker so the rail always says where you are. */
+function ScopePill({ kind }: { kind: 'switch' | 'group' }) {
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: '0.08em',
+        color: kind === 'group' ? 'var(--color-pass)' : 'var(--color-brand)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 6,
+        padding: '2px 6px',
+        flexShrink: 0,
+      }}
+    >
+      {kind === 'group' ? 'GROUP' : 'SWITCH'}
+    </span>
+  );
+}
+
+/* NavRail: collapsible (§9 — click ‹), optional scope header (pill + name +
+   back link) for switch/group views, domain links, user chip. */
 export function NavRail({
   switchName,
+  scope,
+  back,
+  brand = true,
   items,
   active,
   onNav,
@@ -378,6 +424,9 @@ export function NavRail({
   onToggleCollapse,
 }: {
   switchName?: string;
+  scope?: { kind: 'switch' | 'group'; name: string; sub?: string };
+  back?: { label: string; to: string };
+  brand?: boolean;
   items: NavItem[];
   active: string;
   onNav: (to: string) => void;
@@ -386,6 +435,29 @@ export function NavRail({
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }) {
+  function ToggleButton() {
+    if (!onToggleCollapse) return null;
+    return (
+      <button
+        type="button"
+        onClick={onToggleCollapse}
+        title={collapsed ? 'Expand' : 'Collapse'}
+        aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: 'var(--color-muted)',
+          cursor: 'pointer',
+          font: 'inherit',
+          fontSize: 15,
+          padding: 2,
+          flexShrink: 0,
+        }}
+      >
+        {collapsed ? '›' : '‹'}
+      </button>
+    );
+  }
   return (
     <nav
       aria-label="Primary"
@@ -402,6 +474,25 @@ export function NavRail({
         height: '100vh',
       }}
     >
+      {back && !collapsed && (
+        <button
+          type="button"
+          onClick={() => onNav(back.to)}
+          style={{
+            textAlign: 'left',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--color-muted)',
+            cursor: 'pointer',
+            font: 'inherit',
+            fontSize: 14,
+            padding: '4px 8px 12px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          ‹ {back.label}
+        </button>
+      )}
       <div
         style={{
           display: 'flex',
@@ -413,70 +504,56 @@ export function NavRail({
           whiteSpace: 'nowrap',
         }}
       >
-        {onToggleCollapse && collapsed && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            title="Expand"
-            aria-label="Expand navigation"
+        {brand && !scope && (
+          <span
+            aria-hidden="true"
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--color-muted)',
-              cursor: 'pointer',
-              font: 'inherit',
-              fontSize: 15,
-              padding: 2,
-              order: 2,
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: 'var(--color-text)',
+              color: 'var(--color-bg)',
+              fontSize: 14,
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
-            ›
-          </button>
+            C
+          </span>
         )}
-        <span
-          aria-hidden="true"
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 6,
-            background: 'var(--color-text)',
-            color: 'var(--color-bg)',
-            fontSize: 14,
-            fontWeight: 800,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          C
-        </span>
-        {!collapsed && <span style={{ fontSize: 15, fontWeight: 800, flex: 1 }}>Cumulus</span>}
-        {onToggleCollapse && !collapsed && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            title="Collapse"
-            aria-label="Collapse navigation"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--color-muted)',
-              cursor: 'pointer',
-              font: 'inherit',
-              fontSize: 15,
-              padding: 2,
-            }}
-          >
-            ‹
-          </button>
+        {brand && !scope && !collapsed && (
+          <span style={{ fontSize: 15, fontWeight: 800, flex: 1 }}>Cumulus</span>
         )}
+        {scope && !collapsed && (
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <ScopePill kind={scope.kind} />
+            <span
+              style={{
+                display: 'block',
+                fontSize: 15,
+                fontWeight: 800,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                marginTop: 6,
+              }}
+            >
+              {scope.name}
+            </span>
+            {scope.sub && (
+              <span style={{ display: 'block', fontSize: 13, color: 'var(--color-muted)', marginTop: 2 }}>
+                {scope.sub}
+              </span>
+            )}
+          </span>
+        )}
+        {switchName && !scope && !collapsed && (
+          <span style={{ fontSize: 13, color: 'var(--color-muted)', flex: 1 }}>{switchName}</span>
+        )}
+        <ToggleButton />
       </div>
-      {switchName && !collapsed && (
-        <p style={{ fontSize: 13, color: 'var(--color-muted)', padding: '0 8px', margin: '0 0 16px' }}>
-          {switchName}
-        </p>
-      )}
       {items.map((item) => (
         <button
           key={item.to}
@@ -834,9 +911,11 @@ export function RowMenu({ items, label }: { items: RowMenuItem[]; label: string 
 /* EmptyState: centered icon + line for empty collections. Callers own the words. */ export function EmptyState({
   icon,
   text,
+  action,
 }: {
   icon?: NavIcon;
   text: string;
+  action?: ReactNode;
 }) {
   return (
     <div
@@ -856,6 +935,7 @@ export function RowMenu({ items, label }: { items: RowMenuItem[]; label: string 
         {icon ? NAV_ICONS[icon] : null}
       </span>
       <p style={{ fontSize: 15, margin: 0 }}>{text}</p>
+      {action}
     </div>
   );
 }

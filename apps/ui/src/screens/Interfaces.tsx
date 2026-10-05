@@ -3,11 +3,10 @@
  * the generic ResourceList. Column choice is presentation; every value comes
  * from the query proxy. Edit (description/MTU/speed) lands with ResourceForm.
  */
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { AppShell, NavRail } from '../components/ui.js';
+import { AppShell, NavRail, usePinnedRail } from '../components/ui.js';
 import { ResourceList } from '../components/resource.js';
 import type { TableColumns } from '../components/DataTable.js';
 import { switchNav } from '../lib/nav.js';
@@ -25,7 +24,7 @@ const COLUMNS: TableColumns<IfaceRow> = [
 export function Interfaces() {
   const { switchId = '' } = useParams();
   const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, toggleCollapsed] = usePinnedRail('scope');
   const session = useQuery({ queryKey: ['me'], queryFn: () => api.me(), retry: false });
   async function logout() {
     await api.logout();
@@ -35,12 +34,14 @@ export function Interfaces() {
     <AppShell
       rail={
         <NavRail
-          switchName={switchId}
+          brand={false}
+          back={{ label: 'Switches', to: '/switches' }}
+          scope={{ kind: 'switch', name: switchId }}
           items={switchNav(switchId)}
           active={`/switches/${switchId}/interfaces`}
           onNav={navigate}
           collapsed={collapsed}
-          onToggleCollapse={() => setCollapsed((c) => !c)}
+          onToggleCollapse={toggleCollapsed}
           user={session.data?.user.display_name ?? session.data?.user.username}
           onLogout={logout}
         />

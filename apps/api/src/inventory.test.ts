@@ -189,10 +189,12 @@ describe.skipIf(!LIVE)('inventory api', () => {
         .post('/api/v1/inventory/groups')
         .set('Cookie', cookie)
         .send({ id: 'G-GONE', display_name: 'G' });
-      await api
-        .post('/api/v1/inventory/switches')
-        .set('Cookie', cookie)
-        .send({ id: 'gs01', display_name: 'gs01', base_url: 'https://gs01:8765', cert_fingerprint: 'SHA256:AA' });
+      await api.post('/api/v1/inventory/switches').set('Cookie', cookie).send({
+        id: 'gs01',
+        display_name: 'gs01',
+        base_url: 'https://gs01:8765',
+        cert_fingerprint: 'SHA256:AA',
+      });
       await api
         .put('/api/v1/inventory/switches/gs01/groups')
         .set('Cookie', cookie)
