@@ -799,7 +799,10 @@ export function RowMenu({ items, label }: { items: RowMenuItem[]; label: string 
                 type="button"
                 disabled={it.disabled}
                 title={it.title}
-                onClick={() => {
+                onClick={(e) => {
+                  // Portal content bubbles through the React tree: stop it
+                  // reaching row onClick handlers (the DOM stop above is not enough).
+                  e.stopPropagation();
                   setOpen(false);
                   it.onClick();
                 }}
