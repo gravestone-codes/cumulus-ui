@@ -138,6 +138,10 @@ export function OnboardSwitch() {
                 inputMode="url"
               />
             </div>
+            <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 8 }}>
+              The NVUE HTTPS API — on by default since Cumulus 5.6, port 8765 unless you changed it via{' '}
+              <span className="mono">nv set system api</span>.
+            </p>
             {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
               <button type="button" className="btn btn-secondary" onClick={() => navigate('/switches')}>

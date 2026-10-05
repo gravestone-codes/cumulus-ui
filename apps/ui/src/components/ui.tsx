@@ -548,11 +548,14 @@ export function EmptyState({ icon, text }: { icon?: NavIcon; text: string }) {
   return (
     <div
       style={{
+        flex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 12,
-        padding: '56px 16px',
+        minHeight: '50vh',
+        padding: 16,
         color: 'var(--color-muted)',
       }}
     >
