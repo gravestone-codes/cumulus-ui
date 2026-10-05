@@ -737,7 +737,8 @@ export function RowMenu({ items, label }: { items: RowMenuItem[]; label: string 
     };
   }, [open]);
 
-  function toggle() {
+  function toggle(e: React.MouseEvent) {
+    e.stopPropagation();
     if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
     setOpen((o) => !o);
   }
