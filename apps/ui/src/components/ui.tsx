@@ -7,6 +7,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { api, ApiError } from '../lib/api.js';
 import type { ReactNode } from 'react';
 
 /* Button: inverted primary, secondary outline, danger. Full-width by §7. */
@@ -807,6 +808,62 @@ export function Hint({ text }: { text: string }) {
         </span>
       )}
     </span>
+  );
+}
+
+/* ReconnectModal: re-enter switch credentials, mint, retry. Used wherever a
+   401 leaves a widget or list unreadable — no dead ends. */
+export function ReconnectModal({
+  switchId,
+  open,
+  onClose,
+  onDone,
+}: {
+  switchId: string;
+  open: boolean;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (open) setPassword('');
+  }, [open]);
+  async function reconnect() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.setMyCredential(switchId, { switch_username: username.trim(), switch_password: password });
+      await api.connectSwitch(switchId);
+      onClose();
+      onDone();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Reconnect failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Modal open={open} onClose={onClose} title={`Reconnect ${switchId}`}>
+      <LineField label="Switch username" value={username} onChange={(e) => setUsername(e.target.value)} />
+      <LineField
+        label="Switch password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        error={error ?? undefined}
+      />
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+        <Button auto variant="secondary" onClick={onClose} disabled={busy}>
+          Cancel
+        </Button>
+        <Button auto disabled={busy || !username.trim() || !password} onClick={reconnect}>
+          {busy ? 'Connecting…' : 'Reconnect'}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 

@@ -7,6 +7,7 @@
  * config) already fits per-device sort/filter configs when those land.
  */
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Area,
@@ -28,6 +29,7 @@ import type { SwitchRow } from '../lib/api.js';
 import { Alert, Button, Hint, Modal } from '../components/ui.js';
 import { GlobalShell } from './GlobalShell.js';
 import { Card, Stat, StatRow, packets } from '../components/cards.js';
+import { ActivityList } from '../components/activity.js';
 
 const TOOLTIP_STYLE = {
   contentStyle: {
@@ -214,58 +216,53 @@ function InterfacesByDevice() {
   };
 }
 function RecentActivity() {
+  const navigate = useNavigate();
   const activity = useQuery({ queryKey: ['audit-recent'], queryFn: () => api.audit(8), retry: false });
-  if (activity.isError) return null;
+  if (activity.isError) return { sample: false, node: null };
   if (activity.isPending) {
-    return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>;
+    return {
+      sample: false,
+      node: <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>,
+    };
   }
-  if (activity.data.length === 0) {
-    return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>No audited actions yet.</p>;
-  }
-  return (
-    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, fontSize: 14 }}>
-      {activity.data.map((a) => (
-        <li key={a.id} style={{ color: 'var(--color-muted)' }}>
-          <span style={{ color: 'var(--color-text)' }}>{a.username}</span> {a.method} {a.path}
-          {a.switch_id ? ` on ${a.switch_id}` : ''}
-        </li>
-      ))}
-    </ul>
-  );
+  return {
+    sample: false,
+    node: (
+      <ActivityList
+        rows={activity.data}
+        onOpen={(row) => row.switch_id && navigate(`/switches/${row.switch_id}/audit`)}
+      />
+    ),
+  };
 }
 
 /** Client mirror of the server WIDGET_CATALOG. Blurbs feed the picker. */
 type WidgetRender = (s: SwitchRow[]) => { sample: boolean; node: React.ReactNode };
-const REGISTRY: Record<string, { title: string; hint: string; blurb: string; render: WidgetRender }> = {
+const REGISTRY: Record<string, { title: string; blurb: string; render: WidgetRender }> = {
   'fleet-stats': {
     title: 'Fleet at a glance',
-    hint: 'Inventory counts from the platform database.',
     blurb: 'Switch, reachability and trust counts.',
     render: (s) => ({ ...FleetStats({ switches: s }) }),
   },
   reachability: {
     title: 'Switches by reachability',
-    hint: 'Last check outcome per onboarded switch.',
     blurb: 'Reachable / unreachable / unknown pie.',
     render: (s) => ({ ...Reachability({ switches: s }) }),
   },
   traffic: {
     title: 'Packets over time',
-    hint: 'Needs fan-out counter reads.',
     blurb: 'Traffic trend across the fleet.',
     render: () => ({ ...Traffic() }),
   },
   'interfaces-by-device': {
     title: 'Interfaces by device',
-    hint: 'Needs fan-out counter reads.',
     blurb: 'Per-device interface stats, sortable.',
     render: () => ({ ...InterfacesByDevice() }),
   },
   'recent-activity': {
     title: 'Recent activity',
-    hint: 'Latest audited actions across the platform.',
     blurb: 'Audit trail tail.',
-    render: () => ({ sample: false, node: <RecentActivity /> }),
+    render: () => ({ ...RecentActivity() }),
   },
 };
 
@@ -314,13 +311,12 @@ export function FleetDashboard() {
         <div
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}
         >
-          {active.map(({ id, title, hint, render }) => {
+          {active.map(({ id, title, render }) => {
             const r = render(switches.data ?? []);
             return (
               <Card
                 key={id}
                 title={title}
-                hint={hint}
                 sample={r.sample}
                 onRemove={
                   customizing && active.length > 1 ? () => setIds(ids.filter((x) => x !== id)) : undefined

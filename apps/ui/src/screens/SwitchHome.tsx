@@ -3,24 +3,20 @@
  * interface counts, liveness, recent activity, traffic placeholder. Same
  * Card/Stat language as the fleet dashboard; every number is live.
  */
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { Alert, AppShell, NavRail, usePinnedRail } from '../components/ui.js';
+import { Alert, AppShell, Button, NavRail, ReconnectModal, usePinnedRail } from '../components/ui.js';
 import { Card, Stat, StatRow } from '../components/cards.js';
+import { ActivityList } from '../components/activity.js';
+import { timeAgo } from '../lib/format.js';
 import { switchNav } from '../lib/nav.js';
-
-function timeAgo(iso: string | null | undefined): string {
-  if (!iso) return 'never';
-  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  return `${Math.round(mins / 60)}h ago`;
-}
 
 export function SwitchHome() {
   const { switchId = '' } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [collapsed, toggleCollapsed] = usePinnedRail('scope');
   const session = useQuery({ queryKey: ['me'], queryFn: () => api.me(), retry: false });
   const switches = useQuery({ queryKey: ['switches'], queryFn: () => api.switches(), retry: false });
@@ -36,6 +32,7 @@ export function SwitchHome() {
     queryFn: () => api.audit(6, switchId),
     retry: false,
   });
+  const [reconnectOpen, setReconnectOpen] = useState(false);
   async function logout() {
     await api.logout();
     navigate('/login', { replace: true });
@@ -84,11 +81,18 @@ export function SwitchHome() {
         </div>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-        <Card title="Interfaces" hint="Live from the switch.">
+        <Card title="Interfaces">
           {ifaces.isError ? (
-            <p style={{ fontSize: 14, color: 'var(--color-fail)', margin: 0 }}>
-              Unreadable: {ifaces.error.message}
-            </p>
+            <div style={{ display: 'grid', gap: 10 }}>
+              <p style={{ fontSize: 14, color: 'var(--color-fail)', margin: 0 }}>
+                Unreadable: {ifaces.error.message}
+              </p>
+              <div>
+                <Button auto variant="secondary" onClick={() => setReconnectOpen(true)}>
+                  Reconnect switch
+                </Button>
+              </div>
+            </div>
           ) : ifaces.isPending ? (
             <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
           ) : (
@@ -99,7 +103,7 @@ export function SwitchHome() {
             </StatRow>
           )}
         </Card>
-        <Card title="Health" hint="Trust and last check.">
+        <Card title="Health">
           <StatRow>
             <Stat
               label="Trust"
@@ -113,27 +117,36 @@ export function SwitchHome() {
             <Stat label="Last seen" value={timeAgo(row?.last_seen_at)} />
           </StatRow>
         </Card>
-        <Card title="Recent activity" hint={`Audited actions on ${switchId}.`}>
+        <Card title="Recent activity">
           {activity.isError ? null : activity.isPending ? (
             <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
-          ) : activity.data.length === 0 ? (
-            <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Nothing audited here yet.</p>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, fontSize: 14 }}>
-              {activity.data.map((a) => (
-                <li key={a.id} style={{ color: 'var(--color-muted)' }}>
-                  <span style={{ color: 'var(--color-text)' }}>{a.username}</span> {a.method} {a.path}
-                </li>
-              ))}
-            </ul>
+            <ActivityList rows={activity.data} onOpen={() => navigate(`/switches/${switchId}/audit`)} />
           )}
         </Card>
-        <Card title="Packets over time" hint="Per-switch counters land with the traffic series.">
-          <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+        <Card title="Packets over time">
+          <div
+            style={{
+              minHeight: 120,
+              display: 'flex',
+              alignItems: 'center',
+              color: 'var(--color-muted)',
+              fontSize: 14,
+            }}
+          >
             Live packet trend for this switch arrives with fan-out counter reads.
-          </p>
+          </div>
         </Card>
       </div>
+      <ReconnectModal
+        switchId={switchId}
+        open={reconnectOpen}
+        onClose={() => setReconnectOpen(false)}
+        onDone={() => {
+          queryClient.invalidateQueries({ queryKey: ['resource', switchId] });
+          queryClient.invalidateQueries({ queryKey: ['switches'] });
+        }}
+      />
     </AppShell>
   );
 }

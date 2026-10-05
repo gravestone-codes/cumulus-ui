@@ -14,7 +14,7 @@ export function switchNav(switchId: string): Array<NavItem & { to: string }> {
     { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
     { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs', disabled: true },
     { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
-    { to: `${base}/audit`, label: 'Audit Log', icon: 'audit', disabled: true },
+    { to: `${base}/audit`, label: 'Audit Log', icon: 'audit' },
   ];
 }
 
