@@ -39,9 +39,17 @@ export function OnboardSwitch() {
     }
   }
 
+  /** NVUE listens on 8765 unless moved via `nv set system api` — fill it in when absent. */
+  function normalizeUrl(raw: string): string {
+    const trimmed = raw.trim().replace(/\/+$/, '');
+    return /^https:\/\/[^/:]+$/.test(trimmed) ? `${trimmed}:8765` : trimmed;
+  }
+
   async function add() {
+    const baseUrl = normalizeUrl(url);
+    setUrl(baseUrl);
     const sw = await run(() =>
-      api.createSwitch({ id: id.trim(), display_name: id.trim(), base_url: url.trim() }),
+      api.createSwitch({ id: id.trim(), display_name: id.trim(), base_url: baseUrl }),
     );
     if (!sw) return;
     setFingerprint(sw.cert_fingerprint);

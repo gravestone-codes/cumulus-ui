@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import type { GroupRow } from '../lib/api.js';
-import { Alert, Button } from '../components/ui.js';
+import { Alert, Button, EmptyState } from '../components/ui.js';
 import { DataTable } from '../components/DataTable.js';
 import type { TableColumns } from '../components/DataTable.js';
 import { GlobalShell } from './GlobalShell.js';
@@ -41,6 +41,7 @@ export function Groups() {
         columns={COLUMNS}
         rows={rows}
         loading={loading}
+        empty={<EmptyState icon="switches" text="No groups yet." />}
         onRowClick={(row) => navigate(`/groups/${row.id}`)}
       />
       <p style={{ fontSize: 14, color: 'var(--color-muted)', marginTop: 12 }}>

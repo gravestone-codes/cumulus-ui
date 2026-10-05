@@ -389,10 +389,10 @@ export function NavRail({
     <nav
       aria-label="Primary"
       style={{
-        width: collapsed ? 60 : 220,
+        width: collapsed ? 64 : 220,
         flexShrink: 0,
         borderRight: '1px solid var(--color-border)',
-        padding: '20px 12px',
+        padding: collapsed ? '20px 8px' : '20px 12px',
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
@@ -402,11 +402,12 @@ export function NavRail({
       <div
         style={{
           display: 'flex',
-          flexDirection: collapsed ? 'column' : 'row',
+          flexDirection: 'row',
           alignItems: 'center',
-          gap: 6,
-          padding: '0 8px',
+          gap: collapsed ? 4 : 8,
+          padding: collapsed ? '0 4px' : '0 8px',
           marginBottom: 2,
+          whiteSpace: 'nowrap',
         }}
       >
         <span
@@ -471,9 +472,10 @@ export function NavRail({
             font: 'inherit',
             fontSize: 15,
             fontWeight: 500,
-            padding: '8px 10px',
+            padding: collapsed ? '8px 0' : '8px 10px',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: collapsed ? 'center' : 'flex-start',
             gap: 10,
             whiteSpace: 'nowrap',
           }}
@@ -487,60 +489,133 @@ export function NavRail({
         </button>
       ))}
       <span style={{ flex: 1 }} />
-      {user && (
-        <p
-          style={{
-            fontSize: 13,
-            color: 'var(--color-muted)',
-            padding: '0 8px',
-            margin: '0 0 4px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <span
-            aria-hidden="true"
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: '50%',
-              background: 'var(--color-surface-2)',
-              border: '1px solid var(--color-border)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--color-text)',
-              flexShrink: 0,
-            }}
-          >
-            {user.slice(0, 1).toUpperCase()}
-          </span>
-          {!collapsed && user}
-        </p>
-      )}
-      {onLogout && !collapsed && (
-        <button
-          type="button"
-          onClick={onLogout}
-          style={{
-            textAlign: 'left',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--color-muted)',
-            cursor: 'pointer',
-            font: 'inherit',
-            fontSize: 14,
-            padding: '8px 10px',
-          }}
-        >
-          Sign out
-        </button>
-      )}
+      {user && <UserChip user={user} collapsed={collapsed} onNav={onNav} onLogout={onLogout} />}
     </nav>
+  );
+}
+
+/* UserChip: avatar + name opens a popup (Profile, Sign out, future personal
+   settings). The popup anchors above the chip; Escape or click-out closes. */
+function UserChip({
+  user,
+  collapsed,
+  onNav,
+  onLogout,
+}: {
+  user: string;
+  collapsed: boolean;
+  onNav: (to: string) => void;
+  onLogout?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+  function menuItem(label: string, run: () => void) {
+    return (
+      <button
+        key={label}
+        type="button"
+        onClick={() => {
+          setOpen(false);
+          run();
+        }}
+        style={{
+          display: 'block',
+          width: '100%',
+          textAlign: 'left',
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 6,
+          color: 'var(--color-text)',
+          cursor: 'pointer',
+          font: 'inherit',
+          fontSize: 14,
+          padding: '8px 10px',
+        }}
+      >
+        {label}
+      </button>
+    );
+  }
+  return (
+    <div style={{ position: 'relative' }}>
+      {open && (
+        <div
+          role="presentation"
+          onClick={() => setOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+        />
+      )}
+      {open && (
+        <div
+          role="menu"
+          aria-label="Account"
+          style={{
+            position: 'absolute',
+            bottom: 'calc(100% + 8px)',
+            left: 0,
+            minWidth: 180,
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 10,
+            padding: 4,
+            zIndex: 50,
+            boxShadow: '0 16px 40px rgba(0,0,0,.5)',
+          }}
+        >
+          {menuItem('Profile', () => onNav('/settings'))}
+          {onLogout && menuItem('Sign out', onLogout)}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Account: ${user}`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          gap: 8,
+          width: '100%',
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 8,
+          color: 'var(--color-muted)',
+          cursor: 'pointer',
+          font: 'inherit',
+          fontSize: 13,
+          padding: '8px',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: '50%',
+            background: 'var(--color-surface-2)',
+            border: '1px solid var(--color-border)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 12,
+            fontWeight: 700,
+            color: 'var(--color-text)',
+            flexShrink: 0,
+          }}
+        >
+          {user.slice(0, 1).toUpperCase()}
+        </span>
+        {!collapsed && user}
+      </button>
+    </div>
   );
 }
 /* EmptyState: centered icon + line for empty collections. Callers own the words. */
@@ -567,7 +642,8 @@ export function EmptyState({ icon, text }: { icon?: NavIcon; text: string }) {
   );
 }
 
-/* AppShell: rail + content column. Domain screens mount inside, never beside. */
+/* AppShell: rail + content column (flex, so EmptyState truly centers).
+   Domain screens mount inside, never beside. */
 export function AppShell({ rail, children }: { rail: ReactNode; children: ReactNode }) {
   return (
     <div
@@ -579,7 +655,18 @@ export function AppShell({ rail, children }: { rail: ReactNode; children: ReactN
       }}
     >
       {rail}
-      <main style={{ flex: 1, padding: 28, maxWidth: 1100 }}>{children}</main>
+      <main
+        style={{
+          flex: 1,
+          padding: 28,
+          maxWidth: 1100,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+        }}
+      >
+        {children}
+      </main>
     </div>
   );
 }

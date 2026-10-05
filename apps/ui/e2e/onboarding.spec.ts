@@ -26,6 +26,7 @@ test('first boot setup, login loop, dev reset', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Primary' }).getByText('E2E Boss')).toBeVisible();
 
   // Sign out → login form → back in with password.
+  await page.getByRole('button', { name: 'Account: E2E Boss' }).click();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await page.waitForURL('/login');
   await page.getByPlaceholder('admin', { exact: true }).fill('e2e-boss');
