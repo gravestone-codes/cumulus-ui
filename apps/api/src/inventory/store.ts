@@ -200,6 +200,24 @@ export async function createGroup(input: unknown): Promise<Group> {
   return row;
 }
 
+/** Rename a switch (display name only — the id is the fan-out key and never moves). */
+export async function renameSwitch(switchId: string, displayName: string): Promise<boolean> {
+  const { rowCount } = await db().query(
+    'UPDATE switches SET display_name = $2, updated_at = now() WHERE id = $1',
+    [switchId, displayName],
+  );
+  return (rowCount ?? 0) > 0;
+}
+
+/** Rename a group (display name only — the id is the fan-out key and never moves). */
+export async function renameGroup(groupId: string, displayName: string): Promise<boolean> {
+  const { rowCount } = await db().query('UPDATE groups SET display_name = $2 WHERE id = $1', [
+    groupId,
+    displayName,
+  ]);
+  return (rowCount ?? 0) > 0;
+}
+
 /** Delete a group. Refuses when switches still belong to it (caller unassigns first). */
 export async function deleteGroup(groupId: string): Promise<{ deleted: boolean; members: number }> {
   const { rows } = await db().query<{ n: string }>(

@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
 import type { SwitchRow } from '../lib/api.js';
-import { Alert, Button, Confirm, EmptyState, RowMenu, useToast } from '../components/ui.js';
+import { Alert, Button, Confirm, EmptyState, PromptModal, RowMenu, useToast } from '../components/ui.js';
 import { DataTable } from '../components/DataTable.js';
 import type { TableColumns } from '../components/DataTable.js';
 import { GlobalShell } from './GlobalShell.js';
@@ -18,7 +18,20 @@ export function Switches() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [confirming, setConfirming] = useState<SwitchRow | null>(null);
+  const [renaming, setRenaming] = useState<SwitchRow | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const switches = useQuery({ queryKey: ['switches'], queryFn: () => api.switches(), retry: false });
+  const rename = useMutation({
+    mutationFn: ({ id, display_name }: { id: string; display_name: string }) =>
+      api.renameSwitch(id, display_name),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['switches'] });
+      toast('pass', `Switch ${vars.id} renamed.`);
+      setRenaming(null);
+      setRenameError(null);
+    },
+    onError: (err) => setRenameError(err instanceof ApiError ? err.message : 'Rename failed.'),
+  });
   const remove = useMutation({
     mutationFn: (id: string) => api.deleteSwitch(id),
     onSuccess: (_data, id) => {
@@ -49,6 +62,13 @@ export function Switches() {
           label={`Actions for ${row.original.id}`}
           items={[
             { label: 'Open', onClick: () => navigate(`/switches/${row.original.id}`) },
+            {
+              label: 'Rename',
+              onClick: () => {
+                setRenameError(null);
+                setRenaming(row.original);
+              },
+            },
             { label: 'Remove switch', danger: true, onClick: () => setConfirming(row.original) },
           ]}
         />
@@ -90,6 +110,20 @@ export function Switches() {
           setConfirming(null);
         }}
         onCancel={() => setConfirming(null)}
+      />
+      <PromptModal
+        open={renaming !== null}
+        title={renaming ? `Rename ${renaming.id}` : 'Rename switch'}
+        label="Display name"
+        initial={renaming?.display_name ?? ''}
+        confirmLabel="Rename"
+        busy={rename.isPending}
+        error={renameError}
+        onSubmit={(value) => renaming && rename.mutate({ id: renaming.id, display_name: value })}
+        onCancel={() => {
+          setRenaming(null);
+          setRenameError(null);
+        }}
       />
     </GlobalShell>
   );

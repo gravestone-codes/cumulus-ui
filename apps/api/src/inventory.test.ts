@@ -177,6 +177,63 @@ describe.skipIf(!LIVE)('inventory api', () => {
     }
   });
 
+  it('rename edits display names, validates, 404s unknown', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool, 'inv-renamer', { appRoles: ['app-admin'] });
+    const api = request(app.server);
+    try {
+      await api.delete('/api/v1/inventory/switches/rn01').set('Cookie', cookie);
+      await pool.query(`DELETE FROM groups WHERE id = 'R-RN'`);
+      await api.post('/api/v1/inventory/switches').set('Cookie', cookie).send({
+        id: 'rn01',
+        display_name: 'rn01',
+        base_url: 'https://rn01:8765',
+        cert_fingerprint: 'SHA256:AA',
+      });
+      await api
+        .post('/api/v1/inventory/groups')
+        .set('Cookie', cookie)
+        .send({ id: 'R-RN', display_name: 'R' });
+      expect(
+        await api
+          .patch('/api/v1/inventory/switches/rn01')
+          .set('Cookie', cookie)
+          .send({ display_name: 'Leaf One' }),
+      ).toMatchObject({ status: 200 });
+      expect(
+        await api
+          .patch('/api/v1/inventory/groups/R-RN')
+          .set('Cookie', cookie)
+          .send({ display_name: 'Renamed' }),
+      ).toMatchObject({ status: 200 });
+      const list = await api.get('/api/v1/inventory/switches').set('Cookie', cookie);
+      expect(list.body.find((x: { id: string }) => x.id === 'rn01').display_name).toBe('Leaf One');
+      expect(await api.patch('/api/v1/inventory/switches/rn01').set('Cookie', cookie).send({})).toMatchObject(
+        {
+          status: 400,
+        },
+      );
+      expect(
+        await api.patch('/api/v1/inventory/switches/nope').set('Cookie', cookie).send({ display_name: 'X' }),
+      ).toMatchObject({
+        status: 404,
+      });
+      expect(
+        await api.patch('/api/v1/inventory/groups/nope').set('Cookie', cookie).send({ display_name: 'X' }),
+      ).toMatchObject({
+        status: 404,
+      });
+      await api.delete('/api/v1/inventory/switches/rn01').set('Cookie', cookie);
+      await api.delete('/api/v1/inventory/groups/R-RN').set('Cookie', cookie);
+    } finally {
+      await pool.query(`DELETE FROM sessions WHERE user_sub = 'inv-renamer'`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub = 'inv-renamer'`);
+      await pool.query(`DELETE FROM users WHERE id = 'inv-renamer'`);
+      await app.close();
+    }
+  });
+
   it('group delete refuses members, then deletes cleanly', async () => {
     const app = await buildApp({ auth: { cfg: CFG } });
     await app.ready();

@@ -134,6 +134,11 @@ export const api = {
     post<SwitchRow>('/api/v1/inventory/switches', body),
   deleteSwitch: (id: string) =>
     request<{ ok: true }>(`/api/v1/inventory/switches/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  renameSwitch: (id: string, display_name: string) =>
+    request<{ ok: true }>(`/api/v1/inventory/switches/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      json: { display_name },
+    }),
   setSwitchGroups: (id: string, groups: string[]) =>
     request<{ ok: true }>(`/api/v1/inventory/switches/${encodeURIComponent(id)}/groups`, {
       method: 'PUT',
@@ -151,6 +156,11 @@ export const api = {
     post<GroupRow>('/api/v1/inventory/groups', body),
   deleteGroup: (id: string) =>
     request<{ ok: true }>(`/api/v1/inventory/groups/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  renameGroup: (id: string, display_name: string) =>
+    request<{ ok: true }>(`/api/v1/inventory/groups/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      json: { display_name },
+    }),
 
   setMyCredential: (switchId: string, body: { switch_username: string; switch_password: string }) =>
     put<{ ok: true }>(`/api/v1/me/switch-credentials/${encodeURIComponent(switchId)}`, body),

@@ -8,7 +8,17 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
 import type { GroupRow } from '../lib/api.js';
-import { Alert, Button, Confirm, EmptyState, LineField, Modal, RowMenu, useToast } from '../components/ui.js';
+import {
+  Alert,
+  Button,
+  Confirm,
+  EmptyState,
+  LineField,
+  Modal,
+  PromptModal,
+  RowMenu,
+  useToast,
+} from '../components/ui.js';
 import { DataTable } from '../components/DataTable.js';
 import type { TableColumns } from '../components/DataTable.js';
 import { GlobalShell } from './GlobalShell.js';
@@ -25,6 +35,8 @@ export function Groups() {
   const toast = useToast();
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [confirming, setConfirming] = useState<(GroupRow & { members: number }) | null>(null);
+  const [renaming, setRenaming] = useState<GroupRow | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const groups = useQuery({ queryKey: ['groups'], queryFn: () => api.groups(), retry: false });
@@ -53,6 +65,17 @@ export function Groups() {
     },
     onError: (err) => toast('fail', err instanceof ApiError ? err.message : 'Deletion failed.'),
   });
+  const rename = useMutation({
+    mutationFn: ({ id, display_name }: { id: string; display_name: string }) =>
+      api.renameGroup(id, display_name),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      toast('pass', `Group ${vars.id} renamed.`);
+      setRenaming(null);
+      setRenameError(null);
+    },
+    onError: (err) => setRenameError(err instanceof ApiError ? err.message : 'Rename failed.'),
+  });
   const columns: TableColumns<GroupRow & { members: number }> = [
     ...COLUMNS,
     {
@@ -63,6 +86,13 @@ export function Groups() {
           label={`Actions for ${row.original.id}`}
           items={[
             { label: 'Open', onClick: () => navigate(`/groups/${row.original.id}`) },
+            {
+              label: 'Rename',
+              onClick: () => {
+                setRenameError(null);
+                setRenaming(row.original);
+              },
+            },
             {
               label: 'Delete group',
               danger: true,
@@ -111,6 +141,20 @@ export function Groups() {
           setConfirming(null);
         }}
         onCancel={() => setConfirming(null)}
+      />
+      <PromptModal
+        open={renaming !== null}
+        title={renaming ? `Rename ${renaming.id}` : 'Rename group'}
+        label="Display name"
+        initial={renaming?.display_name ?? ''}
+        confirmLabel="Rename"
+        busy={rename.isPending}
+        error={renameError}
+        onSubmit={(value) => renaming && rename.mutate({ id: renaming.id, display_name: value })}
+        onCancel={() => {
+          setRenaming(null);
+          setRenameError(null);
+        }}
       />
       <Modal open={creatorOpen} onClose={() => setCreatorOpen(false)} title="New group">
         <LineField

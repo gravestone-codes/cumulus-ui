@@ -19,6 +19,8 @@ import {
   getSwitch,
   listGroups,
   listSwitches,
+  renameGroup,
+  renameSwitch,
   setSwitchGroups,
 } from './store.js';
 import { requireAppAdmin } from '../users/routes.js';
@@ -173,6 +175,50 @@ export async function inventoryRoutes(app: FastifyInstance, deps: InventoryDeps)
     } catch (err) {
       return fail(reply, err, '/api/v1/inventory/groups');
     }
+  });
+
+  const RenameBody = z.object({ display_name: z.string().min(1).max(128) });
+
+  app.patch('/api/v1/inventory/switches/:id', async (request, reply) => {
+    const g = await gate(request, reply, cfg);
+    if (!g) return reply;
+    const { id } = request.params as { id: string };
+    const parsed = RenameBody.safeParse(request.body);
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'display_name required', request.url);
+    const before = await getSwitch(id);
+    if (!before) return problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
+    await renameSwitch(id, parsed.data.display_name);
+    await audit({
+      userSub: g.sub,
+      username: g.username,
+      roles: g.roleIds,
+      switchId: id,
+      method: 'PATCH',
+      path: request.url,
+      before: { display_name: before.display_name },
+      after: { display_name: parsed.data.display_name },
+    });
+    return { ok: true };
+  });
+
+  app.patch('/api/v1/inventory/groups/:id', async (request, reply) => {
+    const g = await gate(request, reply, cfg);
+    if (!g) return reply;
+    const { id } = request.params as { id: string };
+    const parsed = RenameBody.safeParse(request.body);
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'display_name required', request.url);
+    if (!(await renameGroup(id, parsed.data.display_name))) {
+      return problem(reply, 404, 'Not Found', `no group ${id}`, request.url);
+    }
+    await audit({
+      userSub: g.sub,
+      username: g.username,
+      roles: g.roleIds,
+      method: 'PATCH',
+      path: request.url,
+      after: { display_name: parsed.data.display_name },
+    });
+    return { ok: true };
   });
 
   app.delete('/api/v1/inventory/groups/:id', async (request, reply) => {

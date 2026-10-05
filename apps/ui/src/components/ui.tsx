@@ -224,6 +224,57 @@ interface Toast {
 }
 const ToastCtx = createContext<(tone: Toast['tone'], text: string) => void>(() => {});
 
+/* PromptModal: one question, one line-field, two buttons. Renames and
+   other single-value edits — never a form. */
+export function PromptModal({
+  open,
+  title,
+  label,
+  initial = '',
+  confirmLabel = 'Save',
+  busy = false,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  open: boolean;
+  title: string;
+  label: string;
+  initial?: string;
+  confirmLabel?: string;
+  busy?: boolean;
+  error?: string | null;
+  onSubmit: (value: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState('');
+  useEffect(() => {
+    if (open) setValue(initial);
+  }, [open, initial]);
+  return (
+    <Modal open={open} onClose={onCancel} title={title}>
+      <LineField
+        label={label}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        error={error ?? undefined}
+      />
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+        <Button auto variant="secondary" onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
+        <Button
+          auto
+          disabled={busy || value.trim().length === 0}
+          onClick={() => value.trim() && onSubmit(value.trim())}
+        >
+          {busy ? 'Saving…' : confirmLabel}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 /** Push a transient echo (apply done, staged, conflicts). Provider mounts the stack. */
 export function useToast() {
   return useContext(ToastCtx);
@@ -388,28 +439,8 @@ export function usePinnedRail(key: string): [boolean, () => void] {
   return [collapsed, toggle];
 }
 
-/* ScopePill: SWITCH / GROUP marker so the rail always says where you are. */
-function ScopePill({ kind }: { kind: 'switch' | 'group' }) {
-  return (
-    <span
-      style={{
-        fontSize: 11,
-        fontWeight: 800,
-        letterSpacing: '0.08em',
-        color: kind === 'group' ? 'var(--color-pass)' : 'var(--color-brand)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 6,
-        padding: '2px 6px',
-        flexShrink: 0,
-      }}
-    >
-      {kind === 'group' ? 'GROUP' : 'SWITCH'}
-    </span>
-  );
-}
-
-/* NavRail: collapsible (§9 — click ‹), optional scope header (pill + name +
-   back link) for switch/group views, domain links, user chip. */
+/* NavRail: collapsible (§9 — click ‹), optional scope header (name + back
+   link) for switch/group views, domain links, user chip. */
 export function NavRail({
   switchName,
   scope,
@@ -529,7 +560,6 @@ export function NavRail({
         )}
         {scope && !collapsed && (
           <span style={{ flex: 1, minWidth: 0 }}>
-            <ScopePill kind={scope.kind} />
             <span
               style={{
                 display: 'block',
@@ -757,7 +787,7 @@ export function Hint({ text }: { text: string }) {
           role="tooltip"
           style={{
             position: 'absolute',
-            bottom: 'calc(100% + 8px)',
+            top: 'calc(100% + 8px)',
             left: '50%',
             transform: 'translateX(-50%)',
             minWidth: 200,
