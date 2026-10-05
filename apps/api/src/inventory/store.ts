@@ -34,9 +34,22 @@ interface SwitchRow {
   cert_pem: string | null;
   enabled: boolean;
   groups: string[] | null;
+  trust_verified: boolean | null;
+  last_seen_at: string | null;
+  last_check_at: string | null;
+  last_check_ok: boolean | null;
 }
 
-function toSwitch(row: SwitchRow): Switch & { groups: string[] } {
+/** A switch as the API serves it: identity plus liveness/trust state. */
+export interface SwitchWithState extends Switch {
+  groups: string[];
+  trust_verified: boolean;
+  last_seen_at: string | null;
+  last_check_at: string | null;
+  last_check_ok: boolean | null;
+}
+
+function toSwitch(row: SwitchRow): SwitchWithState {
   return {
     id: row.id,
     display_name: row.display_name,
@@ -46,6 +59,10 @@ function toSwitch(row: SwitchRow): Switch & { groups: string[] } {
     cert_pem: row.cert_pem,
     enabled: row.enabled,
     groups: row.groups ?? [],
+    trust_verified: row.trust_verified ?? false,
+    last_seen_at: row.last_seen_at,
+    last_check_at: row.last_check_at,
+    last_check_ok: row.last_check_ok,
   };
 }
 
@@ -53,7 +70,7 @@ const WITH_GROUPS = `SELECT s.*, COALESCE(array_agg(sg.group_id) FILTER (WHERE s
   FROM switches s LEFT JOIN switch_groups sg ON sg.switch_id = s.id`;
 
 /** Fetch one switch with its groups. Returns null when unknown. */
-export async function getSwitch(switchId: string): Promise<(Switch & { groups: string[] }) | null> {
+export async function getSwitch(switchId: string): Promise<SwitchWithState | null> {
   const { rows } = await db().query<SwitchRow>(`${WITH_GROUPS} WHERE s.id = $1 GROUP BY s.id`, [switchId]);
   const row = rows[0];
   return row ? toSwitch(row) : null;
@@ -75,14 +92,14 @@ export async function confirmTrust(switchId: string, fingerprint: string): Promi
   );
   return (rowCount ?? 0) > 0;
 }
-export async function listSwitches(): Promise<Array<Switch & { groups: string[] }>> {
+export async function listSwitches(): Promise<Array<SwitchWithState>> {
   const { rows } = await db().query<SwitchRow>(`${WITH_GROUPS} GROUP BY s.id ORDER BY s.id`);
   return rows.map(toSwitch);
 }
 
 /** Switches in a group (for FanOut). Empty when the group is unknown or empty. */ export async function getSwitchesByGroup(
   groupId: string,
-): Promise<Array<Switch & { groups: string[] }>> {
+): Promise<Array<SwitchWithState>> {
   const { rows } = await db().query<SwitchRow>(
     `${WITH_GROUPS} WHERE s.id IN (SELECT switch_id FROM switch_groups WHERE group_id = $1) GROUP BY s.id ORDER BY s.id`,
     [groupId],
@@ -104,7 +121,7 @@ function derToPem(der: Buffer): string {
 
 /** Insert a switch. Without any identity, capture both live (TOFU enrolment);
  * partial explicit identity is stored as-is (connection stays refused until re-enrol fills the gap). */
-export async function createSwitch(input: unknown): Promise<Switch & { groups: string[] }> {
+export async function createSwitch(input: unknown): Promise<SwitchWithState> {
   const parsed = SwitchSchema.omit({ cert_fingerprint: true, cert_pem: true })
     .extend({
       cert_fingerprint: z.string().nullable().optional(),
