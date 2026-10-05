@@ -60,9 +60,18 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
     setSwitchToken('qw-op', 'swq', 'stub-jwt');
     const viewer = await sessionCookie(pool, 'qw-viewer', { appRoles: ['viewer'] });
     setSwitchToken('qw-viewer', 'swq', 'stub-jwt');
+    const admin = await sessionCookie(pool, 'qw-admin', { appRoles: ['app-admin'] });
+    setSwitchToken('qw-admin', 'swq', 'stub-jwt');
     const api = request(app.server);
     try {
       expect(await api.get('/api/v1/switches/swq/query')).toMatchObject({ status: 401 });
+
+      const adminList = await api
+        .get('/api/v1/switches/swq/query')
+        .set('Cookie', admin)
+        .query({ path: '/interface' });
+      expect(adminList.status).toBe(200);
+      expect(adminList.body.data).toEqual({ swp1: { state: 'up' }, swp2: { state: 'down' } });
 
       const list = await api
         .get('/api/v1/switches/swq/query')
@@ -88,8 +97,9 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
     } finally {
       dropUserTokens('qw-op');
       dropUserTokens('qw-viewer');
-      await pool.query(`DELETE FROM sessions WHERE user_sub IN ('qw-op', 'qw-viewer')`);
-      await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('qw-op', 'qw-viewer')`);
+      dropUserTokens('qw-admin');
+      await pool.query(`DELETE FROM sessions WHERE user_sub IN ('qw-op', 'qw-viewer', 'qw-admin')`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('qw-op', 'qw-viewer', 'qw-admin')`);
       await pool.query('DELETE FROM switches WHERE id = $1', ['swq']);
       await pool.end();
       await fake.close();

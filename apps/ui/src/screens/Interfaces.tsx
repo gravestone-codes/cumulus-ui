@@ -6,7 +6,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { AppShell, NavRail, usePinnedRail } from '../components/ui.js';
+import { AppShell, Breadcrumb, NavRail, usePinnedRail } from '../components/ui.js';
 import { ResourceList } from '../components/resource.js';
 import type { TableColumns } from '../components/DataTable.js';
 import { switchNav } from '../lib/nav.js';
@@ -47,6 +47,10 @@ export function Interfaces() {
         />
       }
     >
+      <Breadcrumb
+        trail={[{ label: switchId, to: `/switches/${switchId}` }, { label: 'Interfaces' }]}
+        onNav={navigate}
+      />
       <ResourceList<IfaceRow>
         switchId={switchId}
         path="/interface"

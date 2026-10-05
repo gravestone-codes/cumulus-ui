@@ -6,6 +6,7 @@
 import { coreFeatures, useTable } from '@tanstack/react-table';
 import type { ColumnDef, CoreFeatures } from '@tanstack/react-table';
 import type { ReactNode } from 'react';
+import { Spinner } from './ui.js';
 
 export type TableColumns<T extends object> = Array<ColumnDef<CoreFeatures, T, unknown>>;
 
@@ -23,7 +24,7 @@ export function DataTable<T extends object>({
   onRowClick?: (row: T) => void;
 }) {
   const table = useTable({ features: coreFeatures, columns, data: rows });
-  if (loading) return <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>Loading…</p>;
+  if (loading) return <Spinner label="Loading table" />;
   if (rows.length === 0)
     return <>{empty ?? <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>Nothing here yet.</p>}</>;
   return (

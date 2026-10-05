@@ -120,6 +120,27 @@ body {
     }
   }
 
+  /* Spinner ring (motion-safe: static when reduced motion is preferred). */
+  @keyframes spin-ring {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-brand);
+    animation: spin-ring 0.8s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spinner {
+      animation: none;
+      border-top-color: var(--color-border);
+    }
+  }
+
   /* Full-width inverted primary with press-down (final language §7). */
   .btn {
     width: 100%;

@@ -938,6 +938,75 @@ export function RowMenu({ items, label }: { items: RowMenuItem[]; label: string 
   );
 }
 
+/* Breadcrumb: leaf01 / Interfaces — every ancestor a clickable way back.
+   Depth grows with the route; the last segment is the current page. */
+export function Breadcrumb({
+  trail,
+  onNav,
+}: {
+  trail: Array<{ label: string; to?: string }>;
+  onNav: (to: string) => void;
+}) {
+  return (
+    <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      {trail.map((seg, i) => {
+        const last = i === trail.length - 1;
+        return (
+          <span key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            {i > 0 && (
+              <span aria-hidden="true" style={{ color: 'var(--color-muted)' }}>
+                /
+              </span>
+            )}
+            {last || !seg.to ? (
+              <span
+                aria-current={last ? 'page' : undefined}
+                style={{
+                  color: last ? 'var(--color-text)' : 'var(--color-muted)',
+                  fontWeight: last ? 700 : 400,
+                }}
+              >
+                {seg.label}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => seg.to && onNav(seg.to)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  color: 'var(--color-muted)',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: 3,
+                }}
+              >
+                {seg.label}
+              </button>
+            )}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
+
+/* Spinner: centered ring for loads, both axes. Motion-safe: static ring when
+   the user prefers reduced motion. */
+export function Spinner({ label = 'Loading' }: { label?: string }) {
+  return (
+    <div
+      role="status"
+      aria-label={label}
+      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '40vh' }}
+    >
+      <span className="spinner" aria-hidden="true" />
+    </div>
+  );
+}
+
 /* EmptyState: centered icon + line for empty collections. Callers own the words. */ export function EmptyState({
   icon,
   text,

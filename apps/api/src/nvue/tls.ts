@@ -23,10 +23,21 @@ export function fingerprintOf(cert: PeerCertificate): string {
  *   verified empirically: the callback never fires).
  * - checkServerIdentity compares the presented fingerprint to the enrolled pin.
  * Either layer failing aborts the handshake before any HTTP bytes are sent.
+ *
+ * Agents are cached per pin with keep-alive: without this every call pays a
+ * fresh TCP+TLS handshake. A rotated certificate is a new pin, hence a new
+ * entry; stale entries hold only idle sockets, reaped by the timeout.
  */
+const agents = new Map<string, Agent>();
+
 export function pinnedAgent(pin: string, caPem: string): Agent {
-  return new Agent({
+  const cached = agents.get(pin);
+  if (cached) return cached;
+  const agent = new Agent({
     ca: caPem,
+    keepAlive: true,
+    maxSockets: 10,
+    timeout: 30_000,
     checkServerIdentity: (_host, cert) => {
       try {
         if (!verifyFingerprint(pin, fingerprintOf(cert))) {
@@ -38,6 +49,8 @@ export function pinnedAgent(pin: string, caPem: string): Agent {
       }
     },
   });
+  agents.set(pin, agent);
+  return agent;
 }
 
 export interface JsonRequest {
