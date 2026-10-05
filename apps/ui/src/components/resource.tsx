@@ -6,7 +6,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
-import { Alert, LineDropdown } from './ui.js';
+import { Alert, Button, LineDropdown, Modal } from './ui.js';
+import { LineField } from './ui.js';
 import { DataTable } from './DataTable.js';
 import type { TableColumns } from './DataTable.js';
 
@@ -69,7 +70,7 @@ export function ResourceList<T extends object>({
         </span>
       </div>
       {list.isError ? (
-        <Alert tone="fail">Read failed: {list.error.message}</Alert>
+        <ReadError switchId={switchId} message={list.error.message} onFixed={() => list.refetch()} />
       ) : (
         <DataTable
           columns={columns}
@@ -84,5 +85,71 @@ export function ResourceList<T extends object>({
         </p>
       )}
     </section>
+  );
+}
+
+/* ReadError: failed collection read. Expired/rejected switch sessions offer
+   reconnect inline (re-enter credentials, mint, retry) instead of a dead end. */
+export function ReadError({
+  switchId,
+  message,
+  onFixed,
+}: {
+  switchId: string;
+  message: string;
+  onFixed: () => void;
+}) {
+  const needsAuth = message.includes('expired') || message.includes('reconnect');
+  const [open, setOpen] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function reconnect() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.setMyCredential(switchId, { switch_username: username.trim(), switch_password: password });
+      await api.connectSwitch(switchId);
+      setOpen(false);
+      setPassword('');
+      onFixed();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Reconnect failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <Alert tone="fail">Read failed: {message}</Alert>
+      {needsAuth && (
+        <div>
+          <Button auto variant="secondary" onClick={() => setOpen(true)}>
+            Reconnect switch
+          </Button>
+        </div>
+      )}
+      <Modal open={open} onClose={() => setOpen(false)} title={`Reconnect ${switchId}`}>
+        <LineField label="Switch username" value={username} onChange={(e) => setUsername(e.target.value)} />
+        <LineField
+          label="Switch password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={error ?? undefined}
+        />
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+          <Button auto variant="secondary" onClick={() => setOpen(false)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button auto disabled={busy || !username.trim() || !password} onClick={reconnect}>
+            {busy ? 'Connecting…' : 'Reconnect'}
+          </Button>
+        </div>
+      </Modal>
+    </div>
   );
 }
