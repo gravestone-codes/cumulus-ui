@@ -139,21 +139,25 @@ export function OnboardSwitch() {
               />
             </div>
             {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
-            <button
-              type="button"
-              className="btn"
-              style={{ marginTop: 24 }}
-              disabled={busy}
-              onClick={() => {
-                if (!id.trim() || !url.trim()) {
-                  setError('Enter a switch ID and management URL.');
-                  return;
-                }
-                add();
-              }}
-            >
-              {busy ? 'Reaching switch…' : 'Add switch'}
-            </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => navigate('/switches')}>
+                Back
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={() => {
+                  if (!id.trim() || !url.trim()) {
+                    setError('Enter a switch ID and management URL.');
+                    return;
+                  }
+                  add();
+                }}
+              >
+                {busy ? 'Reaching switch…' : 'Add switch'}
+              </button>
+            </div>
           </>
         )}
 
@@ -288,9 +292,14 @@ export function OnboardSwitch() {
               Read-only proof of life before finishing.
             </p>
             {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
-            <button type="button" className="btn" disabled={busy} onClick={verify}>
-              {busy ? 'Probing…' : 'Verify switch'}
-            </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setStage(3)}>
+                Back
+              </button>
+              <button type="button" className="btn" disabled={busy} onClick={verify}>
+                {busy ? 'Probing…' : 'Verify switch'}
+              </button>
+            </div>
           </>
         )}
 

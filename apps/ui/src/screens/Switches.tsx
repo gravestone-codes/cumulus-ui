@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import type { SwitchRow } from '../lib/api.js';
-import { Alert, Button } from '../components/ui.js';
+import { Alert, Button, EmptyState } from '../components/ui.js';
 import { DataTable } from '../components/DataTable.js';
 import type { TableColumns } from '../components/DataTable.js';
 import { GlobalShell } from './GlobalShell.js';
@@ -48,6 +48,7 @@ export function Switches() {
         columns={COLUMNS}
         rows={switches.data ?? []}
         loading={switches.isPending}
+        empty={<EmptyState icon="switches" text="No switches added yet." />}
         onRowClick={(row) => navigate(`/switches/${row.id}`)}
       />
     </GlobalShell>

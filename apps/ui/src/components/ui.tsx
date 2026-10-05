@@ -543,6 +543,27 @@ export function NavRail({
     </nav>
   );
 }
+/* EmptyState: centered icon + line for empty collections. Callers own the words. */
+export function EmptyState({ icon, text }: { icon?: NavIcon; text: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 12,
+        padding: '56px 16px',
+        color: 'var(--color-muted)',
+      }}
+    >
+      <span style={{ display: 'inline-flex', transform: 'scale(2.6)', opacity: 0.8 }} aria-hidden="true">
+        {icon ? NAV_ICONS[icon] : null}
+      </span>
+      <p style={{ fontSize: 15, margin: 0 }}>{text}</p>
+    </div>
+  );
+}
+
 /* AppShell: rail + content column. Domain screens mount inside, never beside. */
 export function AppShell({ rail, children }: { rail: ReactNode; children: ReactNode }) {
   return (

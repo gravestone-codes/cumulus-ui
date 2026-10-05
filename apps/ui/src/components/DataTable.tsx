@@ -5,6 +5,7 @@
  */
 import { coreFeatures, useTable } from '@tanstack/react-table';
 import type { ColumnDef, CoreFeatures } from '@tanstack/react-table';
+import type { ReactNode } from 'react';
 
 export type TableColumns<T extends object> = Array<ColumnDef<CoreFeatures, T, unknown>>;
 
@@ -12,17 +13,19 @@ export function DataTable<T extends object>({
   columns,
   rows,
   loading = false,
+  empty,
   onRowClick,
 }: {
   columns: TableColumns<T>;
   rows: T[];
   loading?: boolean;
+  empty?: ReactNode;
   onRowClick?: (row: T) => void;
 }) {
   const table = useTable({ features: coreFeatures, columns, data: rows });
   if (loading) return <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>Loading…</p>;
   if (rows.length === 0)
-    return <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>Nothing here yet.</p>;
+    return <>{empty ?? <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>Nothing here yet.</p>}</>;
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15 }}>
       <thead>
