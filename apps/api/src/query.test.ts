@@ -9,6 +9,7 @@ import { buildApp } from './app.js';
 import { migrate, db } from './db.js';
 import { type AuthConfig } from './auth/config.js';
 import { sessionCookie } from './test-sessions.js';
+import { setSwitchCredential } from './users/store.js';
 import { setSwitchToken, dropUserTokens } from './switchauth/sessions.js';
 import { startFakeNvue, json } from './test-nvue.js';
 
@@ -102,6 +103,54 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
       await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('qw-op', 'qw-viewer', 'qw-admin')`);
       await pool.query('DELETE FROM switches WHERE id = $1', ['swq']);
       await pool.end();
+      await fake.close();
+      await app.close();
+    }
+  });
+
+  it('silently re-mints an expired switch token from the sealed credential', async () => {
+    const pool2: PoolType = new Pool({ connectionString: process.env.DATABASE_URL });
+    const fake = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (url.pathname === '/nvue_v1/api-token') {
+        json(res, 200, { token: 'fresh-jwt' });
+      } else if (url.pathname === '/nvue_v1/interface') {
+        json(res, 200, { swp1: {} });
+      } else {
+        json(res, 404, { message: 'nope' });
+      }
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES ('swm', 't', $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fake.baseUrl, fake.pin, fake.caPem],
+    );
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool2, 'qw-minter', { appRoles: ['net-operator'] });
+    await setSwitchCredential('qw-minter', 'swm', 'cumulus', 's3cret', CFG.credKey);
+    const api = request(app.server);
+    try {
+      // No switch token set: the read must mint from the sealed credential.
+      const first = await api
+        .get('/api/v1/switches/swm/query')
+        .set('Cookie', cookie)
+        .query({ path: '/interface' });
+      expect(first.status).toBe(200);
+      expect(first.body.data).toEqual({ swp1: {} });
+      const second = await api
+        .get('/api/v1/switches/swm/query')
+        .set('Cookie', cookie)
+        .query({ path: '/interface' });
+      expect(second.status).toBe(200);
+    } finally {
+      dropUserTokens('qw-minter');
+      await pool2.query(`DELETE FROM sessions WHERE user_sub = 'qw-minter'`);
+      await pool2.query(`DELETE FROM user_roles WHERE user_sub = 'qw-minter'`);
+      await pool2.query(`DELETE FROM switch_credentials WHERE user_sub = 'qw-minter'`);
+      await pool2.query(`DELETE FROM users WHERE id = 'qw-minter'`);
+      await pool2.query('DELETE FROM switches WHERE id = $1', ['swm']);
+      await pool2.end();
       await fake.close();
       await app.close();
     }

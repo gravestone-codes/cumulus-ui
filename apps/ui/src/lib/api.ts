@@ -168,7 +168,11 @@ export const api = {
   verifySwitch: (id: string) =>
     post<{ ok: boolean; switch: string; data: unknown }>(`/api/v1/switches/${encodeURIComponent(id)}/verify`),
   importSwitches: (rows: CsvRow[]) => post<ImportResult>('/api/v1/inventory/import', { rows }),
-  audit: (limit = 8) => request<AuditRow[]>(`/api/v1/audit?limit=${limit}`),
+  audit: (limit = 8, sw?: string) => {
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (sw) qs.set('switch', sw);
+    return request<AuditRow[]>(`/api/v1/audit?${qs}`);
+  },
   platformUsers: () => request<PlatformUserRow[]>('/api/v1/users'),
   platformRoles: () => request<RoleRow[]>('/api/v1/roles'),
   dashboard: () =>

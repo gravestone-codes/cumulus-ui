@@ -13,7 +13,7 @@ import { resolveCaller } from '../auth/caller.js';
 import { gateCheck, getUserRoles, mayAccessSwitch } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
 import { getSwitch } from '../inventory/store.js';
-import { clientFor, tokenFor } from '../nvue/clients.js';
+import { clientFor } from '../nvue/clients.js';
 import { GuardError } from '../nvue/guard.js';
 
 const Query = z.object({
@@ -58,13 +58,13 @@ export async function queryRoutes(app: FastifyInstance, deps: { cfg: AuthConfig 
       return problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
     }
     try {
-      const { client } = await clientFor(who.sub, id);
+      const { client, token } = await clientFor(who.sub, id, { credKey: cfg.credKey });
       const { data } = await client.call({
         path: parsed.data.path,
         method: 'GET',
         rev: parsed.data.rev,
         view: parsed.data.view,
-        token: tokenFor(who.sub, id),
+        token,
       });
       return { data };
     } catch (err) {

@@ -5,7 +5,7 @@
  * D365-style OCC with path-level granularity (finer than whole-record).
  */
 import { db } from '../db.js';
-import { clientFor, tokenFor } from '../nvue/clients.js';
+import { clientFor } from '../nvue/clients.js';
 import { applyBranch as applyRevision, getAction } from '../nvue/revisions.js';
 import { jsonEqual } from '../lib/json.js';
 import { audit } from '../audit/store.js';
@@ -115,10 +115,9 @@ export async function pollJob(
   userSub: string,
   switchId: string,
   jobId: string,
-  opts: { intervalMs?: number; timeoutMs?: number } = {},
+  opts: { intervalMs?: number; timeoutMs?: number; credKey?: string } = {},
 ): Promise<string> {
-  const { client } = await clientFor(userSub, switchId);
-  const token = tokenFor(userSub, switchId);
+  const { client, token } = await clientFor(userSub, switchId, { credKey: opts.credKey });
   const interval = opts.intervalMs ?? 2000;
   const deadline = Date.now() + (opts.timeoutMs ?? 300_000);
   for (;;) {
@@ -136,6 +135,7 @@ export interface ApplyContext {
   sub: string;
   username: string;
   roleIds: string[];
+  credKey: string;
 }
 
 /** Full apply for one user's session. Throws OverlapError / NvueError / timeouts. */
@@ -149,8 +149,7 @@ export async function applySession(
     if (!session || session.staged.length === 0) {
       throw Object.assign(new Error('nothing staged — stage changes first'), { status: 409 });
     }
-    const { client } = await clientFor(ctx.sub, switchId);
-    const token = tokenFor(ctx.sub, switchId);
+    const { client, token } = await clientFor(ctx.sub, switchId, { credKey: ctx.credKey });
 
     const diffs = await collectDiffs(client, token, session.staged);
     const conflicts: Conflict[] = diffs

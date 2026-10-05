@@ -4,7 +4,7 @@
  * 409 — conscious discard only, never silent divergence.
  */
 import { db } from '../db.js';
-import { clientFor, tokenFor } from '../nvue/clients.js';
+import { clientFor } from '../nvue/clients.js';
 import { createBranch } from '../nvue/revisions.js';
 
 export interface StagedPath {
@@ -61,11 +61,15 @@ export class BranchConflictError extends Error {
 }
 
 /** Open a branch. 409s when unapplied changes exist; replaces empty sessions silently. */
-export async function openBranch(userSub: string, switchId: string): Promise<EditSession> {
+export async function openBranch(
+  userSub: string,
+  switchId: string,
+  opts?: { credKey?: string },
+): Promise<EditSession> {
   const existing = await getEditSession(userSub, switchId);
   if (existing && existing.staged.length > 0) throw new BranchConflictError(existing.branch);
-  const { client } = await clientFor(userSub, switchId);
-  const { branch, baseRev } = await createBranch(client, tokenFor(userSub, switchId));
+  const { client, token } = await clientFor(userSub, switchId, { credKey: opts?.credKey });
+  const { branch, baseRev } = await createBranch(client, token);
   await db().query(
     `INSERT INTO edit_sessions (user_sub, switch_id, branch, base_rev, staged_paths, updated_at)
      VALUES ($1, $2, $3, $4, '[]', now())
@@ -88,17 +92,18 @@ export async function addStagedPath(userSub: string, switchId: string, staged: S
 export async function discardBranch(
   userSub: string,
   switchId: string,
+  opts?: { credKey?: string },
 ): Promise<{ switchDiscarded: boolean }> {
   const existing = await getEditSession(userSub, switchId);
   await db().query('DELETE FROM edit_sessions WHERE user_sub = $1 AND switch_id = $2', [userSub, switchId]);
   if (!existing) return { switchDiscarded: false };
   try {
-    const { client } = await clientFor(userSub, switchId);
+    const { client, token } = await clientFor(userSub, switchId, { credKey: opts?.credKey });
     // DELETE-revision shape unconfirmed on hardware (M1 validates) — failure stays best-effort.
     await client.call({
       path: `/revision/${encodeURIComponent(existing.branch)}`,
       method: 'DELETE',
-      token: tokenFor(userSub, switchId),
+      token,
     });
     return { switchDiscarded: true };
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

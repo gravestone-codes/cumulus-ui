@@ -5,7 +5,7 @@
  */
 import { gateCheck, mayAccessSwitch, type Role } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
-import { clientFor, tokenFor } from '../nvue/clients.js';
+import { clientFor } from '../nvue/clients.js';
 import { addStagedPath, getEditSession } from './branches.js';
 import type { Switch } from '../inventory/store.js';
 
@@ -13,6 +13,7 @@ export interface StageContext {
   sub: string;
   username: string;
   roles: Role[];
+  credKey: string;
 }
 
 export interface StageCall {
@@ -44,8 +45,7 @@ export async function stageChange(
   }
   const session = await getEditSession(ctx.sub, sw.id);
   if (!session) throw new StageError(409, 'no open branch — open one first');
-  const { client } = await clientFor(ctx.sub, sw.id);
-  const token = tokenFor(ctx.sub, sw.id);
+  const { client, token } = await clientFor(ctx.sub, sw.id, { credKey: ctx.credKey });
   const before = await client
     .call({ path: call.path, method: 'GET', token })
     .then((r) => r.data)

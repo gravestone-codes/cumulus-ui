@@ -4,7 +4,7 @@
  * (gateCheck, incl. the dangerous class); the manifest gate decides WHAT
  * exists; this decides HOW (run → track job → audit). No per-action code.
  */
-import { clientFor, tokenFor } from '../nvue/clients.js';
+import { clientFor } from '../nvue/clients.js';
 import { extractJobId } from '../nvue/revisions.js';
 import { DANGEROUS_PREFIXES } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
@@ -14,6 +14,7 @@ export interface ActionContext {
   sub: string;
   username: string;
   roleIds: string[];
+  credKey: string;
 }
 
 export interface ActionResult {
@@ -38,8 +39,7 @@ export async function runAction(
   body: Record<string, unknown> | undefined,
   opts: { intervalMs?: number; timeoutMs?: number } = {},
 ): Promise<ActionResult> {
-  const { client } = await clientFor(ctx.sub, switchId);
-  const token = tokenFor(ctx.sub, switchId);
+  const { client, token } = await clientFor(ctx.sub, switchId, { credKey: ctx.credKey });
   const { status, data } = await client.call({ path, method: 'POST', body, token });
   const jobId = extractJobId(data);
   let finalState: string | null = null;
@@ -48,6 +48,7 @@ export async function runAction(
       finalState = await pollJob(ctx.sub, switchId, jobId, {
         intervalMs: opts.intervalMs ?? 1000,
         timeoutMs: opts.timeoutMs ?? 120_000,
+        credKey: ctx.credKey,
       });
     } catch {
       finalState = null; // job tracking is best-effort; the action itself ran

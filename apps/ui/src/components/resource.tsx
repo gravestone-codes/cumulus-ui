@@ -5,7 +5,7 @@
  */
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api.js';
+import { api, ApiError } from '../lib/api.js';
 import { Alert, LineDropdown } from './ui.js';
 import { DataTable } from './DataTable.js';
 import type { TableColumns } from './DataTable.js';
@@ -55,10 +55,12 @@ export function ResourceList<T extends object>({
   const list = useQuery({
     queryKey: ['resource', switchId, path, view],
     queryFn: () => api.query<Record<string, T>>(switchId, path, view ? { view } : undefined),
+    // 4xx is terminal (auth, gate, unknown path) — only 5xx/network retries.
+    retry: (count, err) => (err instanceof ApiError ? err.status >= 500 && count < 2 : count < 2),
   });
   const rows = list.data ? Object.entries(list.data.data).map(([id, row]) => ({ ...row, __id: id })) : [];
   return (
-    <section>
+    <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 12 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{title}</h1>
         <span style={{ flex: 1 }} />
@@ -66,13 +68,16 @@ export function ResourceList<T extends object>({
           <ViewSwitcher pathTemplate={pathTemplate} value={view} onChange={setView} />
         </span>
       </div>
-      {list.isError && <Alert tone="fail">Read failed: {list.error.message}</Alert>}
-      <DataTable
-        columns={columns}
-        rows={rows as T[]}
-        loading={list.isPending}
-        onRowClick={onSelect ? (row) => onSelect(rowId(row)) : undefined}
-      />
+      {list.isError ? (
+        <Alert tone="fail">Read failed: {list.error.message}</Alert>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={rows as T[]}
+          loading={list.isPending}
+          onRowClick={onSelect ? (row) => onSelect(rowId(row)) : undefined}
+        />
+      )}
       {list.data?.cached && (
         <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 8 }}>
           Served from cache (switch unreachable). Checked {list.data.checked_at}.

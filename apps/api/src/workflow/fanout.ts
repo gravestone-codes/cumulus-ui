@@ -30,7 +30,7 @@ export async function fanoutStage(
   for (const sw of switches) {
     try {
       const existing = await getEditSession(ctx.sub, sw.id);
-      if (!existing) await openBranch(ctx.sub, sw.id);
+      if (!existing) await openBranch(ctx.sub, sw.id, { credKey: ctx.credKey });
       const { branch } = await stageChange(ctx, sw, call);
       results.push({ switchId: sw.id, ok: true, branch });
     } catch (err) {
@@ -56,7 +56,10 @@ export async function fanoutApply(ctx: StageContext, groupId: string): Promise<F
         results.push({ switchId: sw.id, ok: false, error: 'apply not granted — POST /config required' });
         continue;
       }
-      const applied = await applySession({ sub: ctx.sub, username: ctx.username, roleIds }, sw.id);
+      const applied = await applySession(
+        { sub: ctx.sub, username: ctx.username, roleIds, credKey: ctx.credKey },
+        sw.id,
+      );
       results.push({ switchId: sw.id, ok: true, jobId: applied.jobId, paths: applied.paths });
     } catch (err) {
       results.push({ switchId: sw.id, ok: false, error: (err as Error).message });

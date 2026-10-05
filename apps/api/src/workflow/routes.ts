@@ -10,7 +10,7 @@ import { type AuthConfig } from '../auth/config.js';
 import { resolveCaller } from '../auth/caller.js';
 import { gateCheck, getUserRoles, mayAccessSwitch } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
-import { clientFor, tokenFor } from '../nvue/clients.js';
+import { clientFor } from '../nvue/clients.js';
 import { getSwitch, markSeen } from '../inventory/store.js';
 import { BranchConflictError, discardBranch, getEditSession, openBranch } from './branches.js';
 import { heartbeat, presentOthers } from './presence.js';
@@ -61,7 +61,7 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
       return problem(reply, 403, 'Forbidden', `no role covers switch ${id}`, request.url);
     }
     try {
-      const session = await openBranch(who.sub, id);
+      const session = await openBranch(who.sub, id, { credKey: cfg.credKey });
       const stored = await getUserRoles(who.sub);
       await audit({
         userSub: who.sub,
@@ -92,7 +92,7 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     const who = await resolveCaller(request, cfg);
     if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
     const { id } = request.params as { id: string };
-    const result = await discardBranch(who.sub, id);
+    const result = await discardBranch(who.sub, id, { credKey: cfg.credKey });
     const stored = await getUserRoles(who.sub);
     await audit({
       userSub: who.sub,
@@ -116,11 +116,15 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     if (!sw) return problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
     const roles = await getUserRoles(who.sub);
     try {
-      const result = await stageChange({ sub: who.sub, username: who.username, roles }, sw, {
-        path: parsed.data.path,
-        method: parsed.data.method,
-        body: parsed.data.body,
-      });
+      const result = await stageChange(
+        { sub: who.sub, username: who.username, roles, credKey: cfg.credKey },
+        sw,
+        {
+          path: parsed.data.path,
+          method: parsed.data.method,
+          body: parsed.data.body,
+        },
+      );
       return { ok: true, ...result };
     } catch (err) {
       if (err instanceof StageError) {
@@ -174,7 +178,7 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
       return problem(reply, 403, 'Forbidden', 'apply not granted — POST /config required', request.url);
     }
     try {
-      return await applySession({ sub: who.sub, username: who.username, roleIds }, id);
+      return await applySession({ sub: who.sub, username: who.username, roleIds, credKey: cfg.credKey }, id);
     } catch (err) {
       if (err instanceof OverlapError) {
         return reply.code(409).send({
@@ -204,8 +208,8 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
     const { id, jobId } = request.params as { id: string; jobId: string };
     try {
-      const { client } = await clientFor(who.sub, id);
-      const job = await getAction(client, tokenFor(who.sub, id), jobId);
+      const { client, token } = await clientFor(who.sub, id, { credKey: cfg.credKey });
+      const job = await getAction(client, token, jobId);
       return job;
     } catch (err) {
       return switchProblem(reply, err, request.url);
@@ -246,7 +250,7 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     }
     try {
       return await runAction(
-        { sub: who.sub, username: who.username, roleIds },
+        { sub: who.sub, username: who.username, roleIds, credKey: cfg.credKey },
         id,
         parsed.data.path,
         parsed.data.body,
@@ -265,8 +269,8 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     const sw = await getSwitch(id);
     if (!sw) return problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
     try {
-      const { client } = await clientFor(who.sub, id);
-      const { data } = await client.call({ path: '/system', method: 'GET', token: tokenFor(who.sub, id) });
+      const { client, token } = await clientFor(who.sub, id, { credKey: cfg.credKey });
+      const { data } = await client.call({ path: '/system', method: 'GET', token });
       await markSeen(id, true);
       return { ok: true, switch: id, data };
     } catch (err) {
@@ -282,8 +286,8 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     const session = await getEditSession(who.sub, id);
     if (!session) return problem(reply, 409, 'Conflict', 'no open branch — open one first', request.url);
     try {
-      const { client } = await clientFor(who.sub, id);
-      const diffs = await collectDiffs(client, tokenFor(who.sub, id), session.staged);
+      const { client, token } = await clientFor(who.sub, id, { credKey: cfg.credKey });
+      const diffs = await collectDiffs(client, token, session.staged);
       return { branch: session.branch, baseRev: session.baseRev, diffs };
     } catch (err) {
       return switchProblem(reply, err, request.url);
@@ -314,11 +318,15 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
       });
       return problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
     }
-    const results = await fanoutStage({ sub: who.sub, username: who.username, roles }, gid, {
-      path: parsed.data.path,
-      method: parsed.data.method,
-      body: parsed.data.body,
-    });
+    const results = await fanoutStage(
+      { sub: who.sub, username: who.username, roles, credKey: cfg.credKey },
+      gid,
+      {
+        path: parsed.data.path,
+        method: parsed.data.method,
+        body: parsed.data.body,
+      },
+    );
     return { results };
   });
 
@@ -337,7 +345,10 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
       });
       return problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
     }
-    const results = await fanoutApply({ sub: who.sub, username: who.username, roles }, gid);
+    const results = await fanoutApply(
+      { sub: who.sub, username: who.username, roles, credKey: cfg.credKey },
+      gid,
+    );
     return { results };
   });
 }
