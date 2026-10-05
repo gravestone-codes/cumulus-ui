@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, type GroupRow } from '../lib/api.js';
-import { Hint } from '../components/ui.js';
+import { Hint, LineDropdown } from '../components/ui.js';
+import { EyeOff, EyeOpen } from '../components/Eye.js';
 
 const STAGES = ['Add', 'Group', 'Trust', 'Credential', 'Verify'] as const;
 
@@ -22,6 +23,7 @@ export function OnboardSwitch() {
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [verified, setVerified] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -193,30 +195,15 @@ export function OnboardSwitch() {
 
         {stage === 1 && (
           <>
-            <label style={{ fontSize: 13, fontWeight: 600 }}>Group</label>
-            <div className="lf">
-              <select
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '1px solid var(--color-border)',
-                  color: 'var(--color-text)',
-                  padding: '8px 0',
-                  outline: 'none',
-                  font: 'inherit',
-                }}
-              >
-                <option value="">Ungrouped</option>
-                {(groupsQuery.data ?? []).map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.display_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <LineDropdown
+              label="Group"
+              value={group}
+              onChange={(e) => setGroup(e.target.value)}
+              options={[
+                { value: '', label: 'Ungrouped' },
+                ...(groupsQuery.data ?? []).map((g) => ({ value: g.id, label: g.display_name })),
+              ]}
+            />
             <label style={{ fontSize: 13, fontWeight: 600, marginTop: 16, display: 'block' }}>
               Or new group
             </label>
@@ -286,12 +273,20 @@ export function OnboardSwitch() {
             </label>
             <div className="lf">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
                 autoComplete="current-password"
               />
+              <button
+                type="button"
+                className="end"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPassword((s) => !s)}
+              >
+                {showPassword ? <EyeOff /> : <EyeOpen />}
+              </button>
             </div>
             {error && <p style={{ color: 'var(--color-fail)', fontSize: 13, marginTop: 8 }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
