@@ -50,6 +50,14 @@ export function dropSwitchToken(userSub: string, switchId: string): void {
   store.delete(key(userSub, switchId));
 }
 
+/** Drop every user's token for a switch (switch removal). */
+export function dropSwitchTokens(switchId: string): void {
+  const suffix = `,${JSON.stringify(switchId)}]`;
+  for (const k of store.keys()) {
+    if (k.endsWith(suffix)) store.delete(k);
+  }
+}
+
 /** Drop everything for a user (app logout). */
 export function dropUserTokens(userSub: string): void {
   const prefix = JSON.stringify([userSub]).slice(0, -1);

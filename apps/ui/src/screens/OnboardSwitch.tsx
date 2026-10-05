@@ -3,8 +3,8 @@
  * → Verify. Max 2 questions per stage. Trust is an explicit human decision;
  * every stage is a real backend call, never a mock.
  */
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, type GroupRow } from '../lib/api.js';
 import { Hint } from '../components/ui.js';
@@ -13,6 +13,7 @@ const STAGES = ['Add', 'Group', 'Trust', 'Credential', 'Verify'] as const;
 
 export function OnboardSwitch() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [stage, setStage] = useState(0);
   const [id, setId] = useState('');
   const [url, setUrl] = useState('');
@@ -26,6 +27,25 @@ export function OnboardSwitch() {
   const [busy, setBusy] = useState(false);
 
   const groupsQuery = useQuery({ queryKey: ['groups'], queryFn: () => api.groups() });
+
+  // Resume (?resume=<id>): unfinished onboarding continues at Trust with the
+  // stored fingerprint — no re-adding, no duplicate inventory row.
+  const resumeId = params.get('resume') ?? '';
+  const resumeQuery = useQuery({
+    queryKey: ['switches'],
+    queryFn: () => api.switches(),
+    enabled: resumeId.length > 0,
+    retry: false,
+  });
+  useEffect(() => {
+    if (!resumeId || stage !== 0) return;
+    const found = (resumeQuery.data ?? []).find((s) => s.id === resumeId);
+    if (!found) return;
+    setId(found.id);
+    setUrl(found.base_url);
+    setFingerprint(found.cert_fingerprint);
+    setStage(2);
+  }, [resumeId, resumeQuery.data, stage]);
 
   async function run<T>(fn: () => Promise<T>): Promise<T | null> {
     setBusy(true);

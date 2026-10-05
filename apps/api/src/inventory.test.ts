@@ -107,6 +107,52 @@ describe.skipIf(!LIVE)('inventory api', () => {
     }
   });
 
+  it('removal cascades: credentials, presence, memberships die, audit stays', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool, 'inv-remover', { appRoles: ['app-admin'] });
+    const api = request(app.server);
+    try {
+      await api.delete('/api/v1/inventory/switches/gone01').set('Cookie', cookie);
+      const s = await api.post('/api/v1/inventory/switches').set('Cookie', cookie).send({
+        id: 'gone01',
+        display_name: 'gone01',
+        base_url: 'https://gone01:8765',
+        cert_fingerprint: 'SHA256:AA',
+      });
+      expect(s.status).toBe(201);
+      await api
+        .put('/api/v1/inventory/switches/gone01/groups')
+        .set('Cookie', cookie)
+        .send({ groups: ['DC1-leaf'] });
+      await pool.query(
+        `INSERT INTO switch_credentials (user_sub, switch_id, switch_username, password_enc)
+         VALUES ('inv-remover', 'gone01', 'cumulus', 'x')`,
+      );
+      await pool.query(
+        `INSERT INTO presence (user_sub, switch_id, path) VALUES ('inv-remover', 'gone01', '/interface')`,
+      );
+      const del = await api.delete('/api/v1/inventory/switches/gone01').set('Cookie', cookie);
+      expect(del.status).toBe(200);
+      const leftovers = await pool.query<{ tbl: string; n: string }>(
+        `SELECT 'switches' tbl, count(*) n FROM switches WHERE id = 'gone01'
+         UNION ALL SELECT 'switch_credentials', count(*) FROM switch_credentials WHERE switch_id = 'gone01'
+         UNION ALL SELECT 'presence', count(*) FROM presence WHERE switch_id = 'gone01'
+         UNION ALL SELECT 'switch_groups', count(*) FROM switch_groups WHERE switch_id = 'gone01'`,
+      );
+      expect(leftovers.rows.every((r) => r.n === '0')).toBe(true);
+      const audit = await pool.query(
+        `SELECT count(*) n FROM audit_log WHERE switch_id = 'gone01' AND method = 'DELETE'`,
+      );
+      expect(audit.rows[0]?.n).not.toBe('0');
+    } finally {
+      await pool.query(`DELETE FROM sessions WHERE user_sub = 'inv-remover'`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub = 'inv-remover'`);
+      await pool.query(`DELETE FROM users WHERE id = 'inv-remover'`);
+      await app.close();
+    }
+  });
+
   it('anonymous and unauthorized callers are refused (and denials audited)', async () => {
     const app = await buildApp({ auth: { cfg: CFG } });
     await app.ready();

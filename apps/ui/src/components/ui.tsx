@@ -396,7 +396,9 @@ export function NavRail({
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
-        minHeight: '100vh',
+        position: 'sticky',
+        top: 0,
+        height: '100vh',
       }}
     >
       <div

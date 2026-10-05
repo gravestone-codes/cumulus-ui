@@ -22,6 +22,7 @@ import {
 } from './store.js';
 import { requireAppAdmin } from '../users/routes.js';
 import { setSwitchCredential } from '../users/store.js';
+import { dropSwitchTokens } from '../switchauth/sessions.js';
 
 export interface InventoryDeps {
   cfg: AuthConfig;
@@ -135,6 +136,7 @@ export async function inventoryRoutes(app: FastifyInstance, deps: InventoryDeps)
     const before = await getSwitch(id);
     if (!before) return problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
     await deleteSwitch(id);
+    dropSwitchTokens(id);
     await audit({
       userSub: g.sub,
       username: g.username,

@@ -132,6 +132,8 @@ export const api = {
   switches: () => request<SwitchRow[]>('/api/v1/inventory/switches'),
   createSwitch: (body: { id: string; display_name: string; base_url: string }) =>
     post<SwitchRow>('/api/v1/inventory/switches', body),
+  deleteSwitch: (id: string) =>
+    request<{ ok: true }>(`/api/v1/inventory/switches/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   setSwitchGroups: (id: string, groups: string[]) =>
     request<{ ok: true }>(`/api/v1/inventory/switches/${encodeURIComponent(id)}/groups`, {
       method: 'PUT',
