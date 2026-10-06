@@ -3,9 +3,10 @@
  * editing. Field set follows the official API reference leaf schemas —
  * not guesses. Edit stages through a branch with dry-run review, then apply.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api, ApiError } from '../lib/api.js';
 import {
   Alert,
@@ -83,7 +84,7 @@ export function InterfaceDetail() {
         />
       </div>
       <div style={{ marginTop: 16 }}>
-        <InterfaceEdit switchId={switchId} ifaceId={ifaceId} />
+        <InterfaceTraffic switchId={switchId} ifaceId={ifaceId} path={`/interface/${ifaceId}`} />
       </div>
     </AppShell>
   );
@@ -452,5 +453,159 @@ function EditModal({
         </>
       )}
     </Modal>
+  );
+}
+
+interface TrafficSample {
+  t: number;
+  inB: number;
+  outB: number;
+}
+
+const SAMPLE_INTERVAL_MS = 5000;
+const MAX_SAMPLES = 120;
+
+function sampleKey(switchId: string, ifaceId: string): string {
+  return `cumulus.traffic.v1:${switchId}:${ifaceId}`;
+}
+
+function loadSamples(key: string): TrafficSample[] {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as TrafficSample[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((s) => typeof s?.t === 'number' && typeof s?.inB === 'number' && typeof s?.outB === 'number')
+      .slice(-MAX_SAMPLES);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Live traffic graph: samples interface byte counters every 5s (direct
+ * reads, isolated from the detail cache) and plots in/out bit rates.
+ * Samples persist per port across visits; the graph appears once two
+ * samples exist. No backend history store — yet.
+ */
+function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; ifaceId: string; path: string }) {
+  const key = sampleKey(switchId, ifaceId);
+  const [samples, setSamples] = useState<TrafficSample[]>(() => loadSamples(key));
+  const keyRef = useRef(key);
+  keyRef.current = key;
+
+  useEffect(() => {
+    let dead = false;
+    async function tick() {
+      try {
+        const res = await api.query<Record<string, unknown>>(switchId, path);
+        if (dead) return;
+        const inB = counterOf(res.data, 'link/stats/in-bytes');
+        const outB = counterOf(res.data, 'link/stats/out-bytes');
+        if (inB === undefined || outB === undefined) return;
+        setSamples((prev) => {
+          const next = [...prev, { t: Date.now(), inB, outB }].slice(-MAX_SAMPLES);
+          try {
+            localStorage.setItem(keyRef.current, JSON.stringify(next));
+          } catch {
+            /* storage full or disabled: memory still works */
+          }
+          return next;
+        });
+      } catch {
+        /* switch hiccup: keep old samples, try next tick */
+      }
+    }
+    tick();
+    const id = setInterval(tick, SAMPLE_INTERVAL_MS);
+    return () => {
+      dead = true;
+      clearInterval(id);
+    };
+  }, [switchId, path]);
+
+  const points: Array<{ label: string; In: number; Out: number }> = [];
+  for (let i = 1; i < samples.length; i++) {
+    const a = samples[i - 1];
+    const b = samples[i];
+    if (!a || !b) continue;
+    const dt = (b.t - a.t) / 1000;
+    const inRate = ((b.inB - a.inB) * 8) / dt;
+    const outRate = ((b.outB - a.outB) * 8) / dt;
+    if (dt <= 0 || inRate < 0 || outRate < 0) continue;
+    points.push({
+      label: new Date(b.t).toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+      In: Math.round(inRate),
+      Out: Math.round(outRate),
+    });
+  }
+  const bps = (v: number) => `${packets(v)}bps`;
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <Card title="Traffic">
+        {points.length === 0 ? (
+          <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+            Collecting live samples every 5 seconds — the graph appears shortly and persists across visits.
+          </p>
+        ) : (
+          <div style={{ height: 224 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={points} margin={{ left: 8, right: 8 }}>
+                <defs>
+                  <linearGradient id="trafficInFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-pass)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="var(--color-pass)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="trafficOutFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} minTickGap={40} />
+                <YAxis
+                  tickFormatter={(v) => bps(Number(v))}
+                  tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+                  width={64}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 12,
+                    fontSize: 13,
+                  }}
+                  labelStyle={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: 2 }}
+                  itemStyle={{ color: 'var(--color-text)' }}
+                  cursor={{ fill: 'var(--color-muted)', fillOpacity: 0.07 }}
+                  formatter={(v) => bps(typeof v === 'number' ? v : Number(v))}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="In"
+                  stroke="var(--color-pass)"
+                  strokeWidth={2}
+                  fill="url(#trafficInFill)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Out"
+                  stroke="var(--color-brand)"
+                  strokeWidth={2}
+                  fill="url(#trafficOutFill)"
+                />
+                <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }
