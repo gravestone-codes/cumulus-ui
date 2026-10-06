@@ -16,17 +16,16 @@ import {
   LineField,
   Modal,
   PromptModal,
-  RowMenu,
   useToast,
 } from '../components/ui.js';
 import { DataTable } from '../components/DataTable.js';
-import type { TableColumns } from '../components/DataTable.js';
+import type { GridColumn } from '../components/DataTable.js';
 import { GlobalShell } from './GlobalShell.js';
 
-const COLUMNS: TableColumns<GroupRow & { members: number }> = [
-  { header: 'ID', accessorKey: 'id' },
-  { header: 'Name', accessorFn: (r) => r.display_name || '—' },
-  { header: 'Members', accessorFn: (r) => String(r.members) },
+const COLUMNS: GridColumn<GroupRow & { members: number }>[] = [
+  { key: 'id', label: 'ID', always: true, value: (r) => r.id },
+  { key: 'name', label: 'Name', value: (r) => r.display_name || '—' },
+  { key: 'members', label: 'Members', value: (r) => String(r.members) },
 ];
 
 export function Groups() {
@@ -76,34 +75,21 @@ export function Groups() {
     },
     onError: (err) => setRenameError(err instanceof ApiError ? err.message : 'Rename failed.'),
   });
-  const columns: TableColumns<GroupRow & { members: number }> = [
-    ...COLUMNS,
+  const rowMenu = (row: GroupRow & { members: number }) => [
+    { label: 'Open', onClick: () => navigate(`/groups/${row.id}`) },
     {
-      header: '',
-      id: 'actions',
-      cell: ({ row }) => (
-        <RowMenu
-          label={`Actions for ${row.original.id}`}
-          items={[
-            { label: 'Open', onClick: () => navigate(`/groups/${row.original.id}`) },
-            {
-              label: 'Rename',
-              onClick: () => {
-                setRenameError(null);
-                setRenaming(row.original);
-              },
-            },
-            {
-              label: 'Delete group',
-              danger: true,
-              disabled: row.original.members > 0,
-              title:
-                row.original.members > 0 ? `Unassign ${row.original.members} member(s) first` : undefined,
-              onClick: () => setConfirming(row.original),
-            },
-          ]}
-        />
-      ),
+      label: 'Rename',
+      onClick: () => {
+        setRenameError(null);
+        setRenaming(row);
+      },
+    },
+    {
+      label: 'Delete group',
+      danger: true,
+      disabled: row.members > 0,
+      title: row.members > 0 ? `Unassign ${row.members} member(s) first` : undefined,
+      onClick: () => setConfirming(row),
     },
   ];
   const loading = groups.isPending || switches.isPending;
@@ -123,11 +109,13 @@ export function Groups() {
       </div>
       {groups.isError && <Alert tone="fail">Could not load groups: {groups.error.message}</Alert>}
       <DataTable
-        columns={columns}
+        cols={COLUMNS}
         rows={rows}
         loading={loading}
         empty={<EmptyState icon="switches" text="No groups yet." />}
+        storageKey="cumulus.groups.v1"
         onRowClick={(row) => navigate(`/groups/${row.id}`)}
+        actions={rowMenu}
       />
       <Confirm
         open={confirming !== null}

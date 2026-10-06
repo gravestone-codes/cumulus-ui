@@ -8,9 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
 import type { SwitchRow } from '../lib/api.js';
-import { Alert, Button, Confirm, EmptyState, PromptModal, RowMenu, useToast } from '../components/ui.js';
+import { Alert, Button, Confirm, EmptyState, PromptModal, useToast } from '../components/ui.js';
 import { DataTable } from '../components/DataTable.js';
-import type { TableColumns } from '../components/DataTable.js';
+import type { GridColumn } from '../components/DataTable.js';
 import { GlobalShell } from './GlobalShell.js';
 
 export function Switches() {
@@ -41,40 +41,32 @@ export function Switches() {
     onError: (err) => toast('fail', err instanceof ApiError ? err.message : 'Removal failed.'),
   });
 
-  const columns: TableColumns<SwitchRow> = [
-    { header: 'Hostname', accessorKey: 'id' },
-    { header: 'Name', accessorFn: (r) => r.display_name || '—' },
-    { header: 'Groups', accessorFn: (r) => (r.groups.length > 0 ? r.groups.join(', ') : '—') },
+  const columns: GridColumn<SwitchRow>[] = [
+    { key: 'id', label: 'Hostname', always: true, value: (r) => r.id },
+    { key: 'name', label: 'Name', value: (r) => r.display_name || '—' },
+    { key: 'groups', label: 'Groups', value: (r) => (r.groups.length > 0 ? r.groups.join(', ') : '—') },
+    { key: 'trust', label: 'Trust', value: (r) => (r.trust_verified ? 'Verified' : 'Pending') },
     {
-      header: 'Trust',
-      accessorFn: (r) => (r.trust_verified ? 'Verified' : 'Pending'),
+      key: 'reachable',
+      label: 'Reachable',
+      value: (r) => (r.last_check_ok === true ? 'Yes' : r.last_check_ok === false ? 'No' : 'Unknown'),
     },
-    {
-      header: 'Reachable',
-      accessorFn: (r) => (r.last_check_ok === true ? 'Yes' : r.last_check_ok === false ? 'No' : 'Unknown'),
-    },
-    { header: 'Last seen', accessorFn: (r) => r.last_seen_at ?? '—' },
-    {
-      header: '',
-      id: 'actions',
-      cell: ({ row }) => (
-        <RowMenu
-          label={`Actions for ${row.original.id}`}
-          items={[
-            { label: 'Open', onClick: () => navigate(`/switches/${row.original.id}`) },
-            {
-              label: 'Rename',
-              onClick: () => {
-                setRenameError(null);
-                setRenaming(row.original);
-              },
-            },
-            { label: 'Remove switch', danger: true, onClick: () => setConfirming(row.original) },
-          ]}
-        />
-      ),
-    },
+    { key: 'seen', label: 'Last seen', value: (r) => r.last_seen_at ?? '—' },
   ];
+
+  function rowMenu(row: SwitchRow) {
+    return [
+      { label: 'Open', onClick: () => navigate(`/switches/${row.id}`) },
+      {
+        label: 'Rename',
+        onClick: () => {
+          setRenameError(null);
+          setRenaming(row);
+        },
+      },
+      { label: 'Remove switch', danger: true, onClick: () => setConfirming(row) },
+    ];
+  }
 
   return (
     <GlobalShell active="/switches">
@@ -92,11 +84,13 @@ export function Switches() {
       </div>
       {switches.isError && <Alert tone="fail">Could not load switches: {switches.error.message}</Alert>}
       <DataTable
-        columns={columns}
+        cols={columns}
         rows={switches.data ?? []}
         loading={switches.isPending}
         empty={<EmptyState icon="switches" text="No switches added yet." />}
+        storageKey="cumulus.switches.v1"
         onRowClick={(row) => navigate(`/switches/${row.id}`)}
+        actions={rowMenu}
       />
       <Confirm
         open={confirming !== null}

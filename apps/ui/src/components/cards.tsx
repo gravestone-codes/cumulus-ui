@@ -78,9 +78,13 @@ export function Card({
           ×
         </button>
       )}
-      {children}
+      <CardBody>{children}</CardBody>
     </section>
   );
+}
+
+function CardBody({ children }: { children: ReactNode }) {
+  return <div style={{ marginTop: 16 }}>{children}</div>;
 }
 
 export function Stat({
@@ -147,8 +151,8 @@ export function StatRow({ children }: { children: ReactNode[] }) {
           key={i}
           style={{
             padding: '2px 16px 2px 0',
-            borderLeft: i === 0 ? 'none' : '1px solid var(--color-border)',
-            paddingLeft: i === 0 ? 0 : 16,
+            borderLeft: '1px solid var(--color-border)',
+            paddingLeft: 16,
           }}
         >
           {tile}

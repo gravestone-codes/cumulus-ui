@@ -8,17 +8,17 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { AppShell, Breadcrumb, NavRail, usePinnedRail } from '../components/ui.js';
 import { ResourceList } from '../components/resource.js';
-import type { TableColumns } from '../components/DataTable.js';
+import type { GridColumn } from '../components/DataTable.js';
 import { switchNav } from '../lib/nav.js';
 
 type IfaceRow = Record<string, unknown> & { __id: string };
 
-const COLUMNS: TableColumns<IfaceRow> = [
-  { header: 'Name', accessorKey: '__id' },
-  { header: 'State', accessorFn: (r) => String(r['state'] ?? '—') },
-  { header: 'Speed', accessorFn: (r) => String(r['speed'] ?? '—') },
-  { header: 'MTU', accessorFn: (r) => String(r['mtu'] ?? '—') },
-  { header: 'Description', accessorFn: (r) => String(r['description'] ?? '—') },
+const COLUMNS: GridColumn<IfaceRow>[] = [
+  { key: '__id', label: 'Name', always: true, value: (r) => String(r.__id) },
+  { key: 'state', label: 'State', value: (r) => String(r['state'] ?? '—') },
+  { key: 'speed', label: 'Speed', value: (r) => String(r['speed'] ?? '—') },
+  { key: 'mtu', label: 'MTU', value: (r) => String(r['mtu'] ?? '—') },
+  { key: 'description', label: 'Description', value: (r) => String(r['description'] ?? '—') },
 ];
 
 export function Interfaces() {
@@ -58,6 +58,7 @@ export function Interfaces() {
         title="Interfaces"
         columns={COLUMNS}
         rowId={(row) => row.__id}
+        storageKey="cumulus.interfaces.v1"
       />
     </AppShell>
   );

@@ -8,7 +8,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
 import { Alert, Button, LineDropdown, ReconnectModal } from './ui.js';
 import { DataTable } from './DataTable.js';
-import type { TableColumns } from './DataTable.js';
+import type { GridColumn } from './DataTable.js';
+import type { RowMenuItem } from './ui.js';
 
 /* ViewSwitcher: the manifest's view names for a path template, as a dropdown. */
 export function ViewSwitcher({
@@ -42,14 +43,18 @@ export function ResourceList<T extends object>({
   columns,
   rowId,
   onSelect,
+  storageKey,
+  rowMenu,
 }: {
   switchId: string;
   path: string;
   pathTemplate: string;
   title: string;
-  columns: TableColumns<T>;
+  columns: GridColumn<T>[];
   rowId: (row: T) => string;
   onSelect?: (id: string) => void;
+  storageKey: string;
+  rowMenu?: (row: T) => RowMenuItem[];
 }) {
   const [view, setView] = useState<string | undefined>(undefined);
   const list = useQuery({
@@ -72,10 +77,12 @@ export function ResourceList<T extends object>({
         <ReadError switchId={switchId} message={list.error.message} onFixed={() => list.refetch()} />
       ) : (
         <DataTable
-          columns={columns}
+          cols={columns}
           rows={rows as T[]}
           loading={list.isPending}
+          storageKey={storageKey}
           onRowClick={onSelect ? (row) => onSelect(rowId(row)) : undefined}
+          actions={rowMenu}
         />
       )}
       {list.data?.cached && (

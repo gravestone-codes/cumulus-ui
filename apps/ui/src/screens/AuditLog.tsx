@@ -9,16 +9,16 @@ import type { AuditRow } from '../lib/api.js';
 import { Alert, AppShell, NavRail, usePinnedRail } from '../components/ui.js';
 import { Breadcrumb } from '../components/ui.js';
 import { DataTable } from '../components/DataTable.js';
-import type { TableColumns } from '../components/DataTable.js';
+import type { GridColumn } from '../components/DataTable.js';
 import { shortAuditPath } from '../components/activity.js';
 import { timeAgo } from '../lib/format.js';
 import { switchNav } from '../lib/nav.js';
 
-const COLUMNS: TableColumns<AuditRow> = [
-  { header: 'Time', accessorFn: (r) => timeAgo(r.ts) },
-  { header: 'User', accessorFn: (r) => r.username },
-  { header: 'Method', accessorFn: (r) => r.method },
-  { header: 'Path', accessorFn: (r) => shortAuditPath(r.method, r.path).slice(r.method.length + 1) },
+const COLUMNS: GridColumn<AuditRow>[] = [
+  { key: 'time', label: 'Time', value: (r) => timeAgo(r.ts) },
+  { key: 'user', label: 'User', always: true, value: (r) => r.username },
+  { key: 'method', label: 'Method', value: (r) => r.method },
+  { key: 'path', label: 'Path', value: (r) => shortAuditPath(r.method, r.path).slice(r.method.length + 1) },
 ];
 
 export function AuditLog() {
@@ -58,7 +58,14 @@ export function AuditLog() {
       />
       <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 12px' }}>Audit Log</h1>
       {audit.isError && <Alert tone="fail">Could not load audit: {audit.error.message}</Alert>}
-      {!audit.isError && <DataTable columns={COLUMNS} rows={audit.data ?? []} loading={audit.isPending} />}
+      {!audit.isError && (
+        <DataTable
+          cols={COLUMNS}
+          rows={audit.data ?? []}
+          loading={audit.isPending}
+          storageKey="cumulus.audit.v1"
+        />
+      )}
     </AppShell>
   );
 }
