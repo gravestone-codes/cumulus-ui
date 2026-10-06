@@ -31,3 +31,15 @@ export function firstDefined(row: unknown, ...paths: string[]): string | undefin
   }
   return undefined;
 }
+
+/**
+ * Interface state: operational link state, falling back to oper-status.
+ * `unknown` stays visible (honest) — except loopback, which is up by
+ * definition and whose oper-status is always `unknown`.
+ */
+export function ifaceState(row: unknown): string | undefined {
+  const s = firstDefined(row, 'link/state', 'link/oper-status');
+  if (s && s !== 'unknown') return s;
+  if (getPath(row, 'type') === 'loopback') return 'up';
+  return s;
+}

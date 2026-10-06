@@ -9,19 +9,10 @@ import { api } from '../lib/api.js';
 import { AppShell, Breadcrumb, NavRail, usePinnedRail } from '../components/ui.js';
 import { ResourceList } from '../components/resource.js';
 import type { GridColumn } from '../components/DataTable.js';
-import { firstDefined, getPath } from '../lib/format.js';
+import { firstDefined, ifaceState } from '../lib/format.js';
 import { switchNav } from '../lib/nav.js';
 
 type IfaceRow = Record<string, unknown> & { __id: string };
-
-/** Interface state: operational link state, falling back to oper-status, then
- * to definitionally-up types (loopback is always up — no guessing). */
-export function ifaceState(row: Record<string, unknown>): string | undefined {
-  return (
-    firstDefined(row, 'link/state', 'link/oper-status') ??
-    (getPath(row, 'type') === 'loopback' ? 'up' : undefined)
-  );
-}
 
 const COLUMNS: GridColumn<IfaceRow>[] = [
   { key: '__id', label: 'Name', always: true, value: (r) => String(r.__id) },
