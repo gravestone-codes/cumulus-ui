@@ -6,7 +6,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { api, ApiError } from '../lib/api.js';
 import {
   Alert,
@@ -550,14 +560,81 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
   }, [switchId, path]);
 
   type HistoryRange = '24h' | '7d' | '30d' | '1y' | '3y';
-  const [range, setRange] = useState<'live' | HistoryRange>('live');
+  type RangeSel = 'live' | HistoryRange | 'custom';
+  const [range, setRange] = useState<RangeSel>('live');
   const [metric, setMetric] = useState<'bytes' | 'packets'>('bytes');
+  const [custom, setCustom] = useState<{ from: string; to: string } | null>(null);
+  const [compare, setCompare] = useState<{
+    range: HistoryRange | 'custom';
+    from?: string;
+    to?: string;
+  } | null>(null);
+  const [customTarget, setCustomTarget] = useState<'a' | 'b'>('a');
+  const [customOpen, setCustomOpen] = useState(false);
+  const [draftFrom, setDraftFrom] = useState('');
+  const [draftTo, setDraftTo] = useState('');
+  const [customError, setCustomError] = useState<string | null>(null);
   const history = useQuery({
-    queryKey: ['traffic-history', switchId, ifaceId, range, metric],
-    queryFn: () => api.history(switchId, ifaceId, range, metric),
+    queryKey: ['traffic-history', switchId, ifaceId, range, custom, metric],
+    queryFn: () =>
+      api.history(switchId, ifaceId, {
+        range: range === 'custom' ? '24h' : range,
+        ...(custom && range === 'custom' ? { from: custom.from, to: custom.to } : {}),
+        metric,
+      }),
     enabled: range !== 'live',
     staleTime: 60_000,
   });
+  const compareHistory = useQuery({
+    queryKey: ['traffic-compare', switchId, ifaceId, compare, metric],
+    queryFn: () =>
+      api.history(switchId, ifaceId, {
+        range: compare?.range === 'custom' ? '24h' : (compare?.range ?? '7d'),
+        ...(compare?.from && compare?.to ? { from: compare.from, to: compare.to } : {}),
+        metric,
+      }),
+    enabled: compare !== null,
+    staleTime: 60_000,
+  });
+
+  function openCustom(target: 'a' | 'b') {
+    setCustomTarget(target);
+    const cur = target === 'a' ? custom : compare?.from ? { from: compare.from, to: compare.to ?? '' } : null;
+    setDraftFrom(cur?.from.slice(0, 10) ?? '');
+    setDraftTo(cur?.to.slice(0, 10) ?? '');
+    setCustomError(null);
+    setCustomOpen(true);
+  }
+
+  function applyCustom() {
+    const from = new Date(`${draftFrom}T00:00:00Z`);
+    const to = new Date(`${draftTo}T00:00:00Z`);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || !(from < to)) {
+      setCustomError('Pick a start day before the end day.');
+      return;
+    }
+    if (to.getTime() - from.getTime() > 3 * 365 * 86400_000 + 86400_000) {
+      setCustomError('Custom ranges cap at 3 years.');
+      return;
+    }
+    const bounds = { from: from.toISOString(), to: to.toISOString() };
+    if (customTarget === 'a') {
+      setCustom(bounds);
+      setRange('custom');
+    } else {
+      setCompare({ range: 'custom', from: bounds.from, to: bounds.to });
+    }
+    setCustomOpen(false);
+  }
+
+  function shortDate(iso: string): string {
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  function rangeLabel(sel: { range: HistoryRange | 'custom'; from?: string; to?: string } | null): string {
+    if (!sel || sel.range !== 'custom') return sel?.range ?? '';
+    return sel.from && sel.to ? `${shortDate(sel.from)} – ${shortDate(sel.to)}` : 'Custom';
+  }
 
   function livePoints(): Array<{ label: string; In: number; Out: number }> {
     const pts: Array<{ label: string; In: number; Out: number }> = [];
@@ -602,12 +679,27 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
       ? d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
       : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
-  const points =
+  const basePoints =
     range === 'live'
       ? livePoints()
       : (history.data?.points ?? []).map((pt) => ({ label: fmtTick(pt.t), In: pt.in, Out: pt.out }));
+  const compareLabel = compare
+    ? compare.range === 'custom' && compare.from && compare.to
+      ? `${shortDate(compare.from)} – ${shortDate(compare.to)}`
+      : compare.range
+    : '';
+  const points = (() => {
+    const bPts = (compareHistory.data?.points ?? []).map((pt) => ({ In: pt.in, Out: pt.out }));
+    if (!compare || bPts.length === 0 || basePoints.length === 0) return basePoints;
+    return basePoints.map((pt, i) => {
+      const b =
+        bPts[Math.min(bPts.length - 1, Math.round((i * (bPts.length - 1)) / (basePoints.length - 1)))];
+      return { ...pt, InB: b?.In ?? 0, OutB: b?.Out ?? 0 };
+    });
+  })();
   const unit = metric === 'packets' ? pps : bps;
   const hasOut = points.some((pt) => pt.Out > 0);
+  const hasCompare = compare !== null && (compareHistory.data?.points.length ?? 0) > 0;
   const historyError = range !== 'live' && history.isError ? 'History unavailable for this range.' : null;
 
   const dropPoints: Array<{ label: string; Drops: number; Errors: number }> = [];
@@ -660,10 +752,45 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
                   { value: '30d', label: '30d' },
                   { value: '1y', label: '1y' },
                   { value: '3y', label: '3y' },
+                  {
+                    value: 'custom',
+                    label: custom
+                      ? rangeLabel({ range: 'custom', from: custom.from, to: custom.to })
+                      : 'Custom…',
+                  },
                 ]}
-                onChange={(v) => setRange(v as 'live' | HistoryRange)}
-                width={110}
+                onChange={(v) => {
+                  if (v === 'custom') openCustom('a');
+                  else setRange(v as 'live' | HistoryRange);
+                }}
+                width={130}
               />
+              <Button
+                auto
+                variant="secondary"
+                onClick={() => setCompare((c) => (c ? null : { range: '7d' }))}
+              >
+                {compare ? 'Hide compare' : 'Compare'}
+              </Button>
+              {compare && (
+                <SelectMenu
+                  label="Compare with"
+                  value={compare.range}
+                  options={[
+                    { value: '24h', label: '24h' },
+                    { value: '7d', label: '7d' },
+                    { value: '30d', label: '30d' },
+                    { value: '1y', label: '1y' },
+                    { value: '3y', label: '3y' },
+                    { value: 'custom', label: 'Custom…' },
+                  ]}
+                  onChange={(v) => {
+                    if (v === 'custom') openCustom('b');
+                    else setCompare({ range: v as HistoryRange });
+                  }}
+                  width={130}
+                />
+              )}
             </span>
           }
         >
@@ -730,6 +857,28 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
                       fill="url(#trafficOutFill)"
                     />
                   )}
+                  {hasCompare && (
+                    <Line
+                      type="monotone"
+                      dataKey="InB"
+                      name={`In (${compareLabel})`}
+                      stroke="var(--color-muted)"
+                      strokeWidth={1.5}
+                      strokeDasharray="5 4"
+                      dot={false}
+                    />
+                  )}
+                  {hasCompare && (
+                    <Line
+                      type="monotone"
+                      dataKey="OutB"
+                      name={`Out (${compareLabel})`}
+                      stroke="var(--color-muted)"
+                      strokeWidth={1.5}
+                      strokeDasharray="2 3"
+                      dot={false}
+                    />
+                  )}
                   <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -737,6 +886,29 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
           )}
         </Card>
       </div>
+      <Modal open={customOpen} onClose={() => setCustomOpen(false)} title="Custom range">
+        <LineField
+          label="From day"
+          type="date"
+          value={draftFrom}
+          onChange={(e) => setDraftFrom(e.target.value)}
+        />
+        <LineField
+          label="To day"
+          type="date"
+          value={draftTo}
+          onChange={(e) => setDraftTo(e.target.value)}
+          error={customError ?? undefined}
+        />
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+          <Button auto variant="secondary" onClick={() => setCustomOpen(false)}>
+            Cancel
+          </Button>
+          <Button auto onClick={applyCustom}>
+            Show range
+          </Button>
+        </div>
+      </Modal>
       <div style={{ marginTop: 12 }}>
         <Card title="Discards & errors">
           {dropPoints.length === 0 ? (

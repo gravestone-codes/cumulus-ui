@@ -52,7 +52,7 @@ function FleetStats({ switches }: { switches: SwitchRow[] }) {
   return {
     sample,
     node: (
-      <StatRow>
+      <StatRow columns={3}>
         <Stat label="Switches" value={String(n)} sub={`${reachable} reachable`} />
         <Stat
           label="Failing"
@@ -295,11 +295,10 @@ export function FleetDashboard() {
     <GlobalShell active="/dashboard">
       <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 16 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>Dashboard</h1>
-          <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '4px 0 0' }}>
-            Every workload, at a glance.
-            <Hint text="Personal to you. Customize to add or remove widgets." />
-          </p>
+          <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>
+            Dashboard
+            <Hint text="Every workload, at a glance. Personal to you — Customize to add or remove widgets." />
+          </h1>
         </div>
         <span style={{ flex: 1 }} />
         <Button auto variant="secondary" onClick={() => setCustomizing((c) => !c)}>

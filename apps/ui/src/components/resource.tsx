@@ -63,7 +63,7 @@ export function ResourceDetail({
         margin: 0,
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '16px 24px',
+        gap: '28px 32px',
       }}
     >
       {fields.map((f) => (
@@ -75,12 +75,12 @@ export function ResourceDetail({
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               color: 'var(--color-muted)',
-              marginBottom: 4,
+              marginBottom: 6,
             }}
           >
             {f.label}
           </dt>
-          <dd style={{ margin: 0, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <dd style={{ margin: 0, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {f.value(obj)}
           </dd>
         </div>

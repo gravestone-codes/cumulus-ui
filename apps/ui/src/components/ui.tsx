@@ -879,7 +879,7 @@ export function Tabs({
   onChange: (id: string) => void;
 }) {
   return (
-    <div role="tablist" aria-label="Sections" style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+    <div role="tablist" aria-label="Sections" style={{ display: 'flex', gap: 4, margin: '0 0 16px -14px' }}>
       {tabs.map((t) => {
         const selected = t.id === active;
         return (

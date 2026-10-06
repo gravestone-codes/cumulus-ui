@@ -24,6 +24,8 @@ import {
 const Query = z.object({
   range: z.enum(HISTORY_RANGES).default('24h'),
   metric: z.enum(HISTORY_METRICS).default('bytes'),
+  from: z.string().datetime({ offset: true }).optional(),
+  to: z.string().datetime({ offset: true }).optional(),
 });
 
 const COLUMNS: Record<HistoryMetric, [string, string]> = {
@@ -91,12 +93,23 @@ export async function historyRoutes(app: FastifyInstance, deps: { cfg: AuthConfi
     }
     const { range, metric } = parsed.data;
     const [colA, colB] = COLUMNS[metric];
-    const since = new Date(Date.now() - rangeSeconds(range) * 1000);
+    // Explicit bounds override the preset (custom ranges, comparisons).
+    // Capped at 3 years + a day so one request can never scan the archive.
+    const MAX_SPAN_MS = rangeSeconds('3y') + 86400_000;
+    let since = new Date(Date.now() - rangeSeconds(range) * 1000);
+    let until = new Date();
+    if (parsed.data.from && parsed.data.to) {
+      since = new Date(parsed.data.from);
+      until = new Date(parsed.data.to);
+      if (!(since < until) || until.getTime() - since.getTime() > MAX_SPAN_MS) {
+        return problem(reply, 400, 'Bad Request', 'from/to invalid or span over 3 years', request.url);
+      }
+    }
     // Raw rows cover the last 7 days; anything older lives in hourly buckets.
-    const useHourly = rangeSeconds(range) > 7 * 86400;
+    const useHourly = until.getTime() - since.getTime() > 7 * 86400_000;
     const points = useHourly
-      ? await hourlyPoints(id, iface, since, colA, colB)
-      : await rawPoints(id, iface, since, colA, colB);
+      ? await hourlyPoints(id, iface, since, until, colA, colB)
+      : await rawPoints(id, iface, since, until, colA, colB);
     return { range, metric, points };
   });
 }
@@ -105,13 +118,14 @@ async function rawPoints(
   switchId: string,
   iface: string,
   since: Date,
+  until: Date,
   colA: string,
   colB: string,
 ): Promise<HistoryPoint[]> {
   const { rows } = await db().query<{ ts: Date; a: number; b: number }>(
     `SELECT ts, ${colA} AS a, ${colB} AS b FROM interface_samples
-     WHERE switch_id = $1 AND iface = $2 AND ts >= $3 ORDER BY ts`,
-    [switchId, iface, since],
+     WHERE switch_id = $1 AND iface = $2 AND ts >= $3 AND ts <= $4 ORDER BY ts`,
+    [switchId, iface, since, until],
   );
   return toRates(rows);
 }
@@ -120,13 +134,14 @@ async function hourlyPoints(
   switchId: string,
   iface: string,
   since: Date,
+  until: Date,
   colA: string,
   colB: string,
 ): Promise<HistoryPoint[]> {
   const { rows } = await db().query<{ hour: Date; a: string; b: string }>(
     `SELECT hour, ${colA} AS a, ${colB} AS b FROM interface_samples_hourly
-     WHERE switch_id = $1 AND iface = $2 AND hour >= $3 ORDER BY hour`,
-    [switchId, iface, since],
+     WHERE switch_id = $1 AND iface = $2 AND hour >= $3 AND hour <= $4 ORDER BY hour`,
+    [switchId, iface, since, until],
   );
   // Hourly rows already hold deltas: rate per bucket, stride-capped.
   const pts: HistoryPoint[] = rows.map((r) => ({

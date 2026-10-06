@@ -128,6 +128,23 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
         .set('Cookie', cookie);
       expect(month.status).toBe(200);
       expect(month.body.points.length).toBeGreaterThan(0);
+
+      const now = new Date();
+      const dayAgo = new Date(now.getTime() - 86400_000).toISOString();
+      const custom = await api
+        .get(
+          `/api/v1/switches/sh1/interfaces/swp1/history?from=${encodeURIComponent(dayAgo)}&to=${encodeURIComponent(now.toISOString())}&metric=bytes`,
+        )
+        .set('Cookie', cookie);
+      expect(custom.status).toBe(200);
+      expect(custom.body.points.length).toBeGreaterThan(0);
+
+      const flipped = await api
+        .get(
+          `/api/v1/switches/sh1/interfaces/swp1/history?from=${encodeURIComponent(now.toISOString())}&to=${encodeURIComponent(dayAgo)}`,
+        )
+        .set('Cookie', cookie);
+      expect(flipped.status).toBe(400);
     } finally {
       await pool.query(`DELETE FROM interface_samples WHERE switch_id = 'sh1'`);
       await pool.query(`DELETE FROM interface_samples_hourly WHERE switch_id = 'sh1'`);
