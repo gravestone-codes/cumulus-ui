@@ -168,6 +168,39 @@ export const api = {
   verifySwitch: (id: string) =>
     post<{ ok: boolean; switch: string; data: unknown }>(`/api/v1/switches/${encodeURIComponent(id)}/verify`),
   importSwitches: (rows: CsvRow[]) => post<ImportResult>('/api/v1/inventory/import', { rows }),
+
+  openBranch: (switchId: string) =>
+    post<{ branch: string; baseRev: string }>(`/api/v1/switches/${encodeURIComponent(switchId)}/branch`, {}),
+  discardBranch: (switchId: string) =>
+    request<{ switchDiscarded: boolean }>(`/api/v1/switches/${encodeURIComponent(switchId)}/branch`, {
+      method: 'DELETE',
+    }),
+  stageChange: (
+    switchId: string,
+    body: { path: string; method: 'PATCH' | 'DELETE'; body?: Record<string, unknown> },
+  ) => post<{ ok: true; branch: string }>(`/api/v1/switches/${encodeURIComponent(switchId)}/stage`, body),
+  getDiff: (switchId: string) =>
+    request<{
+      branch: string;
+      baseRev: string;
+      diffs: Array<{
+        path: string;
+        method: string;
+        state?: string;
+        before?: unknown;
+        mine?: unknown;
+        current?: unknown;
+      }>;
+    }>(`/api/v1/switches/${encodeURIComponent(switchId)}/diff`),
+  applyBranch: (switchId: string) =>
+    post<{ applied: boolean; jobId: string | null; paths: string[] }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/apply`,
+      {},
+    ),
+  getJob: (switchId: string, jobId: string) =>
+    request<{ id: string; state: string }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/jobs/${encodeURIComponent(jobId)}`,
+    ),
   audit: (limit = 8, sw?: string) => {
     const qs = new URLSearchParams({ limit: String(limit) });
     if (sw) qs.set('switch', sw);

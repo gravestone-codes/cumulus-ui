@@ -1260,8 +1260,10 @@ export function AppShell({ rail, children }: { rail: ReactNode; children: ReactN
       <main
         style={{
           flex: 1,
+          width: '100%',
           padding: 28,
           maxWidth: 1100,
+          margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,

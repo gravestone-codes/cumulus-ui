@@ -101,6 +101,7 @@ export function Stat({
   return (
     <div style={{ minWidth: 0 }}>
       <p
+        title={label}
         style={{
           fontSize: 11,
           fontWeight: 700,
@@ -109,6 +110,8 @@ export function Stat({
           color: 'var(--color-muted)',
           margin: '0 0 6px',
           whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
         }}
       >
         {label}
@@ -134,15 +137,16 @@ export function Stat({
   );
 }
 
-/* StatRow: tiles in one divided row (dividers only between). Collapses to a
-   2-up grid on narrow cards instead of squeezing. */
-export function StatRow({ children }: { children: ReactNode[] }) {
+/* StatRow: tiles in a divided row. Fixed column count (no wrap orphans);
+   auto-fit when omitted. Every tile but the row's first carries the hairline. */
+export function StatRow({ children, columns }: { children: ReactNode[]; columns?: number }) {
   const tiles = Array.isArray(children) ? children : [children];
+  const n = columns ?? 0;
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+        gridTemplateColumns: n > 0 ? `repeat(${n}, minmax(0, 1fr))` : 'repeat(auto-fit, minmax(110px, 1fr))',
         columnGap: 0,
       }}
     >
@@ -151,8 +155,15 @@ export function StatRow({ children }: { children: ReactNode[] }) {
           key={i}
           style={{
             padding: '2px 16px 2px 0',
-            borderLeft: '1px solid var(--color-border)',
-            paddingLeft: 16,
+            borderLeft:
+              n > 0
+                ? i % n === 0
+                  ? 'none'
+                  : '1px solid var(--color-border)'
+                : i === 0
+                  ? 'none'
+                  : '1px solid var(--color-border)',
+            paddingLeft: n > 0 ? (i % n === 0 ? 0 : 16) : i === 0 ? 0 : 16,
           }}
         >
           {tile}

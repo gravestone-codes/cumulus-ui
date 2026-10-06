@@ -1,12 +1,24 @@
 /**
- * Interface detail (3A.2): one port's live values. Field set follows the
- * official API reference leaf schemas (link/state, link/speed, link/mtu,
- * link/mac-address, ip/vrf) — not guesses. Edit arrives in 3A.7.
+ * Interface detail (3A.2 + 3A.7): one port's live values plus statistics and
+ * editing. Field set follows the official API reference leaf schemas —
+ * not guesses. Edit stages through a branch with dry-run review, then apply.
  */
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api.js';
-import { AppShell, Breadcrumb, NavRail, usePinnedRail } from '../components/ui.js';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, ApiError } from '../lib/api.js';
+import {
+  Alert,
+  AppShell,
+  Breadcrumb,
+  Button,
+  LineField,
+  Modal,
+  NavRail,
+  Spinner,
+  usePinnedRail,
+  useToast,
+} from '../components/ui.js';
 import { Card, Stat, StatRow, packets } from '../components/cards.js';
 import { ResourceDetail } from '../components/resource.js';
 import { firstDefined, getPath } from '../lib/format.js';
@@ -48,22 +60,31 @@ export function InterfaceDetail() {
         ]}
         onNav={navigate}
       />
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 12px' }}>{ifaceId}</h1>
-      <ResourceDetail
-        switchId={switchId}
-        path={`/interface/${ifaceId}`}
-        fields={[
-          { label: 'State', value: (o) => firstDefined(o, 'link/state', 'link/oper-status') ?? '—' },
-          { label: 'Admin status', value: (o) => text(getPath(o, 'link/admin-status')) },
-          { label: 'Speed', value: (o) => text(getPath(o, 'link/speed')) },
-          { label: 'MTU', value: (o) => text(getPath(o, 'link/mtu')) },
-          { label: 'MAC address', value: (o) => text(getPath(o, 'link/mac-address')) },
-          { label: 'Description', value: (o) => text(getPath(o, 'description')) },
-          { label: 'VRF', value: (o) => text(getPath(o, 'ip/vrf')) },
-          { label: 'Type', value: (o) => text(getPath(o, 'type')) },
-        ]}
-      />
+      <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 12 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{ifaceId}</h1>
+        <span style={{ flex: 1 }} />
+        <InterfaceEdit switchId={switchId} ifaceId={ifaceId} />
+      </div>
       <InterfaceStats switchId={switchId} path={`/interface/${ifaceId}`} />
+      <div style={{ marginTop: 12 }}>
+        <ResourceDetail
+          switchId={switchId}
+          path={`/interface/${ifaceId}`}
+          fields={[
+            { label: 'State', value: (o) => firstDefined(o, 'link/state', 'link/oper-status') ?? '—' },
+            { label: 'Admin status', value: (o) => text(getPath(o, 'link/admin-status')) },
+            { label: 'Speed', value: (o) => text(getPath(o, 'link/speed')) },
+            { label: 'MTU', value: (o) => text(getPath(o, 'link/mtu')) },
+            { label: 'MAC address', value: (o) => text(getPath(o, 'link/mac-address')) },
+            { label: 'Description', value: (o) => text(getPath(o, 'description')) },
+            { label: 'VRF', value: (o) => text(getPath(o, 'ip/vrf')) },
+            { label: 'Type', value: (o) => text(getPath(o, 'type')) },
+          ]}
+        />
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <InterfaceEdit switchId={switchId} ifaceId={ifaceId} />
+      </div>
     </AppShell>
   );
 }
@@ -112,31 +133,324 @@ function InterfaceStats({ switchId, path }: { switchId: string; path: string }) 
   if (detail.isPending || detail.isError || !detail.data) return null;
   const o = detail.data.data;
   return (
-    <div style={{ marginTop: 12 }}>
-      <Card title="Statistics">
-        <StatRow>
-          <Stat label="In packets" value={statText(counterOf(o, 'link/stats/in-pkts'), packets)} />
-          <Stat label="Out packets" value={statText(counterOf(o, 'link/stats/out-pkts'), packets)} />
-          <Stat label="In bytes" value={statText(counterOf(o, 'link/stats/in-bytes'), packets)} />
-          <Stat label="Out bytes" value={statText(counterOf(o, 'link/stats/out-bytes'), packets)} />
-        </StatRow>
-        <div style={{ marginTop: 16 }}>
-          <StatRow>
-            <Stat
-              label="Drops"
-              value={statText(sumOf(o, 'link/stats/in-drops', 'link/stats/out-drops'), packets)}
-            />
-            <Stat
-              label="Errors"
-              value={statText(sumOf(o, 'link/stats/in-errors', 'link/stats/out-errors'), packets)}
-            />
-            <Stat
-              label="Carrier transitions"
-              value={statText(counterOf(o, 'link/stats/carrier-transitions'), packets)}
-            />
-          </StatRow>
+    <Card title="Statistics">
+      <StatRow columns={7}>
+        <Stat label="In packets" value={statText(counterOf(o, 'link/stats/in-pkts'), packets)} />
+        <Stat label="Out packets" value={statText(counterOf(o, 'link/stats/out-pkts'), packets)} />
+        <Stat label="In bytes" value={statText(counterOf(o, 'link/stats/in-bytes'), packets)} />
+        <Stat label="Out bytes" value={statText(counterOf(o, 'link/stats/out-bytes'), packets)} />
+        <Stat
+          label="Drops"
+          value={statText(sumOf(o, 'link/stats/in-drops', 'link/stats/out-drops'), packets)}
+        />
+        <Stat
+          label="Errors"
+          value={statText(sumOf(o, 'link/stats/in-errors', 'link/stats/out-errors'), packets)}
+        />
+        <Stat
+          label="Carrier transitions"
+          value={statText(counterOf(o, 'link/stats/carrier-transitions'), packets)}
+        />
+      </StatRow>
+    </Card>
+  );
+}
+
+type DiffRow = {
+  path: string;
+  method: string;
+  state?: string;
+  before?: unknown;
+  mine?: unknown;
+  current?: unknown;
+};
+
+const shortVal = (v: unknown) =>
+  v === undefined || v === null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+
+const JOB_DONE = new Set(['successful', 'done', 'applied', 'action_success', 'complete', 'completed']);
+
+/**
+ * InterfaceEdit (3A.7): description/MTU/speed through branch → stage →
+ * dry-run review → apply, with conflict discard and job polling. One
+ * focused modal, never a bare form.
+ */
+function InterfaceEdit({ switchId, ifaceId }: { switchId: string; ifaceId: string }) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button auto variant="secondary" onClick={() => setOpen(true)}>
+        Edit interface
+      </Button>
+      {open && (
+        <EditModal
+          switchId={switchId}
+          ifaceId={ifaceId}
+          onClose={() => setOpen(false)}
+          onApplied={() => {
+            queryClient.invalidateQueries({ queryKey: ['resource-obj', switchId] });
+            queryClient.invalidateQueries({ queryKey: ['resource', switchId] });
+          }}
+          notify={toast}
+        />
+      )}
+    </>
+  );
+}
+
+function EditModal({
+  switchId,
+  ifaceId,
+  onClose,
+  onApplied,
+  notify,
+}: {
+  switchId: string;
+  ifaceId: string;
+  onClose: () => void;
+  onApplied: () => void;
+  notify: (tone: 'pass' | 'warn' | 'fail', text: string) => void;
+}) {
+  const path = `/interface/${ifaceId}`;
+  const detail = useQuery({
+    queryKey: ['resource-obj', switchId, path],
+    queryFn: () => api.query<Record<string, unknown>>(switchId, path),
+    retry: false,
+    staleTime: 30_000,
+  });
+  const [description, setDescription] = useState<string | null>(null);
+  const [mtu, setMtu] = useState<string | null>(null);
+  const [speed, setSpeed] = useState<string | null>(null);
+  const [step, setStep] = useState<'form' | 'review' | 'applying' | 'done'>('form');
+  const [diffs, setDiffs] = useState<DiffRow[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const [jobState, setJobState] = useState<string | null>(null);
+
+  const current = detail.data?.data ?? {};
+  const curDescription = description ?? String(getPath(current, 'description') ?? '');
+  const curMtu = mtu ?? String(getPath(current, 'link/mtu') ?? '');
+  const curSpeed = speed ?? String(getPath(current, 'link/speed') ?? '');
+
+  function fail(err: unknown, fallback: string) {
+    setError(err instanceof ApiError ? err.message : fallback);
+    setBusy(false);
+  }
+
+  async function save() {
+    const body: Record<string, unknown> = {};
+    if (description !== null && description !== String(getPath(current, 'description') ?? '')) {
+      body.description = description;
+    }
+    if (mtu !== null && mtu !== String(getPath(current, 'link/mtu') ?? '')) {
+      const n = Number(mtu);
+      if (!Number.isInteger(n) || n <= 0) {
+        setError('MTU must be a positive integer.');
+        return;
+      }
+      body.mtu = n;
+    }
+    if (speed !== null && speed !== String(getPath(current, 'link/speed') ?? '')) {
+      body.speed = speed;
+    }
+    if (Object.keys(body).length === 0) {
+      setError('No changes to stage.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setConflict(false);
+    try {
+      await api.openBranch(switchId);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setConflict(true);
+        setBusy(false);
+        return;
+      }
+      fail(err, 'Could not open a branch.');
+      return;
+    }
+    try {
+      await api.stageChange(switchId, { path, method: 'PATCH', body });
+      const diff = await api.getDiff(switchId);
+      setDiffs(diff.diffs);
+      setStep('review');
+    } catch (err) {
+      fail(err, 'Could not stage the change.');
+      return;
+    }
+    setBusy(false);
+  }
+
+  async function discardAndRetry() {
+    setBusy(true);
+    try {
+      await api.discardBranch(switchId);
+      setConflict(false);
+      setBusy(false);
+      await save();
+    } catch (err) {
+      fail(err, 'Could not discard the branch.');
+    }
+  }
+
+  async function apply() {
+    setBusy(true);
+    setError(null);
+    setStep('applying');
+    try {
+      const res = await api.applyBranch(switchId);
+      if (!res.jobId) {
+        finish();
+        return;
+      }
+      const deadline = Date.now() + 120_000;
+      for (;;) {
+        const job = await api.getJob(switchId, res.jobId);
+        setJobState(job.state);
+        const state = job.state.toLowerCase();
+        if (JOB_DONE.has(state)) {
+          finish();
+          return;
+        }
+        if (state.includes('fail') || state.includes('error')) {
+          setError(`Apply job ${res.jobId} failed: ${job.state}`);
+          setBusy(false);
+          setStep('review');
+          return;
+        }
+        if (Date.now() > deadline) {
+          setError(`Apply job ${res.jobId} did not finish in time (${job.state}).`);
+          setBusy(false);
+          setStep('review');
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    } catch (err) {
+      fail(err, 'Apply failed.');
+      setStep('review');
+    }
+  }
+
+  function finish() {
+    setBusy(false);
+    setJobState(null);
+    setStep('done');
+    onApplied();
+    notify('pass', `Interface ${ifaceId} updated.`);
+  }
+
+  return (
+    <Modal open onClose={onClose} title={`Edit ${ifaceId}`}>
+      {detail.isPending ? (
+        <Spinner label="Loading current values" />
+      ) : step === 'form' ? (
+        <>
+          <LineField
+            label="Description"
+            value={curDescription}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <LineField
+            label="MTU"
+            value={curMtu}
+            onChange={(e) => setMtu(e.target.value)}
+            inputMode="numeric"
+          />
+          <LineField
+            label="Speed"
+            value={curSpeed}
+            onChange={(e) => setSpeed(e.target.value)}
+            placeholder="e.g. 10G"
+          />
+          {error && <Alert tone="fail">{error}</Alert>}
+          {conflict && (
+            <Alert tone="warn">
+              Unapplied changes already staged on this switch.{' '}
+              <button
+                type="button"
+                onClick={discardAndRetry}
+                disabled={busy}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  color: 'var(--color-text)',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: 3,
+                }}
+              >
+                Discard them and stage mine instead
+              </button>
+            </Alert>
+          )}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+            <Button auto variant="secondary" onClick={onClose} disabled={busy}>
+              Cancel
+            </Button>
+            <Button auto onClick={save} disabled={busy}>
+              {busy ? 'Staging…' : 'Review change'}
+            </Button>
+          </div>
+        </>
+      ) : step === 'review' ? (
+        <>
+          <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: '0 0 12px' }}>
+            Dry-run: this is exactly what apply will send.
+          </p>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+            {diffs.map((d, i) => (
+              <li
+                key={`${d.path}-${i}`}
+                style={{
+                  background: 'var(--color-surface-2)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  fontSize: 13,
+                }}
+              >
+                <span className="mono">{d.path}</span>
+                <br />
+                <span style={{ color: 'var(--color-muted)' }}>{shortVal(d.before)} → </span>
+                <span style={{ color: 'var(--color-text)', fontWeight: 700 }}>{shortVal(d.mine)}</span>
+              </li>
+            ))}
+          </ul>
+          {error && <Alert tone="fail">{error}</Alert>}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+            <Button auto variant="secondary" onClick={() => setStep('form')} disabled={busy}>
+              Back
+            </Button>
+            <Button auto onClick={apply} disabled={busy}>
+              Apply
+            </Button>
+          </div>
+        </>
+      ) : step === 'applying' ? (
+        <div style={{ display: 'grid', gap: 12, justifyItems: 'center', padding: '12px 0' }}>
+          <Spinner label="Applying" />
+          <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: 0 }}>
+            {jobState ? `Job state: ${jobState}` : 'Sending to the switch…'}
+          </p>
         </div>
-      </Card>
-    </div>
+      ) : (
+        <>
+          <Alert tone="pass">Applied. The switch reports the change.</Alert>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+            <Button auto onClick={onClose}>
+              Done
+            </Button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }
