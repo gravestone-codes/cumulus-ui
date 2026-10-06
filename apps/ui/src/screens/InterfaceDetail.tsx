@@ -67,7 +67,7 @@ export function InterfaceDetail() {
         <InterfaceEdit switchId={switchId} ifaceId={ifaceId} />
       </div>
       <InterfaceStats switchId={switchId} path={`/interface/${ifaceId}`} />
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 24 }}>
         <ResourceDetail
           switchId={switchId}
           path={`/interface/${ifaceId}`}
@@ -460,6 +460,8 @@ interface TrafficSample {
   t: number;
   inB: number;
   outB: number;
+  dr?: number;
+  er?: number;
 }
 
 const SAMPLE_INTERVAL_MS = 5000;
@@ -504,8 +506,10 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
         const inB = counterOf(res.data, 'link/stats/in-bytes');
         const outB = counterOf(res.data, 'link/stats/out-bytes');
         if (inB === undefined || outB === undefined) return;
+        const dr = sumOf(res.data, 'link/stats/in-drops', 'link/stats/out-drops');
+        const er = sumOf(res.data, 'link/stats/in-errors', 'link/stats/out-errors');
         setSamples((prev) => {
-          const next = [...prev, { t: Date.now(), inB, outB }].slice(-MAX_SAMPLES);
+          const next = [...prev, { t: Date.now(), inB, outB, dr, er }].slice(-MAX_SAMPLES);
           try {
             localStorage.setItem(keyRef.current, JSON.stringify(next));
           } catch {
@@ -545,67 +549,160 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
     });
   }
   const bps = (v: number) => `${packets(v)}bps`;
+  const pps = (v: number) => `${packets(v)}pps`;
+
+  const dropPoints: Array<{ label: string; Drops: number; Errors: number }> = [];
+  for (let i = 1; i < samples.length; i++) {
+    const a = samples[i - 1];
+    const b = samples[i];
+    if (!a || !b || a.dr === undefined || b.dr === undefined || a.er === undefined || b.er === undefined) {
+      continue;
+    }
+    const dt = (b.t - a.t) / 1000;
+    const drops = (b.dr - a.dr) / dt;
+    const errors = (b.er - a.er) / dt;
+    if (dt <= 0 || drops < 0 || errors < 0) continue;
+    dropPoints.push({
+      label: new Date(b.t).toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+      Drops: Math.round(drops * 10) / 10,
+      Errors: Math.round(errors * 10) / 10,
+    });
+  }
 
   return (
-    <div style={{ marginTop: 12 }}>
-      <Card title="Traffic">
-        {points.length === 0 ? (
-          <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
-            Collecting live samples every 5 seconds — the graph appears shortly and persists across visits.
-          </p>
-        ) : (
-          <div style={{ height: 224 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={points} margin={{ left: 8, right: 8 }}>
-                <defs>
-                  <linearGradient id="trafficInFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-pass)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--color-pass)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="trafficOutFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} minTickGap={40} />
-                <YAxis
-                  tickFormatter={(v) => bps(Number(v))}
-                  tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
-                  width={64}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 12,
-                    fontSize: 13,
-                  }}
-                  labelStyle={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: 2 }}
-                  itemStyle={{ color: 'var(--color-text)' }}
-                  cursor={{ fill: 'var(--color-muted)', fillOpacity: 0.07 }}
-                  formatter={(v) => bps(typeof v === 'number' ? v : Number(v))}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="In"
-                  stroke="var(--color-pass)"
-                  strokeWidth={2}
-                  fill="url(#trafficInFill)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Out"
-                  stroke="var(--color-brand)"
-                  strokeWidth={2}
-                  fill="url(#trafficOutFill)"
-                />
-                <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </Card>
-    </div>
+    <>
+      <div style={{ marginTop: 12 }}>
+        <Card title="Traffic">
+          {points.length === 0 ? (
+            <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+              Collecting live samples every 5 seconds — the graph appears shortly and persists across visits.
+            </p>
+          ) : (
+            <div style={{ height: 224 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={points} margin={{ left: 8, right: 8 }}>
+                  <defs>
+                    <linearGradient id="trafficInFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-pass)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--color-pass)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="trafficOutFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+                    minTickGap={40}
+                  />
+                  <YAxis
+                    tickFormatter={(v) => bps(Number(v))}
+                    tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+                    width={64}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 12,
+                      fontSize: 13,
+                    }}
+                    labelStyle={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: 2 }}
+                    itemStyle={{ color: 'var(--color-text)' }}
+                    cursor={{ fill: 'var(--color-muted)', fillOpacity: 0.07 }}
+                    formatter={(v) => bps(typeof v === 'number' ? v : Number(v))}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="In"
+                    stroke="var(--color-pass)"
+                    strokeWidth={2}
+                    fill="url(#trafficInFill)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Out"
+                    stroke="var(--color-brand)"
+                    strokeWidth={2}
+                    fill="url(#trafficOutFill)"
+                  />
+                  <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <Card title="Discards & errors">
+          {dropPoints.length === 0 ? (
+            <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+              Drop and error rates appear here once samples accumulate — flat zero means a clean port.
+            </p>
+          ) : (
+            <div style={{ height: 180 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={dropPoints} margin={{ left: 8, right: 8 }}>
+                  <defs>
+                    <linearGradient id="dropFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-fail)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--color-fail)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="errFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-warn)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--color-warn)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+                    minTickGap={40}
+                  />
+                  <YAxis
+                    tickFormatter={(v) => pps(Number(v))}
+                    tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+                    width={64}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 12,
+                      fontSize: 13,
+                    }}
+                    labelStyle={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: 2 }}
+                    itemStyle={{ color: 'var(--color-text)' }}
+                    cursor={{ fill: 'var(--color-muted)', fillOpacity: 0.07 }}
+                    formatter={(v) => pps(typeof v === 'number' ? v : Number(v))}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Drops"
+                    stroke="var(--color-fail)"
+                    strokeWidth={2}
+                    fill="url(#dropFill)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Errors"
+                    stroke="var(--color-warn)"
+                    strokeWidth={2}
+                    fill="url(#errFill)"
+                  />
+                  <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+      </div>
+    </>
   );
 }

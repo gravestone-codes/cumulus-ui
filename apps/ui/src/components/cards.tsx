@@ -118,7 +118,7 @@ export function Stat({
       </p>
       <p
         style={{
-          fontSize: value.length > 4 ? 22 : 30,
+          fontSize: value.length > 6 ? 22 : 30,
           fontWeight: 700,
           letterSpacing: '-0.02em',
           fontVariantNumeric: 'tabular-nums',
