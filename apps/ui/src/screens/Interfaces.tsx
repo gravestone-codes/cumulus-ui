@@ -59,6 +59,7 @@ export function Interfaces() {
         columns={COLUMNS}
         rowId={(row) => row.__id}
         storageKey="cumulus.interfaces.v1"
+        rev="operational"
       />
     </AppShell>
   );

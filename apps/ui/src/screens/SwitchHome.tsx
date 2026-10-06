@@ -22,10 +22,13 @@ export function SwitchHome() {
   const switches = useQuery({ queryKey: ['switches'], queryFn: () => api.switches(), retry: false });
   const row = (switches.data ?? []).find((s) => s.id === switchId);
   // Shared cache key with the Interfaces list: one fetch serves both.
+  // Operational rev: applied state alone leaves unconfigured ports empty.
   const ifaces = useQuery({
-    queryKey: ['resource', switchId, '/interface', undefined],
-    queryFn: () => api.query<Record<string, { state?: unknown }>>(switchId, '/interface'),
+    queryKey: ['resource', switchId, '/interface', undefined, 'operational'],
+    queryFn: () =>
+      api.query<Record<string, { state?: unknown }>>(switchId, '/interface', { rev: 'operational' }),
     retry: false,
+    staleTime: 30_000,
   });
   const activity = useQuery({
     queryKey: ['audit-switch', switchId],

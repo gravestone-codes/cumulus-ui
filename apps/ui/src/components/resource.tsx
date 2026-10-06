@@ -45,6 +45,7 @@ export function ResourceList<T extends object>({
   onSelect,
   storageKey,
   rowMenu,
+  rev,
 }: {
   switchId: string;
   path: string;
@@ -55,13 +56,17 @@ export function ResourceList<T extends object>({
   onSelect?: (id: string) => void;
   storageKey: string;
   rowMenu?: (row: T) => RowMenuItem[];
+  rev?: string;
 }) {
   const [view, setView] = useState<string | undefined>(undefined);
   const list = useQuery({
-    queryKey: ['resource', switchId, path, view],
-    queryFn: () => api.query<Record<string, T>>(switchId, path, view ? { view } : undefined),
+    queryKey: ['resource', switchId, path, view, rev],
+    queryFn: () =>
+      api.query<Record<string, T>>(switchId, path, { ...(view ? { view } : {}), ...(rev ? { rev } : {}) }),
     // 4xx is terminal (auth, gate, unknown path) — only 5xx/network retries.
     retry: (count, err) => (err instanceof ApiError ? err.status >= 500 && count < 2 : count < 2),
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
   const rows = list.data ? Object.entries(list.data.data).map(([id, row]) => ({ ...row, __id: id })) : [];
   return (
