@@ -12,6 +12,7 @@ import { Login } from './screens/Login.js';
 import { OnboardSwitch } from './screens/OnboardSwitch.js';
 import { BulkImport } from './screens/BulkImport.js';
 import { Interfaces } from './screens/Interfaces.js';
+import { InterfaceDetail } from './screens/InterfaceDetail.js';
 import { AuditLog } from './screens/AuditLog.js';
 import { SwitchHome } from './screens/SwitchHome.js';
 import { FleetDashboard } from './screens/FleetDashboard.js';
@@ -117,6 +118,14 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <Interfaces />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId/interfaces/:ifaceId',
+    element: (
+      <RequireAuth>
+        <InterfaceDetail />
       </RequireAuth>
     ),
   },

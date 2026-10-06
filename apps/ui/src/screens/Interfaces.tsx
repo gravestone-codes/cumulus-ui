@@ -61,6 +61,7 @@ export function Interfaces() {
         rowId={(row) => row.__id}
         storageKey="cumulus.interfaces.v1"
         rev="operational"
+        onSelect={(id) => navigate(`/switches/${switchId}/interfaces/${id}`)}
       />
     </AppShell>
   );

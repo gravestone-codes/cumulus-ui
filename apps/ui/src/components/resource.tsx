@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
-import { Alert, Button, LineDropdown, ReconnectModal } from './ui.js';
+import { Alert, Button, LineDropdown, ReconnectModal, Spinner } from './ui.js';
 import { DataTable } from './DataTable.js';
 import type { GridColumn } from './DataTable.js';
 import type { RowMenuItem } from './ui.js';
@@ -34,7 +34,60 @@ export function ViewSwitcher({
   );
 }
 
-/* ResourceList: collection read through the query proxy + DataTable. */
+/* ResourceDetail: one object's live fields as a definition list. Field
+   choice is presentation (per-slice, from the API reference leaf schemas);
+   every value comes from the query proxy. */
+export function ResourceDetail({
+  switchId,
+  path,
+  fields,
+}: {
+  switchId: string;
+  path: string;
+  fields: Array<{ label: string; value: (obj: Record<string, unknown>) => string }>;
+}) {
+  const detail = useQuery({
+    queryKey: ['resource-obj', switchId, path],
+    queryFn: () => api.query<Record<string, unknown>>(switchId, path),
+    retry: (count, err) => (err instanceof ApiError ? err.status >= 500 && count < 2 : count < 2),
+    staleTime: 30_000,
+  });
+  if (detail.isPending) return <Spinner label="Loading details" />;
+  if (detail.isError) {
+    return <ReadError switchId={switchId} message={detail.error.message} onFixed={() => detail.refetch()} />;
+  }
+  const obj = detail.data?.data ?? {};
+  return (
+    <dl
+      style={{
+        margin: 0,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '16px 24px',
+      }}
+    >
+      {fields.map((f) => (
+        <div key={f.label} style={{ minWidth: 0 }}>
+          <dt
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: 'var(--color-muted)',
+              marginBottom: 4,
+            }}
+          >
+            {f.label}
+          </dt>
+          <dd style={{ margin: 0, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {f.value(obj)}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 export function ResourceList<T extends object>({
   switchId,
   path,
