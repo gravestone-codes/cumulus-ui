@@ -867,6 +867,154 @@ export function ReconnectModal({
   );
 }
 
+/* SelectMenu: custom dropdown (button + portal menu), never the native
+   select. Selected option carries a check; the menu flips upward near the
+   viewport bottom. One trigger style everywhere (page size, operators). */
+export function SelectMenu({
+  label,
+  value,
+  options,
+  onChange,
+  width = 160,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  width?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    const onDoc = (e: MouseEvent) => {
+      if (!btnRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  function toggle(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+    setOpen((o) => !o);
+  }
+
+  const current = options.find((o) => o.value === value);
+  const height = options.length * 36 + 12;
+  const flipUp = rect ? rect.bottom + height + 8 > window.innerHeight : false;
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={toggle}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          background: 'var(--color-surface-2)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 8,
+          color: 'var(--color-text)',
+          cursor: 'pointer',
+          font: 'inherit',
+          fontSize: 13,
+          padding: '6px 10px',
+          outline: 'none',
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {current?.label ?? value}
+        </span>
+        <span aria-hidden="true" style={{ color: 'var(--color-muted)', fontSize: 11, lineHeight: 1 }}>
+          {open ? '⌃' : '⌄'}
+        </span>
+      </button>
+      {open &&
+        rect &&
+        createPortal(
+          <div
+            role="listbox"
+            aria-label={label}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              width,
+              top: flipUp ? rect.top - height - 6 : rect.bottom + 6,
+              left: Math.min(Math.max(8, rect.left), window.innerWidth - width - 8),
+              zIndex: 70,
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 12,
+              padding: 6,
+              boxShadow: '0 16px 40px rgba(0,0,0,.5)',
+              maxHeight: 320,
+              overflowY: 'auto',
+            }}
+          >
+            {options.map((o) => {
+              const selected = o.value === value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    if (!selected) onChange(o.value);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    width: '100%',
+                    textAlign: 'left',
+                    background: selected ? 'var(--color-surface-2)' : 'transparent',
+                    border: 'none',
+                    borderRadius: 6,
+                    color: 'var(--color-text)',
+                    cursor: 'pointer',
+                    font: 'inherit',
+                    fontSize: 14,
+                    fontWeight: selected ? 700 : 400,
+                    padding: '8px 10px',
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 16,
+                      color: selected ? 'var(--color-brand)' : 'transparent',
+                      fontSize: 13,
+                    }}
+                  >
+                    ✓
+                  </span>
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
 /* RowMenu: kebab trigger per table row, menu through a portal (never
    clipped by table overflow). Flips upward near the viewport bottom.
    Items carry danger/disabled/title — same contract as GRG's RowMenu. */

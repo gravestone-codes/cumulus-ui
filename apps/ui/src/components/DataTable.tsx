@@ -9,7 +9,7 @@ import { useColumnPrefs } from '../lib/columnPrefs.js';
 import { PAGE_SIZES, usePagination, type PageSize } from '../lib/pagination.js';
 import ColumnFilter, { filterActive, matchesFilter, type ColumnFilterState } from './ColumnFilter.js';
 import ColumnsButton from './ColumnsButton.js';
-import { RowMenu, Spinner, type RowMenuItem } from './ui.js';
+import { RowMenu, SelectMenu, Spinner, type RowMenuItem } from './ui.js';
 
 export interface GridColumn<T> {
   key: string;
@@ -234,50 +234,21 @@ export function DataTable<T extends object>({
             }}
           >
             <span>
-              {pagination.start + 1}–{Math.min(pagination.start + pagination.pageSize, pagination.total)} of{' '}
-              {pagination.total}
+              <strong style={{ color: 'var(--color-text)', fontWeight: 700 }}>
+                {pagination.start + 1}–{Math.min(pagination.start + pagination.pageSize, pagination.total)}
+              </strong>{' '}
+              of {pagination.total}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 12 }}>Rows per page</span>
-                <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                  <select
-                    aria-label="Rows per page"
-                    value={String(pagination.pageSize)}
-                    onChange={(e) => pagination.setPageSize(Number(e.target.value) as PageSize)}
-                    style={{
-                      appearance: 'none',
-                      WebkitAppearance: 'none',
-                      background: 'var(--color-surface-2)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: 8,
-                      color: 'var(--color-text)',
-                      font: 'inherit',
-                      fontSize: 13,
-                      padding: '6px 28px 6px 10px',
-                      outline: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {PAGE_SIZES.map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      right: 10,
-                      pointerEvents: 'none',
-                      color: 'var(--color-muted)',
-                      fontSize: 11,
-                    }}
-                  >
-                    ⌄
-                  </span>
-                </span>
+                <SelectMenu
+                  label="Rows per page"
+                  value={String(pagination.pageSize)}
+                  options={PAGE_SIZES.map((n) => ({ value: String(n), label: String(n) }))}
+                  onChange={(v) => pagination.setPageSize(Number(v) as PageSize)}
+                  width={120}
+                />
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <button

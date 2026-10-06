@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { SelectMenu } from './ui.js';
 
 export type FilterOp = 'includes' | 'is' | 'isNot' | 'isOneOf';
 
@@ -151,29 +152,15 @@ export default function ColumnFilter({
             <label style={{ display: 'block', fontSize: 12, color: 'var(--color-muted)', marginBottom: 6 }}>
               Operator
             </label>
-            <select
-              aria-label="Operator"
-              value={f.op}
-              onChange={(e) => onChange({ ...f, op: e.target.value as FilterOp })}
-              style={{
-                width: '100%',
-                background: 'var(--color-surface-2)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 8,
-                color: 'var(--color-text)',
-                font: 'inherit',
-                fontSize: 13,
-                padding: '8px 10px',
-                outline: 'none',
-                marginBottom: 10,
-              }}
-            >
-              {OPS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <div style={{ marginBottom: 10 }}>
+              <SelectMenu
+                label="Operator"
+                value={f.op}
+                options={OPS.map((o) => ({ value: o.value, label: o.label }))}
+                onChange={(v) => onChange({ ...f, op: v as FilterOp })}
+                width={200}
+              />
+            </div>
             {f.op === 'isOneOf' ? (
               <>
                 <span className="lf" style={{ display: 'flex', marginBottom: 8 }}>
