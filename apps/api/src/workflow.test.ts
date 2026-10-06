@@ -460,4 +460,53 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       await app.close();
     }
   });
+
+  it('stage survives a newborn-token 401 without minting again', async () => {
+    let firstRevision = true;
+    const fakeG = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (req.method === 'POST' && url.pathname === '/nvue_v1/revision') {
+        if (firstRevision) {
+          firstRevision = false;
+          json(res, 401, { message: 'too new' });
+        } else json(res, 201, { rev: 'NG1' });
+      } else if (req.method === 'GET' && url.pathname === '/nvue_v1/interface/swp1') {
+        json(res, 200, { state: 'up' });
+      } else if (req.method === 'PATCH' && url.pathname === '/nvue_v1/interface/swp1') {
+        json(res, 200, {});
+      } else json(res, 404, { message: 'nope' });
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES ('swg', 't', $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fakeG.baseUrl, fakeG.pin, fakeG.caPem],
+    );
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool, 'wf-grace', { appRoles: ['net-operator'] });
+    setSwitchToken('wf-grace', 'swg', 'stub-jwt');
+    const api = request(app.server);
+    try {
+      const opened = await api.post('/api/v1/switches/swg/branch').set('Cookie', cookie);
+      expect(opened.status).toBe(200);
+      expect(opened.body.branch).toBe('NG1');
+      const staged = await api
+        .post('/api/v1/switches/swg/stage')
+        .set('Cookie', cookie)
+        .send({ path: '/interface/swp1', method: 'PATCH', body: { description: 'grace' } });
+      expect(staged.status).toBe(200);
+      // No mint happened: the fake has no api-token route, so any mint attempt
+      // would have failed the open. Same-token grace carried the write path.
+      expect(fakeG.hits.some((h) => h.includes('/nvue_v1/api-token'))).toBe(false);
+      await api.delete('/api/v1/switches/swg/branch').set('Cookie', cookie);
+    } finally {
+      dropUserTokens('wf-grace');
+      await pool.query(`DELETE FROM sessions WHERE user_sub = 'wf-grace'`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub = 'wf-grace'`);
+      await pool.query(`DELETE FROM edit_sessions WHERE user_sub = 'wf-grace'`);
+      await pool.query('DELETE FROM switches WHERE id = $1', ['swg']);
+      await fakeG.close();
+      await app.close();
+    }
+  });
 });

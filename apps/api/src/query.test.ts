@@ -108,6 +108,100 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
     }
   });
 
+  it('a brand-new token rejected on first use is retried, not replaced', async () => {
+    const pool2: PoolType = new Pool({ connectionString: process.env.DATABASE_URL });
+    const seen = new Set<string>();
+    const fake = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (url.pathname === '/nvue_v1/api-token') {
+        json(res, 200, { token: 'fresh-jwt' });
+      } else if (url.pathname === '/nvue_v1/interface') {
+        const auth = req.headers.authorization ?? '';
+        if (seen.has(auth)) json(res, 200, { swp1: {} });
+        else {
+          seen.add(auth);
+          json(res, 401, { message: 'too new' });
+        }
+      } else {
+        json(res, 404, { message: 'nope' });
+      }
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES ('swn', 't', $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fake.baseUrl, fake.pin, fake.caPem],
+    );
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool2, 'qw-new', { appRoles: ['net-operator'] });
+    await setSwitchCredential('qw-new', 'swn', 'cumulus', 's3cret', CFG.credKey);
+    const api = request(app.server);
+    try {
+      const res = await api
+        .get('/api/v1/switches/swn/query')
+        .set('Cookie', cookie)
+        .query({ path: '/interface' });
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual({ swp1: {} });
+      const mints = fake.hits.filter((h) => h.includes('/nvue_v1/api-token'));
+      expect(mints).toHaveLength(1);
+    } finally {
+      dropUserTokens('qw-new');
+      await pool2.query(`DELETE FROM sessions WHERE user_sub = 'qw-new'`);
+      await pool2.query(`DELETE FROM user_roles WHERE user_sub = 'qw-new'`);
+      await pool2.query(`DELETE FROM switch_credentials WHERE user_sub = 'qw-new'`);
+      await pool2.query(`DELETE FROM users WHERE id = 'qw-new'`);
+      await pool2.query('DELETE FROM switches WHERE id = $1', ['swn']);
+      await pool2.end();
+      await fake.close();
+      await app.close();
+    }
+  });
+
+  it('a 401 that persists still reaches the client as 401 after one replacement', async () => {
+    const pool2: PoolType = new Pool({ connectionString: process.env.DATABASE_URL });
+    const fake = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (url.pathname === '/nvue_v1/api-token') {
+        json(res, 200, { token: 'fresh-jwt' });
+      } else if (url.pathname === '/nvue_v1/interface') {
+        json(res, 401, { message: 'nope' });
+      } else {
+        json(res, 404, { message: 'nope' });
+      }
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES ('swp', 't', $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fake.baseUrl, fake.pin, fake.caPem],
+    );
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool2, 'qw-old', { appRoles: ['net-operator'] });
+    await setSwitchCredential('qw-old', 'swp', 'cumulus', 's3cret', CFG.credKey);
+    setSwitchToken('qw-old', 'swp', 'stale-jwt');
+    const api = request(app.server);
+    try {
+      const res = await api
+        .get('/api/v1/switches/swp/query')
+        .set('Cookie', cookie)
+        .query({ path: '/interface' });
+      expect(res.status).toBe(401);
+      const mints = fake.hits.filter((h) => h.includes('/nvue_v1/api-token'));
+      expect(mints).toHaveLength(1);
+    } finally {
+      dropUserTokens('qw-old');
+      await pool2.query(`DELETE FROM sessions WHERE user_sub = 'qw-old'`);
+      await pool2.query(`DELETE FROM user_roles WHERE user_sub = 'qw-old'`);
+      await pool2.query(`DELETE FROM switch_credentials WHERE user_sub = 'qw-old'`);
+      await pool2.query(`DELETE FROM users WHERE id = 'qw-old'`);
+      await pool2.query('DELETE FROM switches WHERE id = $1', ['swp']);
+      await pool2.end();
+      await fake.close();
+      await app.close();
+    }
+  }, 20000);
+
   it('a switch-side 401 drops the dead token, re-mints, and retries once', async () => {
     const pool2: PoolType = new Pool({ connectionString: process.env.DATABASE_URL });
     const fake = await startFakeNvue((req, res) => {

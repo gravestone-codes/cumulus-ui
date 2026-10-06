@@ -11,6 +11,8 @@ interface Entry {
   jwt: string;
   /** Epoch seconds; 0 when the token carries no exp. */
   exp: number;
+  /** Local ms timestamp of the mint — drives the new-token grace rule. */
+  mintedAt: number;
 }
 
 const store = new Map<string, Entry>();
@@ -31,7 +33,13 @@ export function expiryOf(jwt: string): number {
 
 /** Store a freshly minted JWT. Overwrites any previous entry for the pair. */
 export function setSwitchToken(userSub: string, switchId: string, jwt: string): void {
-  store.set(key(userSub, switchId), { jwt, exp: expiryOf(jwt) });
+  store.set(key(userSub, switchId), { jwt, exp: expiryOf(jwt), mintedAt: Date.now() });
+}
+
+/** Ms since the cached token was minted. Null when no token is cached. */
+export function switchTokenAgeMs(userSub: string, switchId: string): number | null {
+  const entry = store.get(key(userSub, switchId));
+  return entry ? Date.now() - entry.mintedAt : null;
 }
 
 /** Get a live JWT, or null when missing/expired (expired entries are dropped). */

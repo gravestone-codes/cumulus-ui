@@ -3,12 +3,12 @@
  * interface counts, liveness, recent activity, traffic placeholder. Same
  * Card/Stat language as the fleet dashboard; every number is live.
  */
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { Alert, AppShell, Button, NavRail, ReconnectModal, usePinnedRail } from '../components/ui.js';
+import { Alert, AppShell, NavRail, usePinnedRail } from '../components/ui.js';
 import { Card, Stat, StatRow } from '../components/cards.js';
+import { ReadError } from '../components/resource.js';
 import { ActivityList } from '../components/activity.js';
 import { timeAgo } from '../lib/format.js';
 import { switchNav } from '../lib/nav.js';
@@ -32,7 +32,6 @@ export function SwitchHome() {
     queryFn: () => api.audit(6, switchId),
     retry: false,
   });
-  const [reconnectOpen, setReconnectOpen] = useState(false);
   async function logout() {
     await api.logout();
     navigate('/login', { replace: true });
@@ -83,16 +82,14 @@ export function SwitchHome() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
         <Card title="Interfaces">
           {ifaces.isError ? (
-            <div style={{ display: 'grid', gap: 10 }}>
-              <p style={{ fontSize: 14, color: 'var(--color-fail)', margin: 0 }}>
-                Unreadable: {ifaces.error.message}
-              </p>
-              <div>
-                <Button auto variant="secondary" onClick={() => setReconnectOpen(true)}>
-                  Reconnect switch
-                </Button>
-              </div>
-            </div>
+            <ReadError
+              switchId={switchId}
+              message={ifaces.error.message}
+              onFixed={() => {
+                queryClient.invalidateQueries({ queryKey: ['resource', switchId] });
+                queryClient.invalidateQueries({ queryKey: ['switches'] });
+              }}
+            />
           ) : ifaces.isPending ? (
             <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
           ) : (
@@ -138,15 +135,6 @@ export function SwitchHome() {
           </div>
         </Card>
       </div>
-      <ReconnectModal
-        switchId={switchId}
-        open={reconnectOpen}
-        onClose={() => setReconnectOpen(false)}
-        onDone={() => {
-          queryClient.invalidateQueries({ queryKey: ['resource', switchId] });
-          queryClient.invalidateQueries({ queryKey: ['switches'] });
-        }}
-      />
     </AppShell>
   );
 }

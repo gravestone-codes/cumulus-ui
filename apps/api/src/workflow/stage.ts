@@ -5,7 +5,7 @@
  */
 import { gateCheck, mayAccessSwitch, type Role } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
-import { clientFor } from '../nvue/clients.js';
+import { withSwitchToken } from '../nvue/clients.js';
 import { addStagedPath, getEditSession } from './branches.js';
 import type { Switch } from '../inventory/store.js';
 
@@ -45,12 +45,16 @@ export async function stageChange(
   }
   const session = await getEditSession(ctx.sub, sw.id);
   if (!session) throw new StageError(409, 'no open branch — open one first');
-  const { client, token } = await clientFor(ctx.sub, sw.id, { credKey: ctx.credKey });
-  const before = await client
-    .call({ path: call.path, method: 'GET', token })
-    .then((r) => r.data)
-    .catch(() => null);
-  await client.call({ path: call.path, method: call.method, rev: session.branch, body: call.body, token });
+  const run = { credKey: ctx.credKey };
+  const before = await withSwitchToken(ctx.sub, sw.id, run, (client, token) =>
+    client
+      .call({ path: call.path, method: 'GET', token })
+      .then((r) => r.data)
+      .catch(() => null),
+  );
+  await withSwitchToken(ctx.sub, sw.id, run, (client, token) =>
+    client.call({ path: call.path, method: call.method, rev: session.branch, body: call.body, token }),
+  );
   await addStagedPath(ctx.sub, sw.id, {
     path: call.path,
     method: call.method,

@@ -4,7 +4,7 @@
  * 409 — conscious discard only, never silent divergence.
  */
 import { db } from '../db.js';
-import { clientFor } from '../nvue/clients.js';
+import { withSwitchToken } from '../nvue/clients.js';
 import { createBranch } from '../nvue/revisions.js';
 
 export interface StagedPath {
@@ -68,8 +68,12 @@ export async function openBranch(
 ): Promise<EditSession> {
   const existing = await getEditSession(userSub, switchId);
   if (existing && existing.staged.length > 0) throw new BranchConflictError(existing.branch);
-  const { client, token } = await clientFor(userSub, switchId, { credKey: opts?.credKey });
-  const { branch, baseRev } = await createBranch(client, token);
+  const { branch, baseRev } = await withSwitchToken(
+    userSub,
+    switchId,
+    { credKey: opts?.credKey },
+    (client, token) => createBranch(client, token),
+  );
   await db().query(
     `INSERT INTO edit_sessions (user_sub, switch_id, branch, base_rev, staged_paths, updated_at)
      VALUES ($1, $2, $3, $4, '[]', now())
@@ -98,13 +102,14 @@ export async function discardBranch(
   await db().query('DELETE FROM edit_sessions WHERE user_sub = $1 AND switch_id = $2', [userSub, switchId]);
   if (!existing) return { switchDiscarded: false };
   try {
-    const { client, token } = await clientFor(userSub, switchId, { credKey: opts?.credKey });
     // DELETE-revision shape unconfirmed on hardware (M1 validates) — failure stays best-effort.
-    await client.call({
-      path: `/revision/${encodeURIComponent(existing.branch)}`,
-      method: 'DELETE',
-      token,
-    });
+    await withSwitchToken(userSub, switchId, { credKey: opts?.credKey }, (client, token) =>
+      client.call({
+        path: `/revision/${encodeURIComponent(existing.branch)}`,
+        method: 'DELETE',
+        token,
+      }),
+    );
     return { switchDiscarded: true };
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {

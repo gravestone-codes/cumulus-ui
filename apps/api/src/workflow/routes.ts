@@ -10,7 +10,7 @@ import { type AuthConfig } from '../auth/config.js';
 import { resolveCaller } from '../auth/caller.js';
 import { gateCheck, getUserRoles, mayAccessSwitch } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
-import { clientFor } from '../nvue/clients.js';
+import { withSwitchToken } from '../nvue/clients.js';
 import { getSwitch, markSeen } from '../inventory/store.js';
 import { BranchConflictError, discardBranch, getEditSession, openBranch } from './branches.js';
 import { heartbeat, presentOthers } from './presence.js';
@@ -208,8 +208,9 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
     const { id, jobId } = request.params as { id: string; jobId: string };
     try {
-      const { client, token } = await clientFor(who.sub, id, { credKey: cfg.credKey });
-      const job = await getAction(client, token, jobId);
+      const job = await withSwitchToken(who.sub, id, { credKey: cfg.credKey }, (client, token) =>
+        getAction(client, token, jobId),
+      );
       return job;
     } catch (err) {
       return switchProblem(reply, err, request.url);
@@ -269,8 +270,10 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     const sw = await getSwitch(id);
     if (!sw) return problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
     try {
-      const { client, token } = await clientFor(who.sub, id, { credKey: cfg.credKey });
-      const { data } = await client.call({ path: '/system', method: 'GET', token });
+      const res = await withSwitchToken(who.sub, id, { credKey: cfg.credKey }, (client, token) =>
+        client.call({ path: '/system', method: 'GET', token }),
+      );
+      const { data } = res;
       await markSeen(id, true);
       return { ok: true, switch: id, data };
     } catch (err) {
@@ -286,8 +289,9 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     const session = await getEditSession(who.sub, id);
     if (!session) return problem(reply, 409, 'Conflict', 'no open branch — open one first', request.url);
     try {
-      const { client, token } = await clientFor(who.sub, id, { credKey: cfg.credKey });
-      const diffs = await collectDiffs(client, token, session.staged);
+      const diffs = await withSwitchToken(who.sub, id, { credKey: cfg.credKey }, (client, token) =>
+        collectDiffs(client, token, session.staged),
+      );
       return { branch: session.branch, baseRev: session.baseRev, diffs };
     } catch (err) {
       return switchProblem(reply, err, request.url);

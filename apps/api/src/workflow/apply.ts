@@ -5,7 +5,7 @@
  * D365-style OCC with path-level granularity (finer than whole-record).
  */
 import { db } from '../db.js';
-import { clientFor } from '../nvue/clients.js';
+import { withSwitchToken } from '../nvue/clients.js';
 import { applyBranch as applyRevision, getAction } from '../nvue/revisions.js';
 import { jsonEqual } from '../lib/json.js';
 import { audit } from '../audit/store.js';
@@ -117,11 +117,12 @@ export async function pollJob(
   jobId: string,
   opts: { intervalMs?: number; timeoutMs?: number; credKey?: string } = {},
 ): Promise<string> {
-  const { client, token } = await clientFor(userSub, switchId, { credKey: opts.credKey });
   const interval = opts.intervalMs ?? 2000;
   const deadline = Date.now() + (opts.timeoutMs ?? 300_000);
   for (;;) {
-    const job = await getAction(client, token, jobId);
+    const job = await withSwitchToken(userSub, switchId, { credKey: opts.credKey }, (client, token) =>
+      getAction(client, token, jobId),
+    );
     const state = job.state.toLowerCase();
     if (SUCCESS.has(state)) return job.state;
     if (FAILURE.has(state)) throw new Error(`apply job ${jobId} failed: ${job.state}`);
@@ -149,15 +150,18 @@ export async function applySession(
     if (!session || session.staged.length === 0) {
       throw Object.assign(new Error('nothing staged — stage changes first'), { status: 409 });
     }
-    const { client, token } = await clientFor(ctx.sub, switchId, { credKey: ctx.credKey });
-
-    const diffs = await collectDiffs(client, token, session.staged);
+    const run = { credKey: ctx.credKey };
+    const diffs = await withSwitchToken(ctx.sub, switchId, run, (client, token) =>
+      collectDiffs(client, token, session.staged),
+    );
     const conflicts: Conflict[] = diffs
       .filter((d) => d.state === 'conflict')
       .map(({ path, method, before, mine, current }) => ({ path, method, before, mine, current }));
     if (conflicts.length > 0) throw new OverlapError(conflicts);
 
-    const { jobId } = await applyRevision(client, token, session.branch);
+    const { jobId } = await withSwitchToken(ctx.sub, switchId, run, (client, token) =>
+      applyRevision(client, token, session.branch),
+    );
     if (jobId) await pollJob(ctx.sub, switchId, jobId, opts);
     await db().query('DELETE FROM edit_sessions WHERE user_sub = $1 AND switch_id = $2', [ctx.sub, switchId]);
     const result = { applied: true, jobId, paths: session.staged.map((s) => s.path) };
