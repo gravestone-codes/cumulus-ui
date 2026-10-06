@@ -7,7 +7,14 @@
 import { useMemo, useState } from 'react';
 import { useColumnPrefs } from '../lib/columnPrefs.js';
 import { PAGE_SIZES, usePagination, type PageSize } from '../lib/pagination.js';
-import ColumnFilter, { filterActive, matchesFilter, type ColumnFilterState } from './ColumnFilter.js';
+import ColumnFilter from './ColumnFilter.js';
+import {
+  applySearchFilterSort,
+  cycleSort,
+  type ColumnFilterState,
+  type TableColumn,
+  type TableSort,
+} from '../lib/table.js';
 import ColumnsButton from './ColumnsButton.js';
 import { RowMenu, SelectMenu, Spinner, type RowMenuItem } from './ui.js';
 
@@ -19,8 +26,6 @@ export interface GridColumn<T> {
   value: (row: T) => string;
   render?: (row: T) => React.ReactNode;
 }
-
-type Sort = { key: string; dir: 'asc' | 'desc' } | null;
 
 const thStyle: React.CSSProperties = {
   textAlign: 'left',
@@ -62,18 +67,14 @@ export function DataTable<T extends object>({
   const byKey = useMemo(() => new Map(cols.map((c) => [c.key, c])), [cols]);
   const { prefs, visibleKeys, toggle, move, reset } = useColumnPrefs(`${storageKey}.columns`, catalog);
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<Sort>(() => {
+  const [sort, setSort] = useState<TableSort>(() => {
     const first = cols.find((c) => c.sortable !== false);
     return first ? { key: first.key, dir: 'asc' } : null;
   });
   const [filters, setFilters] = useState<Partial<Record<string, ColumnFilterState>>>({});
 
   function onSort(key: string) {
-    setSort((s) => {
-      if (s?.key !== key) return { key, dir: 'asc' };
-      if (s.dir === 'asc') return { key, dir: 'desc' };
-      return null;
-    });
+    setSort((s) => cycleSort(s, key));
   }
 
   const distinctValues = (key: string): string[] => {
@@ -82,25 +83,15 @@ export function DataTable<T extends object>({
     return Array.from(new Set(rows.map((r) => col.value(r)).filter((v) => v !== ''))).sort();
   };
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const out = rows.filter((r) => {
-      for (const [key, f] of Object.entries(filters)) {
-        if (!f || !filterActive(f)) continue;
-        const col = byKey.get(key);
-        if (col && !matchesFilter(col.value(r), f)) return false;
-      }
-      if (!q) return true;
-      return visibleKeys.some((k) => byKey.get(k)?.value(r).toLowerCase().includes(q));
-    });
-    if (!sort) return out;
-    const col = byKey.get(sort.key);
-    if (!col) return out;
-    const dir = sort.dir === 'asc' ? 1 : -1;
-    return [...out].sort(
-      (a, b) => col.value(a).localeCompare(col.value(b), undefined, { numeric: true }) * dir,
-    );
-  }, [rows, filters, search, sort, byKey, visibleKeys]);
+  const colTable = useMemo(() => {
+    const m = new Map<string, TableColumn<T>>();
+    for (const [key, col] of byKey) m.set(key, { key, value: col.value });
+    return m;
+  }, [byKey]);
+  const filtered = useMemo(
+    () => applySearchFilterSort(rows, colTable, visibleKeys, search, filters, sort),
+    [rows, colTable, visibleKeys, search, filters, sort],
+  );
 
   const pagination = usePagination(filtered, `${storageKey}.page`);
 
@@ -111,7 +102,7 @@ export function DataTable<T extends object>({
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 32 }}>
         <span className="lf" style={{ display: 'flex', flex: 1, maxWidth: 320 }}>
           <input
             aria-label="Search"

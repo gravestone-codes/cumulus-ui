@@ -107,7 +107,16 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
   if (existsSync(publicDir)) {
     // wildcard:false — our own /* route below owns SPA fallback so /api/*
     // unknowns still reach the problem+json 404 handler.
-    await app.register(fastifyStatic, { root: publicDir, wildcard: false });
+    // Immutable hashed assets cache hard; index.html never caches — otherwise
+    // browsers keep running a stale bundle after deploys.
+    await app.register(fastifyStatic, {
+      root: publicDir,
+      wildcard: false,
+      setHeaders: (reply, path) => {
+        if (path.endsWith('index.html')) reply.header('Cache-Control', 'no-cache');
+        else reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+      },
+    });
     app.get('/*', (request, reply) => {
       if (request.url.startsWith('/api/')) return reply.callNotFound();
       return reply.sendFile('index.html');

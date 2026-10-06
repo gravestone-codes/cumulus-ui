@@ -7,14 +7,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { SelectMenu } from './ui.js';
-
-export type FilterOp = 'includes' | 'is' | 'isNot' | 'isOneOf';
-
-export interface ColumnFilterState {
-  op: FilterOp;
-  value: string;
-  values: string[];
-}
+import { filterActive } from '../lib/table.js';
+import type { ColumnFilterState, FilterOp } from '../lib/table.js';
 
 const DEFAULT_FILTER: ColumnFilterState = { op: 'includes', value: '', values: [] };
 
@@ -26,21 +20,6 @@ const OPS: Array<{ value: FilterOp; label: string }> = [
 ];
 
 /** A filter narrows only once it carries the value(s) it needs. */
-export function filterActive(f: ColumnFilterState | undefined): boolean {
-  if (!f) return false;
-  if (f.op === 'isOneOf') return f.values.length > 0;
-  return f.value.trim().length > 0;
-}
-
-export function matchesFilter(text: string, f: ColumnFilterState): boolean {
-  const t = text.toLowerCase();
-  if (f.op === 'isOneOf') return f.values.length === 0 || f.values.some((v) => v.toLowerCase() === t);
-  const v = f.value.trim().toLowerCase();
-  if (!v) return true;
-  if (f.op === 'includes') return t.includes(v);
-  if (f.op === 'is') return t === v;
-  return t !== v;
-}
 
 const PANEL_W = 264;
 

@@ -11,6 +11,7 @@ import type { SwitchRow } from '../lib/api.js';
 import { Alert, Button, Confirm, EmptyState, PromptModal, useToast } from '../components/ui.js';
 import { DataTable } from '../components/DataTable.js';
 import type { GridColumn } from '../components/DataTable.js';
+import { timeAgo } from '../lib/format.js';
 import { GlobalShell } from './GlobalShell.js';
 
 export function Switches() {
@@ -51,7 +52,7 @@ export function Switches() {
       label: 'Reachable',
       value: (r) => (r.last_check_ok === true ? 'Yes' : r.last_check_ok === false ? 'No' : 'Unknown'),
     },
-    { key: 'seen', label: 'Last seen', value: (r) => r.last_seen_at ?? '—' },
+    { key: 'seen', label: 'Last seen', value: (r) => timeAgo(r.last_seen_at) },
   ];
 
   function rowMenu(row: SwitchRow) {
