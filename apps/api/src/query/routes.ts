@@ -13,6 +13,7 @@ import { resolveCaller } from '../auth/caller.js';
 import { gateCheck, getUserRoles, mayAccessSwitch } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
 import { getSwitch } from '../inventory/store.js';
+import { dropSwitchToken } from '../switchauth/sessions.js';
 import { clientFor } from '../nvue/clients.js';
 import { GuardError } from '../nvue/guard.js';
 
@@ -58,15 +59,31 @@ export async function queryRoutes(app: FastifyInstance, deps: { cfg: AuthConfig 
       return problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
     }
     try {
-      const { client, token } = await clientFor(who.sub, id, { credKey: cfg.credKey });
-      const { data } = await client.call({
-        path: parsed.data.path,
-        method: 'GET',
-        rev: parsed.data.rev,
-        view: parsed.data.view,
-        token,
-      });
-      return { data };
+      const first = await clientFor(who.sub, id, { credKey: cfg.credKey });
+      try {
+        const { data } = await first.client.call({
+          path: parsed.data.path,
+          method: 'GET',
+          rev: parsed.data.rev,
+          view: parsed.data.view,
+          token: first.token,
+        });
+        return { data };
+      } catch (callErr) {
+        // The switch rejected the cached token (reboot, rotation, password
+        // change): drop it, mint fresh from the sealed credential, retry once.
+        if ((callErr as { status?: number }).status !== 401) throw callErr;
+        dropSwitchToken(who.sub, id);
+        const retry = await clientFor(who.sub, id, { credKey: cfg.credKey });
+        const { data } = await retry.client.call({
+          path: parsed.data.path,
+          method: 'GET',
+          rev: parsed.data.rev,
+          view: parsed.data.view,
+          token: retry.token,
+        });
+        return { data };
+      }
     } catch (err) {
       if (err instanceof GuardError) return problem(reply, 400, 'Bad Request', err.message, request.url);
       const status = (err as { status?: number }).status;

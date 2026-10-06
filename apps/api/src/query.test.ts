@@ -108,6 +108,51 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
     }
   });
 
+  it('a switch-side 401 drops the dead token, re-mints, and retries once', async () => {
+    const pool2: PoolType = new Pool({ connectionString: process.env.DATABASE_URL });
+    const fake = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (url.pathname === '/nvue_v1/api-token') {
+        json(res, 200, { token: 'fresh-jwt' });
+      } else if (url.pathname === '/nvue_v1/interface') {
+        if (req.headers.authorization === 'Bearer fresh-jwt') json(res, 200, { swp1: {} });
+        else json(res, 401, { message: 'bad token' });
+      } else {
+        json(res, 404, { message: 'nope' });
+      }
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES ('swr', 't', $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fake.baseUrl, fake.pin, fake.caPem],
+    );
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool2, 'qw-retry', { appRoles: ['net-operator'] });
+    await setSwitchCredential('qw-retry', 'swr', 'cumulus', 's3cret', CFG.credKey);
+    // Opaque token: treated as live, but the switch rejects it.
+    setSwitchToken('qw-retry', 'swr', 'stale-jwt');
+    const api = request(app.server);
+    try {
+      const res = await api
+        .get('/api/v1/switches/swr/query')
+        .set('Cookie', cookie)
+        .query({ path: '/interface' });
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual({ swp1: {} });
+    } finally {
+      dropUserTokens('qw-retry');
+      await pool2.query(`DELETE FROM sessions WHERE user_sub = 'qw-retry'`);
+      await pool2.query(`DELETE FROM user_roles WHERE user_sub = 'qw-retry'`);
+      await pool2.query(`DELETE FROM switch_credentials WHERE user_sub = 'qw-retry'`);
+      await pool2.query(`DELETE FROM users WHERE id = 'qw-retry'`);
+      await pool2.query('DELETE FROM switches WHERE id = $1', ['swr']);
+      await pool2.end();
+      await fake.close();
+      await app.close();
+    }
+  });
+
   it('silently re-mints an expired switch token from the sealed credential', async () => {
     const pool2: PoolType = new Pool({ connectionString: process.env.DATABASE_URL });
     const fake = await startFakeNvue((req, res) => {
