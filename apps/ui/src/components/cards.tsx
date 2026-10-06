@@ -154,6 +154,7 @@ export function StatRow({ children, columns }: { children: ReactNode[]; columns?
         display: 'grid',
         gridTemplateColumns: n > 0 ? `repeat(${n}, minmax(0, 1fr))` : 'repeat(auto-fit, minmax(110px, 1fr))',
         columnGap: 0,
+        rowGap: 20,
       }}
     >
       {tiles.map((tile, i) => (

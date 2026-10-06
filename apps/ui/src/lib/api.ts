@@ -215,6 +215,14 @@ export const api = {
       `/api/v1/switches/${encodeURIComponent(switchId)}/interfaces/${encodeURIComponent(iface)}/history?${qs}`,
     );
   },
+  switchTraffic: (switchId: string, opts: { range?: string; metric?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.range) qs.set('range', opts.range);
+    if (opts.metric) qs.set('metric', opts.metric);
+    return request<{ range: string; metric: string; points: Array<{ t: string; in: number; out: number }> }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/traffic?${qs}`,
+    );
+  },
   audit: (limit = 8, sw?: string) => {
     const qs = new URLSearchParams({ limit: String(limit) });
     if (sw) qs.set('switch', sw);

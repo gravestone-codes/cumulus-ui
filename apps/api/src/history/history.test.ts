@@ -139,6 +139,14 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
       expect(custom.status).toBe(200);
       expect(custom.body.points.length).toBeGreaterThan(0);
 
+      const agg = await api
+        .get('/api/v1/switches/sh1/traffic?range=24h&metric=bytes')
+        .set('Cookie', cookie);
+      expect(agg.status).toBe(200);
+      expect(agg.body.points.length).toBeGreaterThan(0);
+      expect(agg.body.points[0]).toHaveProperty('in');
+      expect(agg.body.points[0]).toHaveProperty('out');
+
       const flipped = await api
         .get(
           `/api/v1/switches/sh1/interfaces/swp1/history?from=${encodeURIComponent(now.toISOString())}&to=${encodeURIComponent(dayAgo)}`,

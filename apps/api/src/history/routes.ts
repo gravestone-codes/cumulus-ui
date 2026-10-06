@@ -28,6 +28,11 @@ const Query = z.object({
   to: z.string().datetime({ offset: true }).optional(),
 });
 
+const TrafficQuery = z.object({
+  range: z.enum(HISTORY_RANGES).default('24h'),
+  metric: z.enum(HISTORY_METRICS).default('bytes'),
+});
+
 const COLUMNS: Record<HistoryMetric, [string, string]> = {
   bytes: ['in_bytes', 'out_bytes'],
   packets: ['in_pkts', 'out_pkts'],
@@ -112,6 +117,40 @@ export async function historyRoutes(app: FastifyInstance, deps: { cfg: AuthConfi
       : await rawPoints(id, iface, since, until, colA, colB);
     return { range, metric, points };
   });
+
+  app.get('/api/v1/switches/:id/traffic', async (request, reply) => {
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const { id } = request.params as { id: string };
+    const parsed = TrafficQuery.safeParse(request.query);
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'range/metric invalid', request.url);
+    const sw = await getSwitch(id);
+    if (!sw) return problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
+    const roles = await getUserRoles(who.sub);
+    const roleIds = roles.map((r) => r.id);
+    if (!mayAccessSwitch(roles, sw.groups)) {
+      return problem(reply, 403, 'Forbidden', `no role covers switch ${id}`, request.url);
+    }
+    if (!gateCheck(roles, { method: 'GET', path: '/interface', switchGroups: sw.groups })) {
+      await audit({
+        userSub: who.sub,
+        username: who.username,
+        roles: roleIds,
+        switchId: id,
+        method: 'GET',
+        path: request.url,
+      });
+      return problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
+    }
+    const { range, metric } = parsed.data;
+    const [colA, colB] = COLUMNS[metric];
+    const since = new Date(Date.now() - rangeSeconds(range) * 1000);
+    const useHourly = rangeSeconds(range) > 7 * 86400;
+    const points = useHourly
+      ? await hourlyTraffic(id, since, colA, colB)
+      : await rawTraffic(id, since, colA, colB);
+    return { range, metric, points };
+  });
 }
 
 async function rawPoints(
@@ -144,6 +183,68 @@ async function hourlyPoints(
     [switchId, iface, since, until],
   );
   // Hourly rows already hold deltas: rate per bucket, stride-capped.
+  const pts: HistoryPoint[] = rows.map((r) => ({
+    t: new Date(r.hour).toISOString(),
+    in: Number(r.a) / 3600,
+    out: Number(r.b) / 3600,
+  }));
+  if (pts.length <= MAX_POINTS) return pts;
+  const stride = Math.ceil(pts.length / MAX_POINTS);
+  return pts.filter((_, i) => i % stride === 0);
+}
+
+/**
+ * Switch-wide traffic: per-tick deltas summed across interfaces, then rated.
+ * Raw ticks share one timestamp per switch poll, so grouping by ts works;
+ * hourly buckets sum cleanly. Reset-aware per interface before summing.
+ */
+async function rawTraffic(
+  switchId: string,
+  since: Date,
+  colA: string,
+  colB: string,
+): Promise<HistoryPoint[]> {
+  const { rows } = await db().query<{ ts: Date; a: string; b: string }>(
+    `WITH d AS (
+       SELECT ts,
+         ${colA} AS ca, LAG(${colA}) OVER (PARTITION BY iface ORDER BY ts) AS pa,
+         ${colB} AS cb, LAG(${colB}) OVER (PARTITION BY iface ORDER BY ts) AS pb
+       FROM interface_samples WHERE switch_id = $1 AND ts >= $2
+     )
+     SELECT ts,
+       SUM(CASE WHEN pa IS NULL THEN 0 WHEN ca >= pa THEN ca - pa ELSE ca END) AS a,
+       SUM(CASE WHEN pb IS NULL THEN 0 WHEN cb >= pb THEN cb - pb ELSE cb END) AS b
+     FROM d GROUP BY ts ORDER BY ts`,
+    [switchId, since],
+  );
+  const pts: HistoryPoint[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const t = new Date(rows[i]?.ts ?? 0).getTime();
+    const t0 = new Date(rows[i - 1]?.ts ?? 0).getTime();
+    const dt = (t - t0) / 1000;
+    if (!(dt > 0)) continue;
+    pts.push({
+      t: new Date(t).toISOString(),
+      in: Number(rows[i]?.a ?? 0) / dt,
+      out: Number(rows[i]?.b ?? 0) / dt,
+    });
+  }
+  if (pts.length <= MAX_POINTS) return pts;
+  const stride = Math.ceil(pts.length / MAX_POINTS);
+  return pts.filter((_, i) => i % stride === 0);
+}
+
+async function hourlyTraffic(
+  switchId: string,
+  since: Date,
+  colA: string,
+  colB: string,
+): Promise<HistoryPoint[]> {
+  const { rows } = await db().query<{ hour: Date; a: string; b: string }>(
+    `SELECT hour, SUM(${colA}) AS a, SUM(${colB}) AS b FROM interface_samples_hourly
+     WHERE switch_id = $1 AND hour >= $2 GROUP BY hour ORDER BY hour`,
+    [switchId, since],
+  );
   const pts: HistoryPoint[] = rows.map((r) => ({
     t: new Date(r.hour).toISOString(),
     in: Number(r.a) / 3600,

@@ -3,11 +3,13 @@
  * interface counts, liveness, recent activity, traffic placeholder. Same
  * Card/Stat language as the fleet dashboard; every number is live.
  */
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '../lib/api.js';
-import { Alert, AppShell, NavRail, usePinnedRail } from '../components/ui.js';
-import { Card, Stat, StatRow } from '../components/cards.js';
+import { Alert, AppShell, NavRail, SelectMenu, usePinnedRail } from '../components/ui.js';
+import { Card, Stat, StatRow, packets } from '../components/cards.js';
 import { ifaceState } from '../lib/format.js';
 import { ReadError } from '../components/resource.js';
 import { ActivityList } from '../components/activity.js';
@@ -126,19 +128,124 @@ export function SwitchHome() {
           )}
         </Card>
         <Card title="Packets over time">
-          <div
-            style={{
-              minHeight: 120,
-              display: 'flex',
-              alignItems: 'center',
-              color: 'var(--color-muted)',
-              fontSize: 14,
-            }}
-          >
-            Live packet trend for this switch arrives with fan-out counter reads.
-          </div>
+          <SwitchTraffic switchId={switchId} />
         </Card>
       </div>
     </AppShell>
+  );
+}
+
+/**
+ * SwitchTraffic: whole-switch bit rates summed across interfaces, with
+ * range and metric pickers (24h … 3y). Fills as the sampler backfills.
+ */
+function SwitchTraffic({ switchId }: { switchId: string }) {
+  const bps = (v: number) => `${packets(v)}bps`;
+  const pps = (v: number) => `${packets(v)}pps`;
+  const [range, setRange] = useState<'24h' | '7d' | '30d' | '1y' | '3y'>('24h');
+  const [metric, setMetric] = useState<'bytes' | 'packets'>('bytes');
+  const traffic = useQuery({
+    queryKey: ['switch-traffic', switchId, range, metric],
+    queryFn: () => api.switchTraffic(switchId, { range, metric }),
+    staleTime: 60_000,
+  });
+  const unit = metric === 'packets' ? pps : bps;
+  const points = (traffic.data?.points ?? []).map((p) => ({
+    label:
+      range === '24h'
+        ? new Date(p.t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+        : new Date(p.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    In: p.in,
+    Out: p.out,
+  }));
+  const hasOut = points.some((p) => p.Out > 0);
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <SelectMenu
+          label="Metric"
+          value={metric}
+          options={[
+            { value: 'bytes', label: 'Bytes' },
+            { value: 'packets', label: 'Packets' },
+          ]}
+          onChange={(v) => setMetric(v as 'bytes' | 'packets')}
+          width={130}
+        />
+        <SelectMenu
+          label="Range"
+          value={range}
+          options={[
+            { value: '24h', label: '24h' },
+            { value: '7d', label: '7d' },
+            { value: '30d', label: '30d' },
+            { value: '1y', label: '1y' },
+            { value: '3y', label: '3y' },
+          ]}
+          onChange={(v) => setRange(v as '24h' | '7d' | '30d' | '1y' | '3y')}
+          width={110}
+        />
+      </div>
+      {traffic.isPending ? (
+        <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading history…</p>
+      ) : traffic.isError || points.length === 0 ? (
+        <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+          No samples in this range yet — the sampler backfills from here.
+        </p>
+      ) : (
+        <div style={{ height: 224 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={points} margin={{ left: 8, right: 8 }}>
+              <defs>
+                <linearGradient id="swTrafficIn" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-pass)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--color-pass)" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="swTrafficOut" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} minTickGap={40} />
+              <YAxis
+                tickFormatter={(v) => unit(Number(v))}
+                tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+                width={64}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 12,
+                  fontSize: 13,
+                }}
+                labelStyle={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: 2 }}
+                itemStyle={{ color: 'var(--color-text)' }}
+                cursor={{ fill: 'var(--color-muted)', fillOpacity: 0.07 }}
+                formatter={(v) => unit(typeof v === 'number' ? v : Number(v))}
+              />
+              <Area
+                type="monotone"
+                dataKey="In"
+                stroke="var(--color-pass)"
+                strokeWidth={2}
+                fill="url(#swTrafficIn)"
+              />
+              {hasOut && (
+                <Area
+                  type="monotone"
+                  dataKey="Out"
+                  stroke="var(--color-brand)"
+                  strokeWidth={2}
+                  fill="url(#swTrafficOut)"
+                />
+              )}
+              <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
   );
 }
