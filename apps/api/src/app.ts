@@ -13,6 +13,7 @@ import { auditRoutes } from './audit/routes.js';
 import { workflowRoutes } from './workflow/routes.js';
 import { dashboardRoutes } from './dashboard/routes.js';
 import { queryRoutes } from './query/routes.js';
+import { historyRoutes } from './history/routes.js';
 import { specRoutes } from './spec/routes.js';
 import { fixtureRoutes } from './fixtures/routes.js';
 import { authRoutes } from './auth/routes.js';
@@ -82,6 +83,7 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
     await app.register(workflowRoutes, { cfg: auth.cfg });
     await app.register(dashboardRoutes, { cfg: auth.cfg });
     await app.register(queryRoutes, { cfg: auth.cfg });
+    await app.register(historyRoutes, { cfg: auth.cfg });
     await app.register(specRoutes, { cfg: auth.cfg });
   }
 

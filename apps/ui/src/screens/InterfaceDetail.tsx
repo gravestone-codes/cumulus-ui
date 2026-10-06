@@ -16,7 +16,9 @@ import {
   LineField,
   Modal,
   NavRail,
+  SelectMenu,
   Spinner,
+  Tabs,
   usePinnedRail,
   useToast,
 } from '../components/ui.js';
@@ -31,6 +33,7 @@ export function InterfaceDetail() {
   const { switchId = '', ifaceId = '' } = useParams();
   const navigate = useNavigate();
   const [collapsed, toggleCollapsed] = usePinnedRail('scope');
+  const [tab, setTab] = useState<'statistics' | 'config'>('statistics');
   const session = useQuery({ queryKey: ['me'], queryFn: () => api.me(), retry: false });
   async function logout() {
     await api.logout();
@@ -66,25 +69,38 @@ export function InterfaceDetail() {
         <span style={{ flex: 1 }} />
         <InterfaceEdit switchId={switchId} ifaceId={ifaceId} />
       </div>
-      <InterfaceStats switchId={switchId} path={`/interface/${ifaceId}`} />
-      <div style={{ marginTop: 24 }}>
-        <ResourceDetail
-          switchId={switchId}
-          path={`/interface/${ifaceId}`}
-          fields={[
-            { label: 'State', value: (o) => firstDefined(o, 'link/state', 'link/oper-status') ?? '—' },
-            { label: 'Admin status', value: (o) => text(getPath(o, 'link/admin-status')) },
-            { label: 'Speed', value: (o) => text(getPath(o, 'link/speed')) },
-            { label: 'MTU', value: (o) => text(getPath(o, 'link/mtu')) },
-            { label: 'MAC address', value: (o) => text(getPath(o, 'link/mac-address')) },
-            { label: 'Description', value: (o) => text(getPath(o, 'description')) },
-            { label: 'VRF', value: (o) => text(getPath(o, 'ip/vrf')) },
-            { label: 'Type', value: (o) => text(getPath(o, 'type')) },
-          ]}
-        />
-      </div>
+      <Tabs
+        tabs={[
+          { id: 'statistics', label: 'Statistics' },
+          { id: 'config', label: 'Config' },
+        ]}
+        active={tab}
+        onChange={(id) => setTab(id as 'statistics' | 'config')}
+      />
+      {tab === 'statistics' ? (
+        <InterfaceStats switchId={switchId} path={`/interface/${ifaceId}`} />
+      ) : (
+        <div>
+          <ResourceDetail
+            switchId={switchId}
+            path={`/interface/${ifaceId}`}
+            fields={[
+              { label: 'State', value: (o) => firstDefined(o, 'link/state', 'link/oper-status') ?? '—' },
+              { label: 'Admin status', value: (o) => text(getPath(o, 'link/admin-status')) },
+              { label: 'Speed', value: (o) => text(getPath(o, 'link/speed')) },
+              { label: 'MTU', value: (o) => text(getPath(o, 'link/mtu')) },
+              { label: 'MAC address', value: (o) => text(getPath(o, 'link/mac-address')) },
+              { label: 'Description', value: (o) => text(getPath(o, 'description')) },
+              { label: 'VRF', value: (o) => text(getPath(o, 'ip/vrf')) },
+              { label: 'Type', value: (o) => text(getPath(o, 'type')) },
+            ]}
+          />
+        </div>
+      )}
       <div style={{ marginTop: 16 }}>
-        <InterfaceTraffic switchId={switchId} ifaceId={ifaceId} path={`/interface/${ifaceId}`} />
+        {tab === 'statistics' && (
+          <InterfaceTraffic switchId={switchId} ifaceId={ifaceId} path={`/interface/${ifaceId}`} />
+        )}
       </div>
     </AppShell>
   );
@@ -460,6 +476,8 @@ interface TrafficSample {
   t: number;
   inB: number;
   outB: number;
+  inP?: number;
+  outP?: number;
   dr?: number;
   er?: number;
 }
@@ -506,10 +524,12 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
         const inB = counterOf(res.data, 'link/stats/in-bytes');
         const outB = counterOf(res.data, 'link/stats/out-bytes');
         if (inB === undefined || outB === undefined) return;
+        const inP = counterOf(res.data, 'link/stats/in-pkts');
+        const outP = counterOf(res.data, 'link/stats/out-pkts');
         const dr = sumOf(res.data, 'link/stats/in-drops', 'link/stats/out-drops');
         const er = sumOf(res.data, 'link/stats/in-errors', 'link/stats/out-errors');
         setSamples((prev) => {
-          const next = [...prev, { t: Date.now(), inB, outB, dr, er }].slice(-MAX_SAMPLES);
+          const next = [...prev, { t: Date.now(), inB, outB, inP, outP, dr, er }].slice(-MAX_SAMPLES);
           try {
             localStorage.setItem(keyRef.current, JSON.stringify(next));
           } catch {
@@ -529,27 +549,66 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
     };
   }, [switchId, path]);
 
-  const points: Array<{ label: string; In: number; Out: number }> = [];
-  for (let i = 1; i < samples.length; i++) {
-    const a = samples[i - 1];
-    const b = samples[i];
-    if (!a || !b) continue;
-    const dt = (b.t - a.t) / 1000;
-    const inRate = ((b.inB - a.inB) * 8) / dt;
-    const outRate = ((b.outB - a.outB) * 8) / dt;
-    if (dt <= 0 || inRate < 0 || outRate < 0) continue;
-    points.push({
-      label: new Date(b.t).toLocaleTimeString(undefined, {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      }),
-      In: Math.round(inRate),
-      Out: Math.round(outRate),
-    });
+  type HistoryRange = '24h' | '7d' | '30d' | '1y' | '3y';
+  const [range, setRange] = useState<'live' | HistoryRange>('live');
+  const [metric, setMetric] = useState<'bytes' | 'packets'>('bytes');
+  const history = useQuery({
+    queryKey: ['traffic-history', switchId, ifaceId, range, metric],
+    queryFn: () => api.history(switchId, ifaceId, range, metric),
+    enabled: range !== 'live',
+    staleTime: 60_000,
+  });
+
+  function livePoints(): Array<{ label: string; In: number; Out: number }> {
+    const pts: Array<{ label: string; In: number; Out: number }> = [];
+    for (let i = 1; i < samples.length; i++) {
+      const a = samples[i - 1];
+      const b = samples[i];
+      if (!a || !b) continue;
+      const dt = (b.t - a.t) / 1000;
+      if (dt <= 0) continue;
+      let inRate: number;
+      let outRate: number;
+      if (metric === 'packets') {
+        if (a.inP === undefined || b.inP === undefined || a.outP === undefined || b.outP === undefined) {
+          continue;
+        }
+        inRate = (b.inP - a.inP) / dt;
+        outRate = (b.outP - a.outP) / dt;
+      } else {
+        inRate = ((b.inB - a.inB) * 8) / dt;
+        outRate = ((b.outB - a.outB) * 8) / dt;
+      }
+      if (inRate < 0 || outRate < 0) continue;
+      pts.push({
+        label: new Date(b.t).toLocaleTimeString(undefined, {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
+        In: Math.round(inRate * 10) / 10,
+        Out: Math.round(outRate * 10) / 10,
+      });
+    }
+    return pts;
   }
+
   const bps = (v: number) => `${packets(v)}bps`;
   const pps = (v: number) => `${packets(v)}pps`;
+
+  function fmtTick(iso: string): string {
+    const d = new Date(iso);
+    return range === '24h'
+      ? d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  const points =
+    range === 'live'
+      ? livePoints()
+      : (history.data?.points ?? []).map((pt) => ({ label: fmtTick(pt.t), In: pt.in, Out: pt.out }));
+  const unit = metric === 'packets' ? pps : bps;
+  const hasOut = points.some((pt) => pt.Out > 0);
+  const historyError = range !== 'live' && history.isError ? 'History unavailable for this range.' : null;
 
   const dropPoints: Array<{ label: string; Drops: number; Errors: number }> = [];
   for (let i = 1; i < samples.length; i++) {
@@ -573,13 +632,50 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
     });
   }
 
+  const loadingHistory = range !== 'live' && history.isPending;
   return (
     <>
       <div style={{ marginTop: 12 }}>
-        <Card title="Traffic">
-          {points.length === 0 ? (
+        <Card
+          title="Traffic"
+          actions={
+            <span style={{ display: 'flex', gap: 8 }}>
+              <SelectMenu
+                label="Metric"
+                value={metric}
+                options={[
+                  { value: 'bytes', label: 'Bytes' },
+                  { value: 'packets', label: 'Packets' },
+                ]}
+                onChange={(v) => setMetric(v as 'bytes' | 'packets')}
+                width={130}
+              />
+              <SelectMenu
+                label="Range"
+                value={range}
+                options={[
+                  { value: 'live', label: 'Live' },
+                  { value: '24h', label: '24h' },
+                  { value: '7d', label: '7d' },
+                  { value: '30d', label: '30d' },
+                  { value: '1y', label: '1y' },
+                  { value: '3y', label: '3y' },
+                ]}
+                onChange={(v) => setRange(v as 'live' | HistoryRange)}
+                width={110}
+              />
+            </span>
+          }
+        >
+          {historyError ? (
+            <Alert tone="fail">{historyError}</Alert>
+          ) : loadingHistory ? (
+            <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading history…</p>
+          ) : points.length === 0 ? (
             <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
-              Collecting live samples every 5 seconds — the graph appears shortly and persists across visits.
+              {range === 'live'
+                ? 'Collecting live samples every 5 seconds — the graph appears shortly and persists across visits.'
+                : 'No samples in this range yet — the sampler backfills from here.'}
             </p>
           ) : (
             <div style={{ height: 224 }}>
@@ -602,7 +698,7 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
                     minTickGap={40}
                   />
                   <YAxis
-                    tickFormatter={(v) => bps(Number(v))}
+                    tickFormatter={(v) => unit(Number(v))}
                     tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
                     width={64}
                   />
@@ -616,7 +712,7 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
                     labelStyle={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: 2 }}
                     itemStyle={{ color: 'var(--color-text)' }}
                     cursor={{ fill: 'var(--color-muted)', fillOpacity: 0.07 }}
-                    formatter={(v) => bps(typeof v === 'number' ? v : Number(v))}
+                    formatter={(v) => unit(typeof v === 'number' ? v : Number(v))}
                   />
                   <Area
                     type="monotone"
@@ -625,13 +721,15 @@ function InterfaceTraffic({ switchId, ifaceId, path }: { switchId: string; iface
                     strokeWidth={2}
                     fill="url(#trafficInFill)"
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="Out"
-                    stroke="var(--color-brand)"
-                    strokeWidth={2}
-                    fill="url(#trafficOutFill)"
-                  />
+                  {hasOut && (
+                    <Area
+                      type="monotone"
+                      dataKey="Out"
+                      stroke="var(--color-brand)"
+                      strokeWidth={2}
+                      fill="url(#trafficOutFill)"
+                    />
+                  )}
                   <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
                 </AreaChart>
               </ResponsiveContainer>

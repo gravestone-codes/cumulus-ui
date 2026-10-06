@@ -201,6 +201,10 @@ export const api = {
     request<{ id: string; state: string }>(
       `/api/v1/switches/${encodeURIComponent(switchId)}/jobs/${encodeURIComponent(jobId)}`,
     ),
+  history: (switchId: string, iface: string, range: string, metric: string) =>
+    request<{ range: string; metric: string; points: Array<{ t: string; in: number; out: number }> }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/interfaces/${encodeURIComponent(iface)}/history?range=${encodeURIComponent(range)}&metric=${encodeURIComponent(metric)}`,
+    ),
   audit: (limit = 8, sw?: string) => {
     const qs = new URLSearchParams({ limit: String(limit) });
     if (sw) qs.set('switch', sw);

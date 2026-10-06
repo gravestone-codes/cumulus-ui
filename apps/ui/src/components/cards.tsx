@@ -32,12 +32,14 @@ export function Card({
   hint,
   sample,
   onRemove,
+  actions,
   children,
 }: {
   title: string;
   hint?: string;
   sample?: boolean;
   onRemove?: () => void;
+  actions?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -51,10 +53,13 @@ export function Card({
         position: 'relative',
       }}
     >
-      <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 2px' }}>
-        {title}
-        {sample && <SampleBadge />}
-      </h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 2px', flex: 1 }}>
+          {title}
+          {sample && <SampleBadge />}
+        </h3>
+        {actions}
+      </div>
       {hint && <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: '0 0 12px' }}>{hint}</p>}
       {onRemove && (
         <button

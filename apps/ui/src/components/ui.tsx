@@ -867,6 +867,49 @@ export function ReconnectModal({
   );
 }
 
+/* Tabs: one active section at a time. Controlled (screens own the state)
+   so deep-links and breadcrumbs can select tabs later. */
+export function Tabs({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: Array<{ id: string; label: string }>;
+  active: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div role="tablist" aria-label="Sections" style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+      {tabs.map((t) => {
+        const selected = t.id === active;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            onClick={() => onChange(t.id)}
+            style={{
+              background: selected ? 'var(--color-surface-2)' : 'transparent',
+              border: 'none',
+              borderBottom: selected ? '2px solid var(--color-brand)' : '2px solid transparent',
+              borderRadius: '8px 8px 0 0',
+              color: selected ? 'var(--color-text)' : 'var(--color-muted)',
+              cursor: 'pointer',
+              font: 'inherit',
+              fontSize: 14,
+              fontWeight: selected ? 700 : 500,
+              padding: '8px 14px',
+            }}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /* SelectMenu: custom dropdown (button + portal menu), never the native
    select. Selected option carries a check; the menu flips upward near the
    viewport bottom. One trigger style everywhere (page size, operators). */
