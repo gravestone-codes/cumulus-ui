@@ -9,16 +9,17 @@ import { api } from '../lib/api.js';
 import { AppShell, Breadcrumb, NavRail, usePinnedRail } from '../components/ui.js';
 import { ResourceList } from '../components/resource.js';
 import type { GridColumn } from '../components/DataTable.js';
+import { firstDefined } from '../lib/format.js';
 import { switchNav } from '../lib/nav.js';
 
 type IfaceRow = Record<string, unknown> & { __id: string };
 
 const COLUMNS: GridColumn<IfaceRow>[] = [
   { key: '__id', label: 'Name', always: true, value: (r) => String(r.__id) },
-  { key: 'state', label: 'State', value: (r) => String(r['state'] ?? '—') },
-  { key: 'speed', label: 'Speed', value: (r) => String(r['speed'] ?? '—') },
-  { key: 'mtu', label: 'MTU', value: (r) => String(r['mtu'] ?? '—') },
-  { key: 'description', label: 'Description', value: (r) => String(r['description'] ?? '—') },
+  { key: 'state', label: 'State', value: (r) => firstDefined(r, 'link/state', 'link/oper-status') ?? '—' },
+  { key: 'speed', label: 'Speed', value: (r) => firstDefined(r, 'link/speed') ?? '—' },
+  { key: 'mtu', label: 'MTU', value: (r) => firstDefined(r, 'link/mtu') ?? '—' },
+  { key: 'description', label: 'Description', value: (r) => firstDefined(r, 'description') ?? '—' },
 ];
 
 export function Interfaces() {

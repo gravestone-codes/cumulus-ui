@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { Alert, AppShell, NavRail, usePinnedRail } from '../components/ui.js';
 import { Card, Stat, StatRow } from '../components/cards.js';
+import { firstDefined } from '../lib/format.js';
 import { ReadError } from '../components/resource.js';
 import { ActivityList } from '../components/activity.js';
 import { timeAgo } from '../lib/format.js';
@@ -40,7 +41,9 @@ export function SwitchHome() {
     navigate('/login', { replace: true });
   }
   const entries = ifaces.data ? Object.entries(ifaces.data.data) : [];
-  const up = entries.filter(([, v]) => String(v.state ?? '').toLowerCase() === 'up').length;
+  const isUp = (v: { state?: unknown }) =>
+    String(firstDefined(v, 'link/state', 'link/oper-status') ?? '').toLowerCase() === 'up';
+  const up = entries.filter(([, v]) => isUp(v)).length;
   return (
     <AppShell
       rail={
