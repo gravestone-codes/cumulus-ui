@@ -52,7 +52,7 @@ function FleetStats({ switches }: { switches: SwitchRow[] }) {
   return {
     sample,
     node: (
-      <StatRow columns={3}>
+      <StatRow columns={2}>
         <Stat label="Switches" value={String(n)} sub={`${reachable} reachable`} />
         <Stat
           label="Failing"

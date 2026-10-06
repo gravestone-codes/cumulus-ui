@@ -97,7 +97,7 @@ export function SwitchHome() {
           ) : ifaces.isPending ? (
             <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
           ) : (
-            <StatRow>
+            <StatRow columns={3}>
               <Stat label="Total" value={String(entries.length)} />
               <Stat label="Up" value={String(up)} tone={up > 0 ? 'var(--color-pass)' : undefined} />
               <Stat label="Down / other" value={String(entries.length - up)} />
@@ -105,7 +105,7 @@ export function SwitchHome() {
           )}
         </Card>
         <Card title="Health">
-          <StatRow>
+          <StatRow columns={3}>
             <Stat
               label="Trust"
               value={row ? (row.trust_verified ? 'Verified' : 'Pending') : '—'}

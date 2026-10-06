@@ -142,8 +142,9 @@ export function Stat({
   );
 }
 
-/* StatRow: tiles in a divided row. Fixed column count (no wrap orphans);
-   auto-fit when omitted. Every tile but the row's first carries the hairline. */
+/* StatRow: tiles in a divided row. The hairline rule is unconditional: EVERY
+   tile carries its left divider, including the first — no exceptions, so the
+   look cannot regress by layout. Fixed column count (no wrap orphans). */
 export function StatRow({ children, columns }: { children: ReactNode[]; columns?: number }) {
   const tiles = Array.isArray(children) ? children : [children];
   const n = columns ?? 0;
@@ -160,15 +161,8 @@ export function StatRow({ children, columns }: { children: ReactNode[]; columns?
           key={i}
           style={{
             padding: '2px 16px 2px 0',
-            borderLeft:
-              n > 0
-                ? i % n === 0
-                  ? 'none'
-                  : '1px solid var(--color-border)'
-                : i === 0
-                  ? 'none'
-                  : '1px solid var(--color-border)',
-            paddingLeft: n > 0 ? (i % n === 0 ? 0 : 16) : i === 0 ? 0 : 16,
+            borderLeft: '1px solid var(--color-border)',
+            paddingLeft: 16,
           }}
         >
           {tile}

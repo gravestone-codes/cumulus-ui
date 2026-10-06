@@ -111,7 +111,7 @@ export function DataTable<T extends object>({
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
         <span className="lf" style={{ display: 'flex', flex: 1, maxWidth: 320 }}>
           <input
             aria-label="Search"
