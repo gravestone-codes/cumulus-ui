@@ -4,20 +4,17 @@
  * read; per-interface counters land as raw rows (7d retention). A rollup
  * compacts anything older into hourly buckets kept indefinitely (>= 3y).
  *
- * Credentials: sealed per-user switch passwords, opened with SWITCH_CRED_KEY
- * — the sampler borrows the most recently stored credential per switch. No
- * new secrets, no user interaction. Single-instance safe via advisory lock;
- * multi-instance deployments elect one sampler per tick.
+ * Credentials: the sampler borrows the most recently stored credential's
+ * user per switch and rides that user's cached token (minting only when
+ * missing or dead). No new secrets, no user interaction. Single-instance
+ * safe via advisory lock; multi-instance deployments elect one sampler per tick.
  */
-import manifestJson from '@cumulus/spec/manifest.json' with { type: 'json' };
 import { db } from '../db.js';
-import { getSwitchCredential } from '../users/store.js';
-import { mintSwitchToken } from '../switchauth/routes.js';
-import { setSwitchToken } from '../switchauth/sessions.js';
-import { NvueClient } from '../nvue/client.js';
+import { withSwitchToken } from '../nvue/clients.js';
 
 const SAMPLE_EVERY_MS = 60_000;
-const RAW_RETENTION_DAYS = 7;
+/** Raw 60s rows live this long; older history exists only as hourly buckets. */
+export const RAW_RETENTION_DAYS = 7;
 
 export const HISTORY_METRICS = ['bytes', 'packets', 'drops', 'errors'] as const;
 export type HistoryMetric = (typeof HISTORY_METRICS)[number];
@@ -106,36 +103,17 @@ export async function sampleTick(credKey: string): Promise<{ switches: number; i
   }
 }
 
-async function sampleSwitch(credKey: string, userSub: string, switchId: string): Promise<number> {
-  const { rows } = await db().query<{
-    base_url: string;
-    base_path: string;
-    cert_fingerprint: string | null;
-    cert_pem: string | null;
-  }>(
-    `SELECT base_url, base_path, cert_fingerprint, cert_pem FROM switches
-     WHERE id = $1 AND enabled AND trust_verified`,
-    [switchId],
+/** Sample one switch's counters into raw rows; returns interfaces written. */
+export async function sampleSwitch(credKey: string, userSub: string, switchId: string): Promise<number> {
+  const { rows } = await db().query(`SELECT 1 FROM switches WHERE id = $1 AND enabled AND trust_verified`, [
+    switchId,
+  ]);
+  if (rows.length === 0) return 0;
+  // Reuse the user's cached token; minting every tick would replace the one
+  // their own reads hold. A missing/dead token is minted from the sealed credential.
+  const { data } = await withSwitchToken(userSub, switchId, { credKey }, (client, token) =>
+    client.call({ path: '/interface', method: 'GET', rev: 'operational', token }),
   );
-  const sw = rows[0];
-  if (!sw?.cert_fingerprint || !sw?.cert_pem) return 0;
-  const cred = await getSwitchCredential(userSub, switchId, credKey).catch(() => null);
-  if (!cred) return 0;
-  const token = await mintSwitchToken(
-    sw.base_url,
-    sw.base_path,
-    cred.switchUsername,
-    cred.password,
-    sw.cert_fingerprint,
-    sw.cert_pem,
-  );
-  setSwitchToken(userSub, switchId, token);
-  const manifest = manifestJson as { routes: Record<string, string[]>; views: Record<string, string[]> };
-  const client = new NvueClient(
-    { baseUrl: sw.base_url, basePath: sw.base_path, pin: sw.cert_fingerprint, caPem: sw.cert_pem },
-    manifest,
-  );
-  const { data } = await client.call({ path: '/interface', method: 'GET', rev: 'operational', token });
   if (typeof data !== 'object' || data === null) return 0;
   const now = new Date();
   let n = 0;

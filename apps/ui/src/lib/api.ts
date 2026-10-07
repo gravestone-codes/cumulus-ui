@@ -1,4 +1,5 @@
 import type { CsvRow } from './csv.js';
+import type { TrafficSample } from './traffic.js';
 
 /**
  * Backend client. Same-origin cookies carry the session (decision 11);
@@ -118,6 +119,20 @@ export interface SpecManifest {
 export interface FieldSchema {
   schema: unknown;
 }
+/** One member's answer in a group fan-out (read, stage, apply or action). */
+export interface MemberResult<T = unknown> {
+  switchId: string;
+  ok: boolean;
+  data?: T;
+  status?: number;
+  error?: string;
+  branch?: string;
+  jobId?: string | null;
+  finalState?: string | null;
+  /** Unapplied changes already staged there; discard before staging this change. */
+  conflict?: boolean;
+}
+export type StageCall = { path: string; method: 'PATCH' | 'DELETE'; body?: Record<string, unknown> };
 
 export const api = {
   setupStatus: () => request<SetupStatus>('/api/v1/setup/status'),
@@ -201,6 +216,10 @@ export const api = {
     request<{ id: string; state: string }>(
       `/api/v1/switches/${encodeURIComponent(switchId)}/jobs/${encodeURIComponent(jobId)}`,
     ),
+  ifaceSamples: (switchId: string, iface: string, minutes = 15) =>
+    request<{ samples: TrafficSample[]; earliest: string | null }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/interfaces/${encodeURIComponent(iface)}/samples?minutes=${minutes}`,
+    ),
   history: (
     switchId: string,
     iface: string,
@@ -211,10 +230,19 @@ export const api = {
     if (opts.metric) qs.set('metric', opts.metric);
     if (opts.from) qs.set('from', opts.from);
     if (opts.to) qs.set('to', opts.to);
-    return request<{ range: string; metric: string; points: Array<{ t: string; in: number; out: number }> }>(
+    return request<{
+      range: string;
+      metric: string;
+      points: Array<{ t: string; in: number; out: number }>;
+      earliest: string | null;
+    }>(
       `/api/v1/switches/${encodeURIComponent(switchId)}/interfaces/${encodeURIComponent(iface)}/history?${qs}`,
     );
   },
+  ifaceCoverage: (switchId: string, iface: string) =>
+    request<{ spans: Array<{ from: string; to: string }> }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/interfaces/${encodeURIComponent(iface)}/coverage`,
+    ),
   switchTraffic: (switchId: string, opts: { range?: string; metric?: string } = {}) => {
     const qs = new URLSearchParams();
     if (opts.range) qs.set('range', opts.range);
@@ -241,6 +269,34 @@ export const api = {
     if (opts?.view) qs.set('view', opts.view);
     return request<QueryResult<T>>(`/api/v1/switches/${encodeURIComponent(switchId)}/query?${qs}`);
   },
+  groupQuery: <T = unknown>(groupId: string, path: string, opts?: { rev?: string; view?: string }) => {
+    const qs = new URLSearchParams({ path });
+    if (opts?.rev) qs.set('rev', opts.rev);
+    if (opts?.view) qs.set('view', opts.view);
+    return request<{ results: MemberResult<T>[] }>(
+      `/api/v1/groups/${encodeURIComponent(groupId)}/query?${qs}`,
+    );
+  },
+  groupStage: (
+    groupId: string,
+    body: {
+      path: string;
+      method: 'PATCH' | 'DELETE';
+      body?: Record<string, unknown>;
+      bodies?: Record<string, Record<string, unknown>>;
+      members?: string[];
+      exclusive?: boolean;
+    },
+  ) => post<{ results: MemberResult[] }>(`/api/v1/groups/${encodeURIComponent(groupId)}/stage`, body),
+  groupApply: (groupId: string, members: string[]) =>
+    post<{ results: MemberResult[] }>(`/api/v1/groups/${encodeURIComponent(groupId)}/apply`, { members }),
+  groupAction: (groupId: string, body: { path: string; body?: Record<string, unknown>; members: string[] }) =>
+    post<{ results: MemberResult[] }>(`/api/v1/groups/${encodeURIComponent(groupId)}/action`, body),
+  runAction: (switchId: string, body: { path: string; body?: Record<string, unknown> }) =>
+    post<{ jobId: string | null; finalState: string | null }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/action`,
+      body,
+    ),
   manifest: () => request<SpecManifest>('/api/v1/spec/manifest'),
   fields: (path: string, method: string) => {
     const qs = new URLSearchParams({ path, method });

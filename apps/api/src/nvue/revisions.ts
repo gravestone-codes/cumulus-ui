@@ -14,12 +14,29 @@ export interface BranchInfo {
   baseRev: string | null;
 }
 
-/** Extract a branch id from a createRevision response. Tries known shapes, then common id fields. */
+const ID_FIELDS = ['rev', 'revision', 'changeset', 'id', 'branch'];
+
+/**
+ * Extract a branch id from a createRevision response. NVUE answers with
+ * "set of revisions, indexed by revision ID" (`{"8": {...}}` or
+ * `{"changeset/cumulus/…": {...}}`); also tries id-like fields.
+ */
 export function parseBranchId(body: unknown): string | null {
   if (typeof body === 'string' && body.length > 0) return body;
-  if (typeof body !== 'object' || body === null) return null;
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return null;
   const o = body as Record<string, unknown>;
-  for (const key of ['rev', 'revision', 'changeset', 'id', 'branch']) {
+  const keys = Object.keys(o);
+  const [only] = keys;
+  if (
+    keys.length === 1 &&
+    only &&
+    !ID_FIELDS.includes(only) &&
+    typeof o[only] === 'object' &&
+    o[only] !== null
+  ) {
+    return only;
+  }
+  for (const key of ID_FIELDS) {
     const v = o[key];
     if (typeof v === 'string' && v.length > 0) return v;
   }
@@ -83,6 +100,17 @@ export function extractJobId(data: unknown): string | null {
     return (data as { job: string }).job;
   }
   return parseBranchId(data);
+}
+
+/** A revision's state string (pending, apply, applied, apply_fail, …); 'unknown' if absent. */
+export async function getRevisionState(client: NvueClient, token: string, branch: string): Promise<string> {
+  const { data } = await client.call({
+    path: `/revision/${encodeURIComponent(branch)}`,
+    method: 'GET',
+    token,
+  });
+  const state = (data as { state?: unknown } | null)?.state;
+  return typeof state === 'string' ? state : 'unknown';
 }
 
 export interface ActionJob {

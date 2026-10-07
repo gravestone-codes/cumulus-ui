@@ -3,12 +3,12 @@
  * Staging gates on the STAGED method/path (proxy-equivalent check), snapshots
  * the operational before-image for OCC, PATCHes the user's branch, and audits.
  */
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { problem } from '../lib/problems.js';
 import { type AuthConfig } from '../auth/config.js';
 import { resolveCaller } from '../auth/caller.js';
-import { gateCheck, getUserRoles, mayAccessSwitch } from '../rbac/store.js';
+import { gateCheck, getUserRoles, mayAccessSwitch, type Role } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
 import { withSwitchToken } from '../nvue/clients.js';
 import { getSwitch, markSeen } from '../inventory/store.js';
@@ -19,7 +19,7 @@ import { getAction } from '../nvue/revisions.js';
 import { runAction } from './actions.js';
 import { GuardError } from '../nvue/guard.js';
 import { stageChange, StageError } from './stage.js';
-import { fanoutApply, fanoutStage } from './fanout.js';
+import { fanoutAction, fanoutApply, fanoutQuery, fanoutStage } from './fanout.js';
 
 export interface WorkflowDeps {
   cfg: AuthConfig;
@@ -298,11 +298,42 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     }
   });
 
-  const FanoutBody = z.object({
-    path: z.string().min(1),
-    method: z.enum(['PATCH', 'DELETE']),
-    body: z.record(z.string(), z.unknown()).optional(),
-  });
+  const Body = z.record(z.string(), z.unknown());
+  const Members = z.array(z.string().min(1)).min(1).max(256).optional();
+  const FanoutBody = z
+    .object({
+      path: z.string().min(1),
+      method: z.enum(['PATCH', 'DELETE']),
+      body: Body.optional(),
+      /** Per-switch bodies for per-switch-unique values; keys are the members touched. */
+      bodies: z.record(z.string(), Body).optional(),
+      members: Members,
+      exclusive: z.boolean().optional(),
+    })
+    .refine((b) => b.method === 'DELETE' || b.body !== undefined || b.bodies !== undefined, {
+      message: 'PATCH needs body or bodies',
+    });
+
+  /** Our-API gate for a group route; denials are audited. True = problem already sent. */
+  async function denyGroupRoute(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    who: { sub: string; username: string },
+    roles: Role[],
+    method: 'GET' | 'POST',
+  ): Promise<boolean> {
+    const path = request.url.split('?')[0] ?? request.url;
+    if (gateCheck(roles, { method, path })) return false;
+    await audit({
+      userSub: who.sub,
+      username: who.username,
+      roles: roles.map((r) => r.id),
+      method,
+      path: request.url,
+    });
+    problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
+    return true;
+  }
 
   app.post('/api/v1/groups/:gid/stage', async (request, reply) => {
     const who = await resolveCaller(request, cfg);
@@ -312,24 +343,13 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     if (!parsed.success)
       return problem(reply, 400, 'Bad Request', 'path + PATCH|DELETE method required', request.url);
     const roles = await getUserRoles(who.sub);
-    if (!gateCheck(roles, { method: 'POST', path: request.url })) {
-      await audit({
-        userSub: who.sub,
-        username: who.username,
-        roles: roles.map((r) => r.id),
-        method: 'POST',
-        path: request.url,
-      });
-      return problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
-    }
+    if (await denyGroupRoute(request, reply, who, roles, 'POST')) return reply;
+    const { path, method, body, bodies, members, exclusive } = parsed.data;
     const results = await fanoutStage(
       { sub: who.sub, username: who.username, roles, credKey: cfg.credKey },
       gid,
-      {
-        path: parsed.data.path,
-        method: parsed.data.method,
-        body: parsed.data.body,
-      },
+      { path, method, body, bodies },
+      { members, exclusive },
     );
     return { results };
   });
@@ -338,21 +358,68 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     const who = await resolveCaller(request, cfg);
     if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
     const { gid } = request.params as { gid: string };
+    const parsed = z.object({ members: Members }).safeParse(request.body ?? {});
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'members must be switch ids', request.url);
     const roles = await getUserRoles(who.sub);
-    if (!gateCheck(roles, { method: 'POST', path: request.url })) {
+    if (await denyGroupRoute(request, reply, who, roles, 'POST')) return reply;
+    const results = await fanoutApply(
+      { sub: who.sub, username: who.username, roles, credKey: cfg.credKey },
+      gid,
+      { members: parsed.data.members },
+    );
+    return { results };
+  });
+
+  app.post('/api/v1/groups/:gid/action', async (request, reply) => {
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const { gid } = request.params as { gid: string };
+    const parsed = z
+      .object({ path: z.string().min(1), body: Body.optional(), members: Members })
+      .safeParse(request.body);
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'action path required', request.url);
+    const roles = await getUserRoles(who.sub);
+    if (await denyGroupRoute(request, reply, who, roles, 'POST')) return reply;
+    const results = await fanoutAction(
+      { sub: who.sub, username: who.username, roles, credKey: cfg.credKey },
+      gid,
+      { path: parsed.data.path, body: parsed.data.body },
+      { members: parsed.data.members },
+    );
+    return { results };
+  });
+
+  const GroupQuery = z.object({
+    path: z.string().min(1),
+    rev: z.string().min(1).optional(),
+    view: z.string().min(1).optional(),
+  });
+
+  // Fan-out read for group screens: each member gated on its own groups,
+  // one row each (ok + data, or status + error); a failed member never fails the read.
+  app.get('/api/v1/groups/:gid/query', async (request, reply) => {
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const { gid } = request.params as { gid: string };
+    const parsed = GroupQuery.safeParse(request.query);
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'path query required', request.url);
+    const roles = await getUserRoles(who.sub);
+    if (await denyGroupRoute(request, reply, who, roles, 'GET')) return reply;
+    const { results, denied } = await fanoutQuery(
+      { sub: who.sub, roles, credKey: cfg.credKey },
+      gid,
+      parsed.data,
+    );
+    for (const switchId of denied) {
       await audit({
         userSub: who.sub,
         username: who.username,
         roles: roles.map((r) => r.id),
-        method: 'POST',
+        switchId,
+        method: 'GET',
         path: request.url,
       });
-      return problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
     }
-    const results = await fanoutApply(
-      { sub: who.sub, username: who.username, roles, credKey: cfg.credKey },
-      gid,
-    );
     return { results };
   });
 }

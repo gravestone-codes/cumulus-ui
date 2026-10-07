@@ -40,10 +40,10 @@ export function specDoc(): Doc {
 
 const MAX_DEPTH = 10;
 
-/** Resolve local refs (#/x-defs/..., #/components/...) with cycle protection. */
+/** Resolve local refs (#/x-defs/..., #/components/...) with cycle protection; depth counts ref hops. */
 export function dereference(node: unknown, doc: Doc, depth = 0, seen: string[] = []): unknown {
   if (depth > MAX_DEPTH) return {};
-  if (Array.isArray(node)) return node.map((v) => dereference(v, doc, depth + 1, seen));
+  if (Array.isArray(node)) return node.map((v) => dereference(v, doc, depth, seen));
   if (typeof node !== 'object' || node === null) return node;
   const obj = node as Record<string, unknown>;
   const ref = obj['$ref'];
@@ -62,7 +62,7 @@ export function dereference(node: unknown, doc: Doc, depth = 0, seen: string[] =
     void _dropped;
     const resolved = dereference(target, doc, depth + 1, [...seen, ref]);
     if (typeof resolved === 'object' && resolved !== null && !Array.isArray(resolved)) {
-      const rest = dereference(siblings, doc, depth + 1, seen);
+      const rest = dereference(siblings, doc, depth, seen);
       return {
         ...(resolved as Record<string, unknown>),
         ...((typeof rest === 'object' && rest !== null ? rest : {}) as Record<string, unknown>),
@@ -70,7 +70,7 @@ export function dereference(node: unknown, doc: Doc, depth = 0, seen: string[] =
     }
     return resolved;
   }
-  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, dereference(v, doc, depth + 1, seen)]));
+  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, dereference(v, doc, depth, seen)]));
 }
 
 export interface FieldSchema {

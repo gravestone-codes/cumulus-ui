@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { guardCall, GuardError } from './nvue/guard.js';
 import { encodePath, NvueClient, NvueError } from './nvue/client.js';
+import { parseBranchId } from './nvue/revisions.js';
 
 const MANIFEST = {
   routes: { '/interface': ['get', 'patch'], '/interface/{id}': ['get'] },
@@ -61,6 +62,7 @@ describe('guard (pure)', () => {
   it('encodes path segments', () => {
     expect(encodePath('/vrf/blue/router/fib/ipv4')).toBe('/vrf/blue/router/fib/ipv4');
     expect(encodePath('/interface/swp1.100')).toBe('/interface/swp1.100');
+    expect(encodePath('/revision/changeset%2Fcumulus%2Fx')).toBe('/revision/changeset%2Fcumulus%2Fx');
   });
 });
 
@@ -150,5 +152,18 @@ describe('client (live stub)', () => {
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
+  });
+});
+
+describe('parseBranchId', () => {
+  it('reads the id NVUE keys a new revision by', () => {
+    expect(parseBranchId({ '8': { state: 'pending', transition: { issue: {}, progress: '' } } })).toBe('8');
+    expect(parseBranchId({ 'changeset/cumulus/2024-01-01_00.00.00_AB12': {} })).toBe(
+      'changeset/cumulus/2024-01-01_00.00.00_AB12',
+    );
+  });
+  it('still reads id fields', () => {
+    expect(parseBranchId({ rev: 'N1' })).toBe('N1');
+    expect(parseBranchId({})).toBeNull();
   });
 });

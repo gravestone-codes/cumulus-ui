@@ -51,47 +51,39 @@ export function LineField({
   );
 }
 
-/* LineDropdown: native select in line-field clothing (accessible, no custom listbox yet). */
+/* LineDropdown: SelectMenu in line-field clothing (label, underline trigger, error slot). */
 export function LineDropdown({
   label,
   error,
   options,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & {
+  value,
+  onChange,
+  disabled,
+}: {
   label: string;
   error?: string;
   options: Array<{ value: string; label: string }>;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
-    <label style={{ display: 'block' }}>
+    <div>
       <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>{label}</span>
       <span className={`lf${error ? ' invalid' : ''}`}>
-        <select
-          aria-label={label}
-          {...props}
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: '1px solid var(--color-border)',
-            color: 'var(--color-text)',
-            font: 'inherit',
-            fontSize: '0.95rem',
-            padding: '0.45rem 0 0.5rem',
-            outline: 'none',
-          }}
-        >
-          {options.map((o) => (
-            <option key={o.value} value={o.value} style={{ background: 'var(--color-surface)' }}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        <SelectMenu
+          variant="line"
+          label={label}
+          value={value}
+          options={options}
+          onChange={onChange}
+          disabled={disabled}
+        />
       </span>
       <p className="field-err" role={error ? 'alert' : undefined}>
         {error ?? ''}
       </p>
-    </label>
+    </div>
   );
 }
 
@@ -100,11 +92,14 @@ export function Modal({
   open,
   onClose,
   title,
+  width = 440,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  /** Max panel width; wider only for per-switch tables. */
+  width?: number;
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -140,7 +135,10 @@ export function Modal({
           borderRadius: 12,
           padding: 24,
           width: '100%',
-          maxWidth: 440,
+          maxWidth: width,
+          // Tall content scrolls inside the dialog; title and actions stay reachable.
+          maxHeight: 'calc(100vh - 32px)',
+          overflowY: 'auto',
         }}
       >
         <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px' }}>{title}</h2>
@@ -910,25 +908,45 @@ export function Tabs({
   );
 }
 
+/* Badge: small status pill with a dot; tone carries state, text says it (never colour alone). */
+export function Badge({
+  tone = 'muted',
+  children,
+}: {
+  tone?: 'pass' | 'warn' | 'fail' | 'muted';
+  children: ReactNode;
+}) {
+  return <span className={`badge badge-${tone}`}>{children}</span>;
+}
+
 /* SelectMenu: custom dropdown (button + portal menu), never the native
    select. Selected option carries a check; the menu flips upward near the
-   viewport bottom. One trigger style everywhere (page size, operators). */
+   viewport bottom. `pill` for toolbars, `line` for forms (full width,
+   underline). Search appears past 7 options. Arrows/Home/End move, Escape
+   closes without closing a parent modal. Re-picking the selected option still fires onChange (e.g. reopen "Custom…"). */
 export function SelectMenu({
   label,
   value,
   options,
   onChange,
   width = 160,
+  variant = 'pill',
+  disabled,
 }: {
   label: string;
   value: string;
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
   width?: number;
+  variant?: 'pill' | 'line';
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [query, setQuery] = useState('');
   const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const searchable = options.length > 7;
 
   useEffect(() => {
     if (!open) return;
@@ -944,14 +962,67 @@ export function SelectMenu({
     };
   }, [open]);
 
-  function toggle(e: React.MouseEvent) {
-    e.stopPropagation();
+  useEffect(() => {
+    if (!open) return;
+    if (searchable) {
+      menuRef.current?.querySelector<HTMLInputElement>('input')?.focus();
+      return;
+    }
+    const opts = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]');
+    (menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]') ?? opts?.[0])?.focus();
+  }, [open, searchable]);
+
+  function show() {
     if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
-    setOpen((o) => !o);
+    setQuery('');
+    setOpen(true);
   }
 
+  function toggle(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (open) setOpen(false);
+    else show();
+  }
+
+  function closeAndFocus() {
+    setOpen(false);
+    btnRef.current?.focus();
+  }
+
+  function onMenuKey(e: React.KeyboardEvent) {
+    const opts = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [])];
+    const at = opts.indexOf(document.activeElement as HTMLButtonElement);
+    if (e.key === 'Enter' && at === -1 && opts[0]) {
+      e.preventDefault();
+      opts[0].click();
+      return;
+    }
+    const go = (i: number) => opts[Math.max(0, Math.min(opts.length - 1, i))]?.focus();
+    if (e.key === 'Escape' || e.key === 'Tab') {
+      e.preventDefault();
+      e.nativeEvent.stopPropagation();
+      closeAndFocus();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      go(at + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      go(at - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      go(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      go(opts.length - 1);
+    }
+  }
+
+  const line = variant === 'line';
   const current = options.find((o) => o.value === value);
-  const height = options.length * 36 + 12;
+  const q = query.trim().toLowerCase();
+  const shown = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
+  const menuWidth = line && rect ? Math.max(rect.width, 140) : width;
+  const height = Math.min(options.length * 36 + 12 + (searchable ? 44 : 0), 320);
   const flipUp = rect ? rect.bottom + height + 8 > window.innerHeight : false;
 
   return (
@@ -962,21 +1033,33 @@ export function SelectMenu({
         aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
+        disabled={disabled}
         onClick={toggle}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 8,
-          background: 'var(--color-surface-2)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
-          color: 'var(--color-text)',
-          cursor: 'pointer',
-          font: 'inherit',
-          fontSize: 13,
-          padding: '6px 10px',
-          outline: 'none',
+        onKeyDown={(e) => {
+          if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+            e.preventDefault();
+            show();
+          }
         }}
+        className={line ? 'select-line' : undefined}
+        style={
+          line
+            ? undefined
+            : {
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 8,
+                color: 'var(--color-text)',
+                cursor: 'pointer',
+                font: 'inherit',
+                fontSize: 13,
+                padding: '6px 10px',
+                outline: 'none',
+              }
+        }
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {current?.label ?? value}
@@ -989,14 +1072,16 @@ export function SelectMenu({
         rect &&
         createPortal(
           <div
+            ref={menuRef}
             role="listbox"
             aria-label={label}
             onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={onMenuKey}
             style={{
               position: 'fixed',
-              width,
+              width: menuWidth,
               top: flipUp ? rect.top - height - 6 : rect.bottom + 6,
-              left: Math.min(Math.max(8, rect.left), window.innerWidth - width - 8),
+              left: Math.min(Math.max(8, rect.left), window.innerWidth - menuWidth - 8),
               zIndex: 70,
               background: 'var(--color-surface)',
               border: '1px solid var(--color-border)',
@@ -1007,7 +1092,16 @@ export function SelectMenu({
               overflowY: 'auto',
             }}
           >
-            {options.map((o) => {
+            {searchable && (
+              <input
+                aria-label={`Search ${label}`}
+                placeholder="Search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="select-search"
+              />
+            )}
+            {shown.map((o) => {
               const selected = o.value === value;
               return (
                 <button
@@ -1015,27 +1109,13 @@ export function SelectMenu({
                   type="button"
                   role="option"
                   aria-selected={selected}
+                  className="select-opt"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setOpen(false);
-                    if (!selected) onChange(o.value);
+                    closeAndFocus();
+                    onChange(o.value);
                   }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    width: '100%',
-                    textAlign: 'left',
-                    background: selected ? 'var(--color-surface-2)' : 'transparent',
-                    border: 'none',
-                    borderRadius: 6,
-                    color: 'var(--color-text)',
-                    cursor: 'pointer',
-                    font: 'inherit',
-                    fontSize: 14,
-                    fontWeight: selected ? 700 : 400,
-                    padding: '8px 10px',
-                  }}
+                  style={{ fontWeight: selected ? 700 : 400 }}
                 >
                   <span
                     aria-hidden="true"

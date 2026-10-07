@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cumulus UI — Interfaces: single switch + group (options)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  :root {
+    --bg:#100e0c; --surface:#1a1714; --surface2:#241f1a; --text:#f6f3ef; --muted:#9c958b;
+    --border:#36312b; --brand:#cabfb0; --pass:#4fb19d; --warn:#e0a93c; --fail:#e0556b; --stale:#6e7681;
+    --s1:#cabfb0; --s2:#4fb19d; --s3:#8fa7d6; --s4:#d69a8f;
+  }
+  body { background:var(--bg); color:var(--text); font-family:"Inter",system-ui,sans-serif; letter-spacing:-0.011em; -webkit-font-smoothing:antialiased; padding-bottom:80px; }
+  .page { max-width:1100px; margin:0 auto; padding:36px 24px; }
+  .hero h1 { font-size:26px; font-weight:700; letter-spacing:-0.02em; }
+  .hero p { color:var(--muted); margin-top:8px; font-size:14px; line-height:1.65; max-width:860px; }
+  .hero .how { margin-top:14px; border:1px dashed var(--border); border-radius:10px; padding:12px 14px; font-size:13px; color:var(--muted); line-height:1.7; }
+  .hero .how b { color:var(--text); }
+  section.block { margin-top:56px; }
+  section.block > h2 { font-size:19px; font-weight:700; letter-spacing:-0.02em; }
+  section.block > h2 .n { color:var(--muted); font-weight:500; margin-right:8px; }
+  section.block > .sub { color:var(--muted); font-size:13px; margin:4px 0 18px; line-height:1.6; max-width:900px; }
+  .opt { margin-top:22px; }
+  .opt > h3 { font-size:14px; font-weight:700; display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+  .opt > h3 .tag { font-size:11px; font-weight:700; border:1px solid var(--border); border-radius:6px; padding:1px 7px; color:var(--brand); }
+  .opt > h3 .rec { font-size:11px; font-weight:600; color:var(--pass); }
+  .opt > .why { font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.6; max-width:900px; }
+  .opt > .why b { color:var(--text); font-weight:600; }
+  .demo { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; position:relative; overflow:hidden; }
+  .mono, td, .num { font-variant-numeric:tabular-nums; }
+  .code { font-family:"JetBrains Mono",monospace; font-size:12px; }
+  .muted { color:var(--muted); }
+  .crumb { font-size:12.5px; color:var(--muted); margin-bottom:12px; }
+  .crumb b { color:var(--text); font-weight:600; }
+  .title-row { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .title-row h4 { font-size:18px; font-weight:700; letter-spacing:-0.02em; }
+  .title-row .sp { flex:1; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  @media (max-width:820px){ .grid2,.grid3,.grid4{grid-template-columns:1fr;} }
+
+  /* tables */
+  table.dt { width:100%; border-collapse:collapse; font-size:13px; }
+  table.dt th { text-align:left; font-size:11.5px; font-weight:600; color:var(--muted); padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  table.dt td { padding:11px 10px; border-bottom:1px solid var(--border); transition:background-color .18s ease; vertical-align:middle; }
+  table.dt tbody tr:hover td { background:rgba(202,191,176,.06); }
+  table.dt td.first { font-weight:600; white-space:nowrap; }
+  table.dt tr.sub td { background:rgba(36,31,26,.55); font-size:12.5px; padding:8px 10px; }
+  table.dt tr.sub td.first { padding-left:30px; font-weight:500; color:var(--muted); }
+  table.dt tr.grouphead td { font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; background:rgba(36,31,26,.4); padding:7px 10px; }
+  .caret { display:inline-block; width:14px; color:var(--muted); font-size:11px; }
+
+  .badge { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:99px; border:1px solid var(--border); color:var(--muted); white-space:nowrap; }
+  .badge .dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .badge.on { color:var(--pass); border-color:rgba(79,177,157,.35); }
+  .badge.warn { color:var(--warn); border-color:rgba(224,169,60,.35); }
+  .badge.fail { color:var(--fail); border-color:rgba(224,85,107,.35); }
+  .mixed { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--warn); border-bottom:1px dashed rgba(224,169,60,.55); cursor:help; }
+  .mixed .k { font-size:10.5px; font-weight:700; border:1px solid rgba(224,169,60,.4); border-radius:5px; padding:0 5px; }
+  .lock { color:var(--muted); font-size:12px; display:inline-flex; gap:6px; align-items:center; }
+  .count { font-size:12px; color:var(--muted); }
+
+  /* buttons */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; font-size:13px; font-weight:600; padding:9px 14px; border-radius:10px; border:1px solid var(--text); background:var(--text); color:var(--bg); cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .btn.full { width:100%; padding:11px 14px; }
+  .btn-s { background:transparent; color:var(--text); border-color:var(--border); }
+  .btn-g { background:transparent; border-color:transparent; color:var(--muted); }
+  .btn.sm { font-size:12px; padding:6px 11px; }
+  .pill { display:inline-flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; padding:6px 10px; }
+  .seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .seg span { font-size:12.5px; padding:6px 11px; color:var(--muted); }
+  .seg span.on { background:var(--surface2); color:var(--text); font-weight:600; }
+  .tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .tabs span { font-size:13.5px; padding:8px 14px; color:var(--muted); border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .tabs span.on { color:var(--text); font-weight:600; border-bottom-color:var(--brand); }
+
+  /* cards & stats */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .card.inset { background:rgba(36,31,26,.35); }
+  .card h5 { font-size:13px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .card h5 .sp { flex:1; }
+  .stat { padding:4px 0; }
+  .stat .l { font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-weight:600; }
+  .stat .v { font-size:20px; font-weight:700; letter-spacing:-0.02em; margin-top:4px; }
+  .stat .v small { font-size:12px; color:var(--muted); font-weight:500; margin-left:4px; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .stats > div { padding:12px 14px; border-left:1px solid var(--border); }
+  .stats > div:first-child { border-left:0; padding-left:0; }
+  dl.kv { display:grid; grid-template-columns:160px 1fr; row-gap:0; font-size:13px; }
+  dl.kv dt { color:var(--muted); padding:9px 0; border-bottom:1px solid var(--border); }
+  dl.kv dd { padding:9px 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+
+  /* matrix */
+  .mx { display:grid; gap:2px; font-size:11.5px; }
+  .mx .h { color:var(--muted); font-weight:600; padding:4px 6px; }
+  .mx .r { font-weight:600; padding:6px; }
+  .mx .c { background:var(--surface2); border-radius:6px; padding:6px; display:flex; align-items:center; gap:6px; }
+  .mx .c .d { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .mx .c.diff { outline:1px solid rgba(224,169,60,.55); }
+  .mx .c.none { background:transparent; border:1px dashed var(--border); color:var(--muted); justify-content:center; }
+
+  /* forms */
+  .fl { display:block; font-size:12.5px; color:var(--muted); margin-bottom:2px; }
+  .lfv { border-bottom:1px solid var(--border); padding:7px 0 8px; font-size:14px; display:flex; align-items:center; gap:8px; }
+  .lfv .chev { margin-left:auto; color:var(--muted); font-size:11px; }
+  .lfv.ph { color:var(--muted); font-style:normal; }
+  .lfv.mx-warn { border-bottom-color:rgba(224,169,60,.6); }
+  .field-note { font-size:11.5px; color:var(--warn); margin-top:4px; min-height:15px; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; box-shadow:0 24px 64px rgba(0,0,0,.55); }
+  .modal h4 { font-size:16px; font-weight:700; margin-bottom:14px; }
+  .modal .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:18px; }
+  .stage { background:rgba(16,14,12,.6); border-radius:12px; padding:22px; display:flex; justify-content:center; }
+  .alert { border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:12.5px; display:flex; gap:9px; background:var(--surface); line-height:1.55; }
+  .alert .ic { font-weight:700; flex-shrink:0; }
+  .ic.ok { color:var(--pass); } .ic.warn { color:var(--warn); } .ic.err { color:var(--fail); } .ic.info { color:var(--muted); }
+  .chk { display:inline-grid; place-items:center; width:15px; height:15px; border-radius:4px; border:1px solid var(--border); font-size:10px; flex-shrink:0; }
+  .chk.on { background:var(--text); color:var(--bg); border-color:var(--text); }
+  .steps { display:flex; gap:6px; margin-bottom:16px; font-size:12px; }
+  .steps span { flex:1; text-align:center; padding:6px 0; border-bottom:2px solid var(--border); color:var(--muted); }
+  .steps span.on { border-color:var(--brand); color:var(--text); font-weight:600; }
+  .steps span.done { border-color:var(--pass); color:var(--pass); }
+  .diff { font-family:"JetBrains Mono",monospace; font-size:12px; line-height:1.8; background:rgba(16,14,12,.5); border-radius:8px; padding:10px 12px; }
+  .diff .m { color:var(--fail); } .diff .p { color:var(--pass); }
+  .pop { position:absolute; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; box-shadow:0 16px 40px rgba(0,0,0,.55); font-size:12.5px; z-index:5; min-width:220px; }
+  .pop .row { display:flex; justify-content:space-between; gap:16px; padding:4px 0; }
+  .legend { display:flex; gap:14px; font-size:12px; color:var(--muted); flex-wrap:wrap; }
+  .legend i { display:inline-block; width:10px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle; }
+  .spark { width:100%; height:60px; display:block; }
+  .chart { width:100%; height:170px; display:block; }
+  .side-index { position:sticky; top:0; display:flex; flex-direction:column; gap:2px; font-size:13px; }
+  .side-index span { padding:7px 10px; border-radius:8px; color:var(--muted); }
+  .side-index span.on { background:var(--surface2); color:var(--text); font-weight:600; }
+  .side-index small { font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); padding:10px 10px 4px; font-weight:700; }
+  .feat { border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--surface); }
+  .feat .t { font-weight:700; font-size:13.5px; display:flex; gap:8px; align-items:center; }
+  .feat .d { font-size:12px; color:var(--muted); margin-top:6px; line-height:1.55; }
+  .feat.add { border-style:dashed; background:transparent; color:var(--muted); display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .menu { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; box-shadow:0 16px 40px rgba(0,0,0,.5); width:240px; font-size:13px; }
+  .menu div { padding:8px 10px; border-radius:6px; color:var(--muted); display:flex; justify-content:space-between; }
+  .menu div.hot { background:var(--surface2); color:var(--text); }
+  .menu .sep { height:1px; background:var(--border); padding:0; margin:4px 0; }
+
+  /* catalog */
+  table.cat { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.cat th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); }
+  table.cat td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:top; line-height:1.5; }
+  table.cat td:first-child { font-weight:600; white-space:nowrap; }
+  table.cat tr.area td { font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--brand); padding-top:18px; }
+  .g-yes { color:var(--pass); } .g-per { color:var(--warn); } .g-no { color:var(--fail); } .g-agg { color:var(--s3); }
+  .st-done { color:var(--pass); } .st-now { color:var(--text); } .st-later { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="hero">
+  <h1>Interfaces: switch and group</h1>
+  <p>
+    Every runtime value below is sample data. In the app, all of it comes from the backend. A group is a set of switches (for example
+    <b>DC1-leaf</b>, with leaf-01 to leaf-04). Group screens read every member in parallel. Group writes fan out: each switch gets its own branch,
+    its own dry-run diff, and its own result, through the existing FanOut engine.
+  </p>
+  <div class="how">
+    <b>How to choose:</b> each numbered section is one decision with lettered options. Reply with your picks, for example
+    <b>"1A, 2C, 3B, 4A, 5A, 6B, 7A, 8B, 9A"</b>, plus any tweaks. <span class="rec">●</span> marks my recommendation.
+    Section 10 is the full catalogue of what an interface can do, with single-switch and group support and build status.
+  </div>
+</div>
+
+<!-- ============================================================ 1 -->
+<section class="block">
+  <h2><span class="n">1</span>Group → Interfaces list</h2>
+  <div class="sub">How the member switches' interfaces become one list. The question is what a row means: one interface name across the group, or one interface on one switch.</div>
+
+  <div class="opt">
+    <h3><span class="tag">A</span>Union by name, expandable rows <span class="rec">● recommended</span></h3>
+    <div class="why">One row per interface name. Agreeing values show plainly. When members disagree, the cell shows <b>mixed</b> with a count. Expand a row for the per-switch values. Clicking a name opens the group interface detail (sections 2 and 3).</div>
+    <div class="demo">
+      <div class="crumb">DC1-leaf › <b>Interfaces</b></div>
+      <div class="title-row"><h4>Interfaces</h4><span class="count">4 switches · 54 interfaces</span><span class="sp"></span><span class="pill">All types ⌄</span><span class="pill">Only drift</span></div>
+      <table class="dt">
+        <thead><tr><th>Name</th><th>Present</th><th>State</th><th>Speed</th><th>MTU</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="first"><span class="caret">›</span>eth0</td><td>4/4</td><td><span class="badge on"><span class="dot"></span>up 4</span></td><td>1G</td><td>1500</td><td class="muted">OOB</td></tr>
+          <tr><td class="first"><span class="caret">⌄</span>swp1</td><td>4/4</td><td><span class="badge on"><span class="dot"></span>up 3</span> <span class="badge fail"><span class="dot"></span>down 1</span></td><td>100G</td><td><span class="mixed"><span class="k">2</span>mixed</span></td><td class="muted">to spine</td></tr>
+          <tr class="sub"><td class="first">leaf-01</td><td></td><td><span class="badge on"><span class="dot"></span>up</span></td><td>100G</td><td>9216</td><td class="muted">to spine</td></tr>
+          <tr class="sub"><td class="first">leaf-02</td><td></td><td><span class="badge on"><span class="dot"></span>up</span></td><td>100G</td><td>9216</td><td class="muted">to spine</td></tr>
+          <tr class="sub"><td class="first">leaf-03</td><td></td><td><span class="badge fail"><span class="dot"></span>down</span></td><td>100G</td><td style="color:var(--warn)">1500</td><td class="muted">to spine</td></tr>
+          <tr class="sub"><td class="first">leaf-04</td><td></td><td><span class="badge on"><span class="dot"></span>up</span></td><td>100G</td><td>9216</td><td class="muted">to spine</td></tr>
+          <tr><td class="first"><span class="caret">›</span>swp2</td><td>4/4</td><td><span class="badge on"><span class="dot"></span>up 4</span></td><td>25G</td><td>9216</td><td class="muted">server-a</td></tr>
+          <tr><td class="first"><span class="caret">›</span>swp49</td><td style="color:var(--warn)">3/4</td><td><span class="badge on"><span class="dot"></span>up 3</span></td><td>400G</td><td>9216</td><td class="muted">—</td></tr>
+          <tr><td class="first"><span class="caret">›</span>bond1</td><td>4/4</td><td><span class="badge on"><span class="dot"></span>up 4</span></td><td>200G</td><td>9216</td><td><span class="mixed"><span class="k">4</span>mixed</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">B</span>Flat list with a Switch column</h3>
+    <div class="why">One row per switch and interface. Simple and honest, and the table filters and sorts it like any other. Drift is not called out, though: you spot it by sorting. 4 switches with 54 interfaces makes 216 rows.</div>
+    <div class="demo">
+      <div class="title-row"><h4>Interfaces</h4><span class="count">216 rows</span><span class="sp"></span><span class="pill">Group by: Switch ⌄</span></div>
+      <table class="dt">
+        <thead><tr><th>Switch</th><th>Name</th><th>State</th><th>Speed</th><th>MTU</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr class="grouphead"><td colspan="6">leaf-01 · 54</td></tr>
+          <tr><td class="first">leaf-01</td><td>eth0</td><td><span class="badge on"><span class="dot"></span>up</span></td><td>1G</td><td>1500</td><td class="muted">OOB</td></tr>
+          <tr><td class="first">leaf-01</td><td>swp1</td><td><span class="badge on"><span class="dot"></span>up</span></td><td>100G</td><td>9216</td><td class="muted">to spine</td></tr>
+          <tr class="grouphead"><td colspan="6">leaf-03 · 54</td></tr>
+          <tr><td class="first">leaf-03</td><td>swp1</td><td><span class="badge fail"><span class="dot"></span>down</span></td><td>100G</td><td>1500</td><td class="muted">to spine</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">C</span>Matrix: interfaces × switches</h3>
+    <div class="why">A wall-display view: each cell holds a state dot and speed, and an outlined cell marks drift. It answers "is the fabric healthy" at a glance but holds only one or two values per cell. It works well as a toggle view next to A.</div>
+    <div class="demo">
+      <div class="title-row"><h4>Interfaces</h4><span class="sp"></span><span class="seg"><span>List</span><span class="on">Matrix</span></span><span class="pill">Cell: speed ⌄</span></div>
+      <div class="mx" style="grid-template-columns:90px repeat(4,1fr)">
+        <div></div><div class="h">leaf-01</div><div class="h">leaf-02</div><div class="h">leaf-03</div><div class="h">leaf-04</div>
+        <div class="r">swp1</div><div class="c"><span class="d" style="background:var(--pass)"></span>100G</div><div class="c"><span class="d" style="background:var(--pass)"></span>100G</div><div class="c diff"><span class="d" style="background:var(--fail)"></span>100G · mtu 1500</div><div class="c"><span class="d" style="background:var(--pass)"></span>100G</div>
+        <div class="r">swp2</div><div class="c"><span class="d" style="background:var(--pass)"></span>25G</div><div class="c"><span class="d" style="background:var(--pass)"></span>25G</div><div class="c"><span class="d" style="background:var(--pass)"></span>25G</div><div class="c"><span class="d" style="background:var(--pass)"></span>25G</div>
+        <div class="r">swp49</div><div class="c"><span class="d" style="background:var(--pass)"></span>400G</div><div class="c"><span class="d" style="background:var(--pass)"></span>400G</div><div class="c"><span class="d" style="background:var(--pass)"></span>400G</div><div class="c none">absent</div>
+        <div class="r">bond1</div><div class="c"><span class="d" style="background:var(--pass)"></span>200G</div><div class="c"><span class="d" style="background:var(--pass)"></span>200G</div><div class="c"><span class="d" style="background:var(--pass)"></span>200G</div><div class="c"><span class="d" style="background:var(--pass)"></span>200G</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section class="block">
+  <h2><span class="n">2</span>Group → interface → Statistics</h2>
+  <div class="sub">Same tabs as a single switch (Statistics · Config). The Statistics tab shows one interface name, such as swp1, across every member. The question is whether traffic is a sum, small multiples, or overlaid lines.</div>
+
+  <div class="opt">
+    <h3><span class="tag">A</span>Sum by default, toggle to per-switch lines <span class="rec">● recommended</span></h3>
+    <div class="why">It reads like the single-switch screen: same stat row, same chart, same period picker. A <b>Sum | Per switch</b> toggle splits the chart into one line per member. Below it, a per-switch table points at the outlier. Counters (discards and errors) are summed, with the worst offender named.</div>
+    <div class="demo">
+      <div class="crumb">DC1-leaf › Interfaces › <b>swp1</b> <span class="muted">· on 4 switches</span></div>
+      <div class="tabs"><span class="on">Statistics</span><span>Config</span></div>
+      <div class="stats" style="margin-bottom:16px">
+        <div class="stat"><div class="l">In (sum)</div><div class="v">142 <small>Gb/s</small></div></div>
+        <div class="stat"><div class="l">Out (sum)</div><div class="v">131 <small>Gb/s</small></div></div>
+        <div class="stat"><div class="l">Errors</div><div class="v">12 <small>leaf-03</small></div></div>
+        <div class="stat"><div class="l">Up</div><div class="v">3<small>/ 4</small></div></div>
+      </div>
+      <div class="card">
+        <h5>Traffic <span class="sp"></span><span class="seg"><span>Sum</span><span class="on">Per switch</span></span><span class="seg"><span>Live</span><span class="on">24h</span><span>7d</span><span>30d</span></span></h5>
+        <svg class="chart" viewBox="0 0 600 170" preserveAspectRatio="none">
+          <g stroke="#36312b" stroke-width="1"><line x1="0" y1="40" x2="600" y2="40"/><line x1="0" y1="85" x2="600" y2="85"/><line x1="0" y1="130" x2="600" y2="130"/></g>
+          <polyline fill="none" stroke="var(--s1)" stroke-width="2" points="0,90 50,80 100,85 150,60 200,70 250,50 300,55 350,40 400,60 450,55 500,45 550,50 600,42"/>
+          <polyline fill="none" stroke="var(--s2)" stroke-width="2" points="0,100 50,95 100,98 150,82 200,88 250,72 300,76 350,66 400,80 450,74 500,68 550,70 600,64"/>
+          <polyline fill="none" stroke="var(--s4)" stroke-width="2" stroke-dasharray="4 4" points="0,150 50,150 100,150 150,150 200,150 250,165 300,165 350,165 400,165 450,165 500,165 550,165 600,165"/>
+          <polyline fill="none" stroke="var(--s3)" stroke-width="2" points="0,115 50,110 100,112 150,98 200,104 250,92 300,95 350,88 400,98 450,94 500,86 550,90 600,84"/>
+        </svg>
+        <div class="legend" style="margin-top:8px"><span><i style="background:var(--s1)"></i>leaf-01</span><span><i style="background:var(--s2)"></i>leaf-02</span><span><i style="background:var(--s4)"></i>leaf-03 (down since 14:20)</span><span><i style="background:var(--s3)"></i>leaf-04</span></div>
+      </div>
+      <table class="dt" style="margin-top:14px">
+        <thead><tr><th>Switch</th><th>State</th><th>In</th><th>Out</th><th>Discards</th><th>Errors</th><th>Last flap</th></tr></thead>
+        <tbody>
+          <tr><td class="first">leaf-01</td><td><span class="badge on"><span class="dot"></span>up</span></td><td>48.2 Gb/s</td><td>44.0 Gb/s</td><td>0</td><td>0</td><td class="muted">12 days ago</td></tr>
+          <tr><td class="first">leaf-02</td><td><span class="badge on"><span class="dot"></span>up</span></td><td>39.1 Gb/s</td><td>37.5 Gb/s</td><td>0</td><td>0</td><td class="muted">12 days ago</td></tr>
+          <tr><td class="first">leaf-03</td><td><span class="badge fail"><span class="dot"></span>down</span></td><td>0</td><td>0</td><td>3</td><td style="color:var(--fail)">12</td><td>2 hours ago</td></tr>
+          <tr><td class="first">leaf-04</td><td><span class="badge on"><span class="dot"></span>up</span></td><td>54.7 Gb/s</td><td>49.3 Gb/s</td><td>0</td><td>0</td><td class="muted">12 days ago</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">B</span>Small multiples: one card per switch</h3>
+    <div class="why">Each member gets a compact card with its own sparkline and numbers. Comparison is visual, and nothing is hidden behind a sum. It scales to about 8 members. Larger groups need paging or switch to A.</div>
+    <div class="demo">
+      <div class="grid4">
+        <div class="card inset"><h5>leaf-01 <span class="sp"></span><span class="badge on"><span class="dot"></span>up</span></h5><svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none"><polyline fill="none" stroke="var(--s1)" stroke-width="2" points="0,30 15,26 30,28 45,18 60,22 75,12 90,15 100,10"/></svg><div class="muted" style="font-size:12px;margin-top:6px">in 48.2 · out 44.0 Gb/s</div></div>
+        <div class="card inset"><h5>leaf-02 <span class="sp"></span><span class="badge on"><span class="dot"></span>up</span></h5><svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none"><polyline fill="none" stroke="var(--s2)" stroke-width="2" points="0,32 15,30 30,31 45,22 60,26 75,18 90,20 100,16"/></svg><div class="muted" style="font-size:12px;margin-top:6px">in 39.1 · out 37.5 Gb/s</div></div>
+        <div class="card inset" style="border-color:rgba(224,85,107,.45)"><h5>leaf-03 <span class="sp"></span><span class="badge fail"><span class="dot"></span>down</span></h5><svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none"><polyline fill="none" stroke="var(--s4)" stroke-width="2" points="0,30 15,28 30,29 45,24 50,38 100,38"/></svg><div style="font-size:12px;margin-top:6px;color:var(--fail)">12 errors · down 2h</div></div>
+        <div class="card inset"><h5>leaf-04 <span class="sp"></span><span class="badge on"><span class="dot"></span>up</span></h5><svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none"><polyline fill="none" stroke="var(--s3)" stroke-width="2" points="0,26 15,24 30,25 45,14 60,18 75,8 90,12 100,6"/></svg><div class="muted" style="font-size:12px;margin-top:6px">in 54.7 · out 49.3 Gb/s</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">C</span>Sum only, with a per-switch table</h3>
+    <div class="why">The lightest option: the single-switch chart drawn from summed data, plus the per-switch table from A. No toggle, so one less control. You can't see when one switch's traffic dropped unless you open that switch.</div>
+    <div class="demo">
+      <div class="card"><h5>Traffic (sum of 4) <span class="sp"></span><span class="seg"><span>Live</span><span class="on">24h</span><span>7d</span></span></h5>
+        <svg class="chart" viewBox="0 0 600 170" preserveAspectRatio="none"><polyline fill="rgba(202,191,176,.08)" stroke="var(--brand)" stroke-width="2" points="0,70 50,62 100,66 150,40 200,50 250,52 300,56 350,44 400,60 450,54 500,46 550,50 600,42 600,170 0,170"/></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section class="block">
+  <h2><span class="n">3</span>Group → interface → Config when members differ</h2>
+  <div class="sub">Your main question: swp1's MTU is 9216 on three leaves and 1500 on leaf-03. What does the Config tab show?</div>
+
+  <div class="opt">
+    <h3><span class="tag">A</span>Inline "mixed" value + hover breakdown <span class="rec">● recommended</span></h3>
+    <div class="why">Same definition list as single-switch. Agreeing values show plainly. When members disagree, the cell reads <b>mixed</b> and hovering or clicking shows who has what, with <b>Align all to 9216</b> and <b>Open leaf-03</b> actions. It's quiet when everything agrees and clear when something doesn't.</div>
+    <div class="demo" style="min-height:330px">
+      <div class="tabs"><span>Statistics</span><span class="on">Config</span></div>
+      <div class="title-row"><h4 style="font-size:15px">Configuration</h4><span class="badge warn">2 fields drift</span><span class="sp"></span><span class="btn sm">Edit on 4 switches</span></div>
+      <dl class="kv" style="max-width:560px">
+        <dt>Admin state</dt><dd>up</dd>
+        <dt>Speed</dt><dd>100G</dd>
+        <dt>MTU</dt><dd><span class="mixed"><span class="k">2</span>mixed: 9216 ×3, 1500 ×1</span></dd>
+        <dt>FEC</dt><dd>rs</dd>
+        <dt>Description</dt><dd><span class="mixed"><span class="k">4</span>mixed</span></dd>
+        <dt>MAC address</dt><dd><span class="lock">🔒 per-switch · 4 values</span></dd>
+      </dl>
+      <div class="pop" style="left:370px;top:150px">
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px">MTU by switch</div>
+        <div class="row"><span>leaf-01, leaf-02, leaf-04</span><b>9216</b></div>
+        <div class="row" style="color:var(--warn)"><span>leaf-03</span><b>1500</b></div>
+        <div style="display:flex;gap:6px;margin-top:8px"><span class="btn sm">Align all to 9216</span><span class="btn btn-s sm">Open leaf-03</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">B</span>Side-by-side comparison grid</h3>
+    <div class="why">Fields as rows and switches as columns, with differing cells outlined. It's the most transparent option and good for audits, but heavy when everything agrees. A good fit as an optional <b>Compare</b> view behind A.</div>
+    <div class="demo">
+      <div class="title-row"><h4 style="font-size:15px">Configuration</h4><span class="sp"></span><span class="seg"><span>Summary</span><span class="on">Compare</span></span><span class="pill">Only differences</span></div>
+      <table class="dt">
+        <thead><tr><th>Field</th><th>leaf-01</th><th>leaf-02</th><th>leaf-03</th><th>leaf-04</th></tr></thead>
+        <tbody>
+          <tr><td class="first">MTU</td><td>9216</td><td>9216</td><td style="color:var(--warn);box-shadow:inset 0 0 0 1px rgba(224,169,60,.5)">1500</td><td>9216</td></tr>
+          <tr><td class="first">Description</td><td>to spine-01</td><td style="box-shadow:inset 0 0 0 1px rgba(224,169,60,.5)">to spine-02</td><td style="box-shadow:inset 0 0 0 1px rgba(224,169,60,.5)">to spine-01</td><td style="box-shadow:inset 0 0 0 1px rgba(224,169,60,.5)">spine</td></tr>
+          <tr><td class="first">Speed</td><td class="muted">100G</td><td class="muted">100G</td><td class="muted">100G</td><td class="muted">100G</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">C</span>Baseline switch + deviation list</h3>
+    <div class="why">Pick a reference member (or "majority"). The page shows the baseline's config, then a list of deviations with one-click <b>Align</b> buttons. This is a strong drift-remediation tool, but it adds a "which baseline?" decision to every visit.</div>
+    <div class="demo">
+      <div class="title-row"><h4 style="font-size:15px">Configuration</h4><span class="sp"></span><span class="fl" style="margin:0">Baseline</span><span class="pill">Majority ⌄</span></div>
+      <div class="alert"><span class="ic warn">!</span><div style="flex:1"><b>leaf-03</b> · MTU 1500 (baseline 9216)</div><span class="btn btn-s sm">Align</span></div>
+      <div class="alert" style="margin-top:8px"><span class="ic warn">!</span><div style="flex:1"><b>leaf-02, leaf-03, leaf-04</b> · Description differs</div><span class="btn btn-s sm">Review</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 4 -->
+<section class="block">
+  <h2><span class="n">4</span>Group edit (fan-out) flow</h2>
+  <div class="sub">Editing swp1 on 4 switches. The edit has to leave untouched mixed fields alone, show each switch's diff, and report results per switch, because a failure on one switch never rolls back the others.</div>
+
+  <div class="opt">
+    <h3><span class="tag">A</span>Same edit modal, mixed fields stay as they are <span class="rec">● recommended</span></h3>
+    <div class="why">The single-switch modal, reused. A mixed field shows <b>Mixed, keep each switch's value</b> as its value and only becomes a group write if you pick something. <b>Review change</b> leads to per-switch diff tabs. Apply only touches switches whose diff isn't empty, then shows per-switch results.</div>
+    <div class="stage">
+      <div class="grid2" style="width:100%;max-width:900px;align-items:start">
+        <div class="modal">
+          <h4>Edit swp1 · 4 switches</h4>
+          <div class="grid2">
+            <div><span class="fl">Admin state</span><div class="lfv">up<span class="chev">⌄</span></div><div class="field-note"></div></div>
+            <div><span class="fl">MTU</span><div class="lfv ph mx-warn">Mixed: keep each</div><div class="field-note">9216 ×3 · 1500 ×1</div></div>
+            <div><span class="fl">Speed</span><div class="lfv">100G<span class="chev">⌄</span></div><div class="field-note"></div></div>
+            <div><span class="fl">FEC</span><div class="lfv">rs<span class="chev">⌄</span></div><div class="field-note"></div></div>
+          </div>
+          <div><span class="fl">Description</span><div class="lfv ph mx-warn">Mixed: keep each</div><div class="field-note">4 different values</div></div>
+          <div class="actions"><span class="btn btn-s">Cancel</span><span class="btn">Review change</span></div>
+        </div>
+        <div class="modal">
+          <h4>Review · MTU → 9216</h4>
+          <div class="tabs" style="margin-bottom:10px"><span>leaf-01 <span class="muted">·0</span></span><span>leaf-02 <span class="muted">·0</span></span><span class="on">leaf-03 ·1</span><span>leaf-04 <span class="muted">·0</span></span></div>
+          <div class="diff">interface swp1 link mtu<br><span class="m">- 1500</span><br><span class="p">+ 9216</span></div>
+          <div class="muted" style="font-size:12px;margin-top:8px">3 switches already match and get no change.</div>
+          <div style="margin-top:14px;font-size:12.5px">
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>leaf-03</span><span class="ic ok">✓ applied · job 412</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>leaf-01, 02, 04</span><span class="muted">no change</span></div>
+          </div>
+          <div class="actions"><span class="btn btn-s">Back</span><span class="btn">Apply to 1 switch</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">B</span>Stepped wizard with member choice</h3>
+    <div class="why">Members → Values → Review → Apply. The first step lets you apply to a subset (for example, only leaf-03). It's more steps, but it fits the "max 2 questions per form, longer objects become wizards" rule once bond and VLAN edits arrive.</div>
+    <div class="stage">
+      <div class="modal" style="width:100%;max-width:440px">
+        <div class="steps"><span class="done">Members</span><span class="on">Values</span><span>Review</span><span>Apply</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;margin-bottom:6px">
+          <span class="muted" style="font-size:12px">Applying to 1 of 4 · leaf-03</span>
+        </div>
+        <div class="grid2"><div><span class="fl">MTU</span><div class="lfv">9216</div></div><div><span class="fl">Admin state</span><div class="lfv">up<span class="chev">⌄</span></div></div></div>
+        <div class="actions"><span class="btn btn-s">Back</span><span class="btn">Review</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 5 -->
+<section class="block">
+  <h2><span class="n">5</span>Interface missing on some members</h2>
+  <div class="sub">swp49 exists on leaf-01 to leaf-03 but not leaf-04 (different platform, or broken out as swp49s0-3).</div>
+  <div class="opt">
+    <h3><span class="tag">A</span>Show it with "3/4 present"; edits target only the 3 <span class="rec">● recommended</span></h3>
+    <div class="why">Nothing is hidden. The detail header reads <b>on 3 of 4 switches · absent on leaf-04</b>, and the edit modal title becomes "Edit swp49 · 3 switches". Applying never creates the interface where it's missing.</div>
+    <div class="demo"><div class="crumb">DC1-leaf › Interfaces › <b>swp49</b> <span style="color:var(--warn)">· on 3 of 4 · absent on leaf-04</span></div></div>
+  </div>
+  <div class="opt">
+    <h3><span class="tag">B</span>Common-only by default, with a toggle</h3>
+    <div class="why">The list shows only interfaces present on every member. <b>Show partial (3)</b> reveals the rest. It's tidier for uniform fabrics but hides things by default.</div>
+    <div class="demo"><div class="title-row" style="margin:0"><h4 style="font-size:15px">Interfaces</h4><span class="sp"></span><span class="pill">Show partial (3)</span></div></div>
+  </div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section class="block">
+  <h2><span class="n">6</span>Per-switch-unique fields in group scope</h2>
+  <div class="sub">IP addresses, MAC overrides, tunnel endpoints, EVPN DF preference, VRRP priority: one value can't be correct on every switch. The group guardrail already refuses these group-wide. How should the UI present them?</div>
+
+  <div class="opt">
+    <h3><span class="tag">A</span>Read-only with a lock, linking to each switch</h3>
+    <div class="why">The value list is visible and the field is not editable here. Each switch name is a link to that switch's interface page. This is the safest and simplest option.</div>
+    <div class="demo">
+      <dl class="kv" style="max-width:620px">
+        <dt>IP addresses</dt><dd><span class="lock">🔒 per-switch</span><span class="muted" style="font-size:12.5px">leaf-01 10.0.0.1/31 · leaf-02 10.0.0.3/31 · leaf-03 10.0.0.5/31 · leaf-04 10.0.0.7/31</span></dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">B</span>Per-switch value table inside the group edit <span class="rec">● recommended</span></h3>
+    <div class="why">The group edit gets one input per member, with an optional <b>pattern fill</b> (for example <span class="code">10.0.0.{2n+1}/31</span>). Every switch still gets its own value and diff, so it stays within the guardrail: one change per switch, never one shared value. It saves the most time when building a fabric.</div>
+    <div class="stage">
+      <div class="modal" style="width:100%;max-width:460px">
+        <h4>IP address on swp1 · 4 switches</h4>
+        <div style="display:flex;gap:8px;align-items:end;margin-bottom:12px"><div style="flex:1"><span class="fl">Pattern</span><div class="lfv code">10.0.0.{2n+1}/31</div></div><span class="btn btn-s sm">Fill</span></div>
+        <table class="dt"><tbody>
+          <tr><td class="first">leaf-01</td><td class="code">10.0.0.1/31</td></tr>
+          <tr><td class="first">leaf-02</td><td class="code">10.0.0.3/31</td></tr>
+          <tr><td class="first">leaf-03</td><td class="code">10.0.0.5/31</td></tr>
+          <tr><td class="first">leaf-04</td><td class="code">10.0.0.7/31</td></tr>
+        </tbody></table>
+        <div class="actions"><span class="btn btn-s">Cancel</span><span class="btn">Review 4 changes</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">C</span>Hidden in group scope</h3>
+    <div class="why">Group pages show only fields that make sense group-wide. It's the cleanest option, but people will wonder where IPs went.</div>
+  </div>
+</section>
+
+<!-- ============================================================ 7 -->
+<section class="block">
+  <h2><span class="n">7</span>Actions in group scope (clear counters, clear flap protection, PHY diag)</h2>
+  <div class="sub">POST actions run through ActionRunner, one job per switch.</div>
+  <div class="opt">
+    <h3><span class="tag">A</span>Run on all members, live per-switch results <span class="rec">● recommended</span></h3>
+    <div class="why">Kebab menu → <b>Clear counters on 4 switches</b> → confirm → a results list fills in as jobs finish. Single-switch-only actions (PHY diagnostics, 802.1X deauthenticate) are greyed out with "open on a switch".</div>
+    <div class="demo" style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+      <div class="menu">
+        <div class="hot">Clear counters <span class="muted">4 switches</span></div>
+        <div>Clear flap protection <span class="muted">4</span></div>
+        <div class="sep"></div>
+        <div style="opacity:.5">PHY diagnostics <span>per switch</span></div>
+      </div>
+      <div class="card" style="flex:1;min-width:260px">
+        <h5>Clear counters · swp1</h5>
+        <div style="font-size:12.5px">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>leaf-01</span><span class="ic ok">✓ done</span></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>leaf-02</span><span class="ic ok">✓ done</span></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>leaf-03</span><span class="ic err">✕ session expired · reconnect</span></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0"><span>leaf-04</span><span class="muted">running…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="opt">
+    <h3><span class="tag">B</span>Pick members, then run</h3>
+    <div class="why">A checklist of members (all ticked) comes before confirm. It's one more click, but it allows targeted clears without leaving the group.</div>
+    <div class="demo"><div style="display:flex;gap:18px;font-size:13px;flex-wrap:wrap"><span><span class="chk on">✓</span> leaf-01</span><span><span class="chk on">✓</span> leaf-02</span><span><span class="chk">&nbsp;</span> leaf-03</span><span><span class="chk on">✓</span> leaf-04</span><span class="sp"></span><span class="btn sm">Clear on 3</span></div></div>
+  </div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section class="block">
+  <h2><span class="n">8</span>Where the full interface feature set lives (switch and group alike)</h2>
+  <div class="sub">An interface has about 25 configurable areas (section 10). Today's Config tab holds 6 fields. How should the rest be organised? Group scope uses the same layout with mixed and lock treatment.</div>
+
+  <div class="opt">
+    <h3><span class="tag">A</span>Tabs by layer</h3>
+    <div class="why">Statistics · Config (link) · L2 (bridge, bond, STP) · L3 (IP, VRF, VRR/VRRP) · Neighbors (LLDP, ARP/ND) · Security (port security, 802.1X, ACL) · Advanced (QoS, PTP, SyncE, sFlow, telemetry). Familiar, but 7 tabs is a lot, and some sit empty on simple ports.</div>
+    <div class="demo"><div class="tabs" style="margin:0"><span>Statistics</span><span class="on">Config</span><span>L2</span><span>L3</span><span>Neighbors</span><span>Security</span><span>Advanced</span></div></div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">B</span>Two tabs, Config with a section index <span class="rec">● recommended</span></h3>
+    <div class="why">Keep <b>Statistics · Config · Neighbors</b>. Config becomes a long page of cards with a sticky section index on the left. Each card has its own <b>Edit</b>, so every form stays at 2 to 6 fields. Sections a port type can't have (bond on a loopback) are omitted, and configured sections are listed first.</div>
+    <div class="demo">
+      <div class="tabs"><span>Statistics</span><span class="on">Config</span><span>Neighbors</span></div>
+      <div style="display:grid;grid-template-columns:170px 1fr;gap:18px">
+        <div class="side-index">
+          <small>Configured</small>
+          <span class="on">Link</span><span>IP · VRF</span><span>Bridge · VLANs</span><span>LLDP</span>
+          <small>Available</small>
+          <span>Bond</span><span>Storm control</span><span>Port security</span><span>802.1X</span><span>sFlow</span><span>QoS</span><span>PTP · SyncE</span><span>Telemetry</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card"><h5>Link <span class="sp"></span><span class="btn btn-s sm">Edit</span></h5><dl class="kv"><dt>Admin state</dt><dd>up</dd><dt>Speed · FEC</dt><dd>100G · rs</dd><dt>MTU</dt><dd>9216</dd></dl></div>
+          <div class="card"><h5>IP · VRF <span class="sp"></span><span class="btn btn-s sm">Edit</span></h5><dl class="kv"><dt>VRF</dt><dd>default</dd><dt>Addresses</dt><dd class="code">10.0.0.1/31</dd></dl></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <h3><span class="tag">C</span>Feature cards + "Add feature" menu</h3>
+    <div class="why">Only configured features show, as cards. An <b>+ Add feature</b> card opens a menu of what this port type supports. It's the cleanest layout for a simple port, but less discoverable for reading.</div>
+    <div class="demo">
+      <div class="grid3">
+        <div class="feat"><div class="t">Link <span class="badge on">up</span></div><div class="d">100G · rs · MTU 9216</div></div>
+        <div class="feat"><div class="t">IP · VRF</div><div class="d">default · 10.0.0.1/31</div></div>
+        <div class="feat"><div class="t">LLDP</div><div class="d">enabled · neighbor spine-01 swp3</div></div>
+        <div class="feat"><div class="t">Bridge</div><div class="d">br_default · access 10</div></div>
+        <div class="feat add">+ Add feature</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section class="block">
+  <h2><span class="n">9</span>Scope: how much "everything interfaces can do" right now</h2>
+  <div class="sub">The roadmap (§3A) says interfaces are thin first: Bridge, VRF, routing and QoS slices come later, and each one adds its tab or card to the interface page as a consumer. You asked for everything. Those two pull in different directions, so this one is your call.</div>
+  <div class="opt">
+    <h3><span class="tag">A</span>Interface-owned areas now; domain areas land with their slice <span class="rec">● recommended</span></h3>
+    <div class="why">Build now: link (all leaves), breakout, flap protection, counters and clear, transceiver, PHY, LLDP, neighbors (ARP/ND), IP and VRF membership, bonds (BondBuilder), storm control, port security, 802.1X, sFlow, telemetry, plus group versions of all of these. Bridge/VLAN, VRR/VRRP, EVPN-MH, OSPF/PIM/PBR, QoS and ACL cards ship with slices 3B to 3G, reusing the same card and fan-out pieces. Keeps the roadmap's "shallow before deep" ordering.</div>
+  </div>
+  <div class="opt">
+    <h3><span class="tag">B</span>Everything in section 10 now</h3>
+    <div class="why">Every row in the catalogue gets built under Interfaces now, including bridge, VRR/VRRP, OSPF/PIM, QoS and ACL bindings. It's faster to a "complete interface page", but it builds bridge/QoS/ACL forms before their own domain screens exist, which risks reworking them later. It changes roadmap §3A, so I'd update the roadmap with your sign-off.</div>
+  </div>
+</section>
+
+<!-- ============================================================ 10 -->
+<section class="block">
+  <h2><span class="n">10</span>Catalogue: everything an interface can do (NVUE 5.14 spec)</h2>
+  <div class="sub">
+    Taken from <span class="code">/interface/{id}/…</span> in <span class="code">packages/spec/openapi.json</span>.
+    Group column: <span class="g-yes">same value</span> = one value written to every member ·
+    <span class="g-per">per switch</span> = unique per member (section 6) ·
+    <span class="g-agg">aggregate</span> = read, summed or tabulated ·
+    <span class="g-no">switch only</span> = not offered in group scope.
+    Status: <span class="st-done">done</span> · <span class="st-now">build now (9A)</span> · <span class="st-later">with its slice</span>.
+  </div>
+  <div class="demo" style="padding:0;max-height:none">
+    <table class="cat">
+      <thead><tr><th>Capability</th><th>NVUE path</th><th>Switch</th><th>Group</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr class="area"><td colspan="5">Link &amp; physical</td></tr>
+        <tr><td>Admin state, MTU, speed, auto-neg, duplex, FEC</td><td class="code">link</td><td>edit</td><td class="g-yes">same value</td><td class="st-done">done (switch) · group now</td></tr>
+        <tr><td>Description</td><td class="code">description</td><td>edit</td><td class="g-per">per switch (or same)</td><td class="st-done">done (switch) · group now</td></tr>
+        <tr><td>Lanes, fast link-up</td><td class="code">link</td><td>edit</td><td class="g-yes">same value</td><td class="st-now">now</td></tr>
+        <tr><td>MAC address override</td><td class="code">link/mac-address</td><td>edit</td><td class="g-per">per switch</td><td class="st-now">now</td></tr>
+        <tr><td>Breakout (e.g. 4×100G)</td><td class="code">link/breakout</td><td>edit · service-affecting</td><td class="g-yes">same value (same platform)</td><td class="st-now">now</td></tr>
+        <tr><td>Flap protection + clear</td><td class="code">link/flap-protection</td><td>edit · action</td><td class="g-yes">same value · action</td><td class="st-now">now</td></tr>
+        <tr><td>Transceiver + thresholds</td><td class="code">transceiver</td><td>read</td><td class="g-agg">aggregate (table)</td><td class="st-now">now</td></tr>
+        <tr><td>PHY detail / diagnostics</td><td class="code">link/phy-detail, phy-diag</td><td>read · action</td><td class="g-no">switch only</td><td class="st-now">now</td></tr>
+        <tr><td>Protodown reasons, link flags</td><td class="code">link/protodown-reason, flag</td><td>read</td><td class="g-agg">aggregate</td><td class="st-now">now</td></tr>
+        <tr class="area"><td colspan="5">Statistics</td></tr>
+        <tr><td>Traffic history, rates</td><td class="code">rates, link/stats</td><td>read</td><td class="g-agg">aggregate (section 2)</td><td class="st-done">done (switch) · group now</td></tr>
+        <tr><td>Discards &amp; errors, packet distribution, QoS counters</td><td class="code">counters/*</td><td>read</td><td class="g-agg">aggregate</td><td class="st-done">partly done · now</td></tr>
+        <tr><td>Clear counters</td><td class="code">POST counters</td><td>action</td><td class="g-yes">action (section 7)</td><td class="st-now">now</td></tr>
+        <tr class="area"><td colspan="5">Neighbors</td></tr>
+        <tr><td>LLDP neighbors</td><td class="code">lldp/neighbor</td><td>read</td><td class="g-agg">aggregate (switch column)</td><td class="st-now">now</td></tr>
+        <tr><td>LLDP config (state, DCBX TLVs, app TLVs)</td><td class="code">lldp</td><td>edit</td><td class="g-yes">same value</td><td class="st-now">now</td></tr>
+        <tr><td>ARP / ND table</td><td class="code">ip/neighbor, neighbor</td><td>read</td><td class="g-agg">aggregate</td><td class="st-now">now</td></tr>
+        <tr class="area"><td colspan="5">L3</td></tr>
+        <tr><td>IP addresses, gateway</td><td class="code">ip/address, ip/gateway</td><td>edit</td><td class="g-per">per switch</td><td class="st-now">now</td></tr>
+        <tr><td>VRF membership</td><td class="code">ip/vrf</td><td>edit · service-affecting</td><td class="g-yes">same value</td><td class="st-now">now</td></tr>
+        <tr><td>IPv4/IPv6 forwarding, neighbor discovery, IGMP</td><td class="code">ip/ipv4, ipv6, neighbor-discovery, igmp</td><td>edit</td><td class="g-yes">same value</td><td class="st-later">3C VRF</td></tr>
+        <tr><td>VRR (anycast gateway)</td><td class="code">ip/vrr</td><td>edit</td><td class="g-yes">same value (shared VIP/MAC)</td><td class="st-later">3B/3E</td></tr>
+        <tr><td>VRRP</td><td class="code">ip/vrrp</td><td>edit</td><td class="g-per">per switch (priority)</td><td class="st-later">3C</td></tr>
+        <tr><td>OSPF / OSPFv3 / PIM / PBR / adaptive routing</td><td class="code">router/*</td><td>edit</td><td class="g-yes">same value</td><td class="st-later">3F routing</td></tr>
+        <tr class="area"><td colspan="5">L2</td></tr>
+        <tr><td>Create / delete bond, members, LACP mode/rate/bypass, delays</td><td class="code">bond</td><td>edit · service-affecting</td><td class="g-yes">same value (if member names match)</td><td class="st-now">now (BondBuilder)</td></tr>
+        <tr><td>MLAG id on bond</td><td class="code">bond/mlag</td><td>edit</td><td class="g-yes">same value (pair)</td><td class="st-later">3E MLAG</td></tr>
+        <tr><td>Bridge domain: access/tagged VLANs, untagged, learning, STP</td><td class="code">bridge/domain</td><td>edit · service-affecting</td><td class="g-yes">same value</td><td class="st-later">3B bridge</td></tr>
+        <tr><td>Sub-interfaces, SVIs, loopbacks (create/delete)</td><td class="code">interface/{id} type, vlan</td><td>edit</td><td class="g-yes">same name · <span class="g-per">IPs per switch</span></td><td class="st-now">now</td></tr>
+        <tr><td>EVPN multihoming (ES id, sys-mac, DF pref, uplink)</td><td class="code">evpn/multihoming</td><td>edit</td><td class="g-per">mixed: ES same, DF per switch</td><td class="st-later">3D EVPN</td></tr>
+        <tr><td>Tunnel</td><td class="code">tunnel</td><td>edit</td><td class="g-per">per switch (endpoints)</td><td class="st-later">3D</td></tr>
+        <tr class="area"><td colspan="5">Security &amp; policing</td></tr>
+        <tr><td>Storm control (bcast / mcast / unknown-unicast)</td><td class="code">storm-control</td><td>edit</td><td class="g-yes">same value</td><td class="st-now">now</td></tr>
+        <tr><td>Port security, sticky MAC, violation mode, static MACs</td><td class="code">port-security</td><td>edit</td><td class="g-yes">same value · <span class="g-per">static MACs per switch</span></td><td class="st-now">now</td></tr>
+        <tr><td>802.1X (EAP, MBA, host mode) + deauthenticate</td><td class="code">dot1x</td><td>edit · action</td><td class="g-yes">same value · deauth switch only</td><td class="st-now">now</td></tr>
+        <tr><td>ACL bindings</td><td class="code">acl</td><td>edit</td><td class="g-yes">same value</td><td class="st-later">3G ACL</td></tr>
+        <tr class="area"><td colspan="5">QoS, timing, telemetry</td></tr>
+        <tr><td>QoS: PFC, link pause, scheduler, shaper, remark, mapping, buffer, congestion, PFC watchdog</td><td class="code">qos/*</td><td>edit · actions</td><td class="g-yes">same value</td><td class="st-later">3G QoS</td></tr>
+        <tr><td>PTP, SyncE</td><td class="code">ptp, synce</td><td>edit</td><td class="g-yes">same value</td><td class="st-later">3H platform</td></tr>
+        <tr><td>sFlow (state, sample rate)</td><td class="code">sflow</td><td>edit</td><td class="g-yes">same value</td><td class="st-now">now</td></tr>
+        <tr><td>Telemetry (bandwidth gauge, histograms, label)</td><td class="code">telemetry</td><td>edit</td><td class="g-yes">same value</td><td class="st-now">now</td></tr>
+        <tr><td>Packet trimming</td><td class="code">packet-trim</td><td>edit</td><td class="g-yes">same value</td><td class="st-later">3G QoS</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

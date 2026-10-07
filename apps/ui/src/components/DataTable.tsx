@@ -4,7 +4,7 @@
  * actions, pagination with persisted page size (10–200). Client-side over
  * the fetched rows — collections here are small; the server stays dumb.
  */
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useColumnPrefs } from '../lib/columnPrefs.js';
 import { PAGE_SIZES, usePagination, type PageSize } from '../lib/pagination.js';
 import ColumnFilter from './ColumnFilter.js';
@@ -53,6 +53,8 @@ export function DataTable<T extends object>({
   onRowClick,
   actions,
   actionsLabel = 'Row actions',
+  subRows,
+  rowKey,
 }: {
   cols: GridColumn<T>[];
   rows: T[];
@@ -62,7 +64,19 @@ export function DataTable<T extends object>({
   onRowClick?: (row: T) => void;
   actions?: (row: T) => RowMenuItem[];
   actionsLabel?: string;
+  /** Expandable detail rows (same columns), e.g. one per switch under a group row. */
+  subRows?: (row: T) => T[] | undefined;
+  /** Stable row identity; required for expansion to survive sorting and paging. */
+  rowKey?: (row: T) => string;
 }) {
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const toggleRow = (key: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   const catalog = useMemo(() => cols.map((c) => ({ key: c.key, label: c.label, always: c.always })), [cols]);
   const byKey = useMemo(() => new Map(cols.map((c) => [c.key, c])), [cols]);
   const { prefs, visibleKeys, toggle, move, reset } = useColumnPrefs(`${storageKey}.columns`, catalog);
@@ -187,27 +201,77 @@ export function DataTable<T extends object>({
                 </td>
               </tr>
             )}
-            {pagination.pageItems.map((row, i) => (
-              <tr
-                key={i}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                style={onRowClick ? { cursor: 'pointer' } : undefined}
-              >
-                {visibleKeys.map((key) => {
-                  const col = byKey.get(key)!;
+            {pagination.pageItems.map((row, i) => {
+              const key = rowKey ? rowKey(row) : String(i);
+              const kids = subRows?.(row);
+              const open = expanded.has(key);
+              const cells = (r: T, sub: boolean) =>
+                visibleKeys.map((k, ci) => {
+                  const col = byKey.get(k)!;
+                  const body = col.render ? col.render(r) : col.value(r);
                   return (
-                    <td key={key} style={tdStyle}>
-                      {col.render ? col.render(row) : col.value(row)}
+                    <td
+                      key={k}
+                      style={{
+                        ...tdStyle,
+                        ...(sub ? { fontSize: 13, paddingTop: 9, paddingBottom: 9 } : {}),
+                        ...(sub && ci === 0 ? { paddingLeft: 44, color: 'var(--color-muted)' } : {}),
+                      }}
+                    >
+                      {ci === 0 && !sub && subRows ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {kids && kids.length > 0 ? (
+                            <button
+                              type="button"
+                              aria-expanded={open}
+                              aria-label={open ? 'Collapse' : 'Expand'}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleRow(key);
+                              }}
+                              className="row-caret"
+                            >
+                              {open ? '⌄' : '›'}
+                            </button>
+                          ) : (
+                            <span style={{ width: 22, display: 'inline-block' }} />
+                          )}
+                          {body}
+                        </span>
+                      ) : (
+                        body
+                      )}
                     </td>
                   );
-                })}
-                {actions && (
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    <RowMenu label={actionsLabel} items={actions(row)} />
-                  </td>
-                )}
-              </tr>
-            ))}
+                });
+              return (
+                <Fragment key={key}>
+                  <tr
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    style={onRowClick ? { cursor: 'pointer' } : undefined}
+                  >
+                    {cells(row, false)}
+                    {actions && (
+                      <td style={{ ...tdStyle, textAlign: 'right' }}>
+                        <RowMenu label={actionsLabel} items={actions(row)} />
+                      </td>
+                    )}
+                  </tr>
+                  {open &&
+                    kids?.map((kid, j) => (
+                      <tr
+                        key={`${key}-${j}`}
+                        className="sub-row"
+                        onClick={onRowClick ? () => onRowClick(kid) : undefined}
+                        style={onRowClick ? { cursor: 'pointer' } : undefined}
+                      >
+                        {cells(kid, true)}
+                        {actions && <td style={tdStyle} />}
+                      </tr>
+                    ))}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
         {pagination.total > 0 && (

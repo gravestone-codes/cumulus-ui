@@ -36,14 +36,14 @@ export function globalNav(): Array<NavItem & { to: string }> {
 
 /**
  * Group rail: the same domain items as a switch, applied to every member.
- * Domain entries stay disabled until fan-out reads land; the Overview names
- * the guardrail contract (per-switch-unique paths are refused group-wide).
+ * Interfaces read and write through FanOut; the rest stay disabled until
+ * their slices land.
  */
 export function groupNav(groupId: string): Array<NavItem & { to: string }> {
   const base = `/groups/${groupId}`;
   return [
     { to: base, label: 'Overview', icon: 'dashboard' },
-    { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces', disabled: true },
+    { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
     { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs', disabled: true },
     { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit', disabled: true },

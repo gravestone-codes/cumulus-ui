@@ -6,7 +6,7 @@
  */
 import { db } from '../db.js';
 import { withSwitchToken } from '../nvue/clients.js';
-import { applyBranch as applyRevision, getAction } from '../nvue/revisions.js';
+import { applyBranch as applyRevision, getAction, getRevisionState } from '../nvue/revisions.js';
 import { jsonEqual } from '../lib/json.js';
 import { audit } from '../audit/store.js';
 import { getEditSession, type StagedPath } from './branches.js';
@@ -20,11 +20,11 @@ export async function collectDiffs(
 ): Promise<PathDiff[]> {
   const diffs: PathDiff[] = [];
   for (const s of staged) {
+    const mine = s.after ?? null;
     const current = await client
       .call({ path: s.path, method: 'GET', token })
-      .then((r) => r.data)
+      .then((r) => (s.method === 'PATCH' && mine !== null ? lens(r.data, mine) : r.data))
       .catch(() => null);
-    const mine = s.after ?? null;
     diffs.push({
       path: s.path,
       method: s.method,
@@ -52,6 +52,19 @@ export type DiffState = 'clean' | 'applied' | 'conflict';
 
 export interface PathDiff extends Conflict {
   state: DiffState;
+}
+
+/**
+ * The part of `data` a PATCH body touches, shaped like the body. OCC compares
+ * only these leaves, so counters ticking elsewhere on the object never conflict.
+ */
+export function lens(data: unknown, shape: unknown): unknown {
+  const isObj = (v: unknown): v is Record<string, unknown> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v);
+  if (!isObj(shape) || Object.keys(shape).length === 0) return data ?? null;
+  return Object.fromEntries(
+    Object.entries(shape).map(([k, v]) => [k, lens(isObj(data) ? data[k] : undefined, v)]),
+  );
 }
 
 /** Classify one staged path against live state. Pure — unit-tested. */
@@ -132,6 +145,30 @@ export async function pollJob(
   }
 }
 
+/** NVUE answers apply with no job id; follow the revision's own state instead. */
+export async function pollRevision(
+  userSub: string,
+  switchId: string,
+  branch: string,
+  opts: { intervalMs?: number; timeoutMs?: number; credKey?: string } = {},
+): Promise<string> {
+  const interval = opts.intervalMs ?? 2000;
+  const deadline = Date.now() + (opts.timeoutMs ?? 300_000);
+  for (;;) {
+    const state = await withSwitchToken(userSub, switchId, { credKey: opts.credKey }, (client, token) =>
+      getRevisionState(client, token, branch),
+    );
+    if (state === 'applied' || state === 'applied_and_saved') return state;
+    if (state.includes('fail') || state === 'invalid' || state === 'ays_no') {
+      throw new Error(`apply of revision ${branch} failed: ${state}`);
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`apply of revision ${branch} did not finish in time (last state: ${state})`);
+    }
+    await sleep(interval);
+  }
+}
+
 export interface ApplyContext {
   sub: string;
   username: string;
@@ -163,6 +200,7 @@ export async function applySession(
       applyRevision(client, token, session.branch),
     );
     if (jobId) await pollJob(ctx.sub, switchId, jobId, opts);
+    else await pollRevision(ctx.sub, switchId, session.branch, { ...opts, credKey: ctx.credKey });
     await db().query('DELETE FROM edit_sessions WHERE user_sub = $1 AND switch_id = $2', [ctx.sub, switchId]);
     const result = { applied: true, jobId, paths: session.staged.map((s) => s.path) };
     await audit({

@@ -3,7 +3,7 @@
  * Lists are dumb — collection path + injected columns in, rows out.
  * View names come from /api/v1/spec/manifest (decision 10), never constants.
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
 import { Alert, Button, LineDropdown, ReconnectModal, Spinner } from './ui.js';
@@ -28,7 +28,7 @@ export function ViewSwitcher({
     <LineDropdown
       label="View"
       value={value ?? ''}
-      onChange={(e) => onChange(e.target.value || undefined)}
+      onChange={(v) => onChange(v || undefined)}
       options={[{ value: '', label: 'Default' }, ...views.map((v) => ({ value: v, label: v }))]}
     />
   );
@@ -57,6 +57,13 @@ export function ResourceDetail({
     return <ReadError switchId={switchId} message={detail.error.message} onFixed={() => detail.refetch()} />;
   }
   const obj = detail.data?.data ?? {};
+  return <ValueGrid items={fields.map((f) => ({ label: f.label, value: f.value(obj) }))} />;
+}
+
+/* ValueGrid: labelled values as an airy tile grid — the one config layout
+   for detail pages (switch and group alike). Values may be rich (mixed
+   markers, locks); labels stay uppercase micro-type. */
+export function ValueGrid({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
   return (
     <dl
       style={{
@@ -66,7 +73,7 @@ export function ResourceDetail({
         gap: '28px 32px',
       }}
     >
-      {fields.map((f) => (
+      {items.map((f) => (
         <div key={f.label} style={{ minWidth: 0 }}>
           <dt
             style={{
@@ -80,14 +87,13 @@ export function ResourceDetail({
           >
             {f.label}
           </dt>
-          <dd style={{ margin: 0, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {f.value(obj)}
-          </dd>
+          <dd style={{ margin: 0, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.value}</dd>
         </div>
       ))}
     </dl>
   );
 }
+
 export function ResourceList<T extends object>({
   switchId,
   path,
@@ -99,6 +105,7 @@ export function ResourceList<T extends object>({
   storageKey,
   rowMenu,
   rev,
+  actions,
 }: {
   switchId: string;
   path: string;
@@ -110,6 +117,8 @@ export function ResourceList<T extends object>({
   storageKey: string;
   rowMenu?: (row: T) => RowMenuItem[];
   rev?: string;
+  /** Header actions (e.g. New interface), right of the title. */
+  actions?: ReactNode;
 }) {
   const [view, setView] = useState<string | undefined>(undefined);
   const list = useQuery({
@@ -127,6 +136,7 @@ export function ResourceList<T extends object>({
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 12 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{title}</h1>
         <span style={{ flex: 1 }} />
+        {actions}
         <span style={{ minWidth: 180 }}>
           <ViewSwitcher pathTemplate={pathTemplate} value={view} onChange={setView} />
         </span>

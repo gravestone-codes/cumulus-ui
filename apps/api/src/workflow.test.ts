@@ -42,6 +42,8 @@ describe.skipIf(!LIVE)('branches + staging', () => {
   const nvueState = {
     iface: { state: 'up', description: 'old' } as Record<string, unknown>,
     jobs: {} as Record<string, string[]>,
+    /** When set, apply answers like real NVUE (no job id) and GET /revision/:id walks these states. */
+    revStates: null as string[] | null,
   };
 
   beforeAll(async () => {
@@ -59,6 +61,19 @@ describe.skipIf(!LIVE)('branches + staging', () => {
         json(res, 200, nvueState.iface);
       } else if (req.method === 'PATCH' && url.pathname === '/nvue_v1/interface/swp1') {
         json(res, 200, {});
+      } else if (
+        req.method === 'PATCH' &&
+        url.pathname.startsWith('/nvue_v1/revision/') &&
+        nvueState.revStates
+      ) {
+        json(res, 200, { state: 'apply', transition: { issue: {}, progress: '' } });
+      } else if (
+        req.method === 'GET' &&
+        url.pathname.startsWith('/nvue_v1/revision/') &&
+        nvueState.revStates
+      ) {
+        const q = nvueState.revStates;
+        json(res, 200, { state: q.length > 1 ? q.shift() : q[0] });
       } else if (req.method === 'PATCH' && url.pathname.startsWith('/nvue_v1/revision/')) {
         const job = `J${++counter}`;
         nvueState.jobs[job] = ['running', 'success'];
@@ -111,7 +126,7 @@ describe.skipIf(!LIVE)('branches + staging', () => {
         {
           path: '/interface/swp1',
           method: 'PATCH',
-          before: { state: 'up', description: 'old' },
+          before: { description: 'old' },
           after: { description: 'new' },
         },
       ]);
@@ -277,9 +292,9 @@ describe.skipIf(!LIVE)('branches + staging', () => {
         {
           path: '/interface/swp1',
           method: 'PATCH',
-          before: { state: 'up', description: 'old' },
+          before: { description: 'old' },
           mine: { description: 'new' },
-          current: { state: 'up', description: 'theirs' },
+          current: { description: 'theirs' },
         },
       ]);
       nvueState.iface = { description: 'new' };
@@ -309,6 +324,24 @@ describe.skipIf(!LIVE)('branches + staging', () => {
     dropUserTokens('wf-poll');
   });
 
+  it('pollRevision: follows revision state when apply returns no job', async () => {
+    setSwitchToken('wf-rev', 'swf', 'stub-jwt');
+    const { pollRevision } = await import('./workflow/apply.js');
+    try {
+      nvueState.revStates = ['apply', 'applied'];
+      await expect(pollRevision('wf-rev', 'swf', 'R1', { intervalMs: 5, timeoutMs: 500 })).resolves.toBe(
+        'applied',
+      );
+      nvueState.revStates = ['apply', 'apply_fail'];
+      await expect(pollRevision('wf-rev', 'swf', 'R1', { intervalMs: 5, timeoutMs: 500 })).rejects.toThrow(
+        /failed/,
+      );
+    } finally {
+      nvueState.revStates = null;
+      dropUserTokens('wf-rev');
+    }
+  });
+
   it('diff: clean, then conflict with three values', async () => {
     const app = await buildApp({ auth: { cfg: CFG } });
     await app.ready();
@@ -328,16 +361,20 @@ describe.skipIf(!LIVE)('branches + staging', () => {
         {
           path: '/interface/swp1',
           method: 'PATCH',
-          before: { state: 'up', description: 'old' },
+          before: { description: 'old' },
           mine: { description: 'new' },
-          current: { state: 'up', description: 'old' },
+          current: { description: 'old' },
           state: 'clean',
         },
       ]);
+      // Leaves the body doesn't touch (counters, state) never conflict.
+      nvueState.iface = { state: 'down', description: 'old', stats: { 'in-pkts': 9 } };
+      const noisy = await api.get('/api/v1/switches/swf/diff').set('Cookie', cookie);
+      expect(noisy.body.diffs[0].state).toBe('clean');
       nvueState.iface = { state: 'up', description: 'theirs' };
       const conflicted = await api.get('/api/v1/switches/swf/diff').set('Cookie', cookie);
       expect(conflicted.body.diffs[0].state).toBe('conflict');
-      expect(conflicted.body.diffs[0].current).toEqual({ state: 'up', description: 'theirs' });
+      expect(conflicted.body.diffs[0].current).toEqual({ description: 'theirs' });
       nvueState.iface = { state: 'up', description: 'old' };
     } finally {
       dropUserTokens('wf-diff');
@@ -408,6 +445,121 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       await pool.query(`DELETE FROM switch_groups WHERE switch_id IN ('swA', 'swB')`);
       await pool.query(`DELETE FROM switches WHERE id IN ('swA', 'swB')`);
       await pool.query(`DELETE FROM groups WHERE id = 'G1'`);
+      await fakeB.close();
+      await app.close();
+    }
+  });
+
+  it('fanout: per-switch bodies, member subsets, exclusive stage, group read + action', async () => {
+    const fakeB = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (req.method === 'POST' && url.pathname === '/nvue_v1/revision')
+        json(res, 201, { '7': { state: 'pending' } });
+      else if (req.method === 'GET' && url.pathname === '/nvue_v1/interface/swp1')
+        json(res, 200, { mtu: 1500 });
+      else if (req.method === 'PATCH' && url.pathname === '/nvue_v1/interface/swp1') json(res, 200, {});
+      else if (req.method === 'POST' && url.pathname === '/nvue_v1/interface/swp1/counters')
+        json(res, 200, {});
+      else if (req.method === 'DELETE' && url.pathname.startsWith('/nvue_v1/revision/')) json(res, 200, {});
+      else json(res, 404, { message: 'nope' });
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES
+       ('swC', 't', $1, $2, $3), ('swD', 't', $4, $5, $6)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fake.baseUrl, fake.pin, fake.caPem, fakeB.baseUrl, fakeB.pin, fakeB.caPem],
+    );
+    await pool.query(`INSERT INTO groups (id, display_name) VALUES ('G2', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(
+      `INSERT INTO switch_groups (switch_id, group_id) VALUES ('swC', 'G2'), ('swD', 'G2') ON CONFLICT DO NOTHING`,
+    );
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const op = await sessionCookie(pool, 'wf-fan2', { appRoles: ['net-operator'] });
+    const viewer = await sessionCookie(pool, 'wf-fan2-v', { appRoles: ['viewer'] });
+    for (const sub of ['wf-fan2', 'wf-fan2-v']) {
+      setSwitchToken(sub, 'swC', 'stub-jwt');
+      setSwitchToken(sub, 'swD', 'stub-jwt');
+    }
+    const api = request(app.server);
+    try {
+      // Read: one row per member, allowed for operators, refused for viewers (no group grant).
+      const read = await api.get('/api/v1/groups/G2/query?path=/interface/swp1').set('Cookie', op);
+      expect(read.status).toBe(200);
+      expect(read.body.results).toEqual([
+        { switchId: 'swC', ok: true, data: expect.any(Object) },
+        { switchId: 'swD', ok: true, data: { mtu: 1500 } },
+      ]);
+      expect(
+        (await api.get('/api/v1/groups/G2/query?path=/interface/swp1').set('Cookie', viewer)).status,
+      ).toBe(403);
+
+      // Per-switch bodies stage only the keyed members, each with its own body.
+      const staged = await api
+        .post('/api/v1/groups/G2/stage')
+        .set('Cookie', op)
+        .send({
+          path: '/interface/swp1',
+          method: 'PATCH',
+          bodies: { swD: { description: 'only-D' } },
+          exclusive: true,
+        });
+      expect(staged.body.results).toEqual([{ switchId: 'swD', ok: true, branch: '7' }]);
+      expect((await getEditSession('wf-fan2', 'swD'))?.staged[0]?.after).toEqual({ description: 'only-D' });
+      expect(await getEditSession('wf-fan2', 'swC')).toBeNull();
+
+      // Exclusive refuses piling onto unapplied changes; strays are reported, not touched.
+      const again = await api
+        .post('/api/v1/groups/G2/stage')
+        .set('Cookie', op)
+        .send({
+          path: '/interface/swp1',
+          method: 'PATCH',
+          body: { mtu: 9216 },
+          members: ['swD', 'ghost'],
+          exclusive: true,
+        });
+      expect(again.body.results).toEqual([
+        { switchId: 'ghost', ok: false, error: 'ghost is not in group G2' },
+        { switchId: 'swD', ok: false, conflict: true, error: expect.stringContaining('discard first') },
+      ]);
+
+      // Operators stage but cannot apply (per member); viewers are refused the route.
+      const applied = await api
+        .post('/api/v1/groups/G2/apply')
+        .set('Cookie', op)
+        .send({ members: ['swD'] });
+      expect(applied.body.results).toEqual([
+        { switchId: 'swD', ok: false, error: 'apply not granted — POST /config required' },
+      ]);
+      expect((await api.post('/api/v1/groups/G2/apply').set('Cookie', viewer).send({})).status).toBe(403);
+
+      // Actions run only on the picked members.
+      const cleared = await api
+        .post('/api/v1/groups/G2/action')
+        .set('Cookie', op)
+        .send({ path: '/interface/swp1/counters', body: { '@clear': { state: 'start' } }, members: ['swD'] });
+      expect(cleared.status).toBe(200);
+      expect(cleared.body.results).toEqual([{ switchId: 'swD', ok: true, jobId: null, finalState: null }]);
+      expect(fakeB.hits.some((h) => h.startsWith('POST /nvue_v1/interface/swp1/counters'))).toBe(true);
+      expect(fake.hits.some((h) => h.startsWith('POST /nvue_v1/interface/swp1/counters'))).toBe(false);
+      expect(
+        (
+          await api
+            .post('/api/v1/groups/G2/action')
+            .set('Cookie', viewer)
+            .send({ path: '/interface/swp1/counters', members: ['swD'] })
+        ).status,
+      ).toBe(403);
+    } finally {
+      dropUserTokens('wf-fan2');
+      dropUserTokens('wf-fan2-v');
+      await pool.query(`DELETE FROM sessions WHERE user_sub IN ('wf-fan2', 'wf-fan2-v')`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('wf-fan2', 'wf-fan2-v')`);
+      await pool.query(`DELETE FROM edit_sessions WHERE user_sub IN ('wf-fan2', 'wf-fan2-v')`);
+      await pool.query(`DELETE FROM switch_groups WHERE switch_id IN ('swC', 'swD')`);
+      await pool.query(`DELETE FROM switches WHERE id IN ('swC', 'swD')`);
+      await pool.query(`DELETE FROM groups WHERE id = 'G2'`);
       await fakeB.close();
       await app.close();
     }

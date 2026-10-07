@@ -12,10 +12,23 @@
   --color-pass: #4fb19d;
   --color-warn: #e0a93c;
   --color-fail: #e0556b;
+  /* Traffic compare lines: hue apart from pass/brand so 4 series read apart. */
+  --color-compare-in: #3987e5;
+  --color-compare-out: #d95926;
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
+  /* Categorical series (one per switch), fixed order, validated on the dark surface.
+     Plain :root, not @theme: names are built at runtime, so Tailwind can't see them to keep. */
+  --color-series-1: #3987e5;
+  --color-series-2: #d95926;
+  --color-series-3: #199e70;
+  --color-series-4: #c98500;
+  --color-series-5: #d55181;
+  --color-series-6: #008300;
+  --color-series-7: #9085e9;
+  --color-series-8: #e66767;
   color-scheme: dark;
 }
 
@@ -70,6 +83,176 @@ body {
   }
   .lf.invalid > input {
     border-bottom-color: var(--color-fail);
+  }
+  .select-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.95rem;
+    padding: 0.45rem 0 0.5rem;
+    text-align: left;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .select-line:focus-visible,
+  .select-line[aria-expanded='true'] {
+    border-bottom-color: var(--color-brand);
+  }
+  .select-line:disabled {
+    cursor: default;
+    color: var(--color-muted);
+  }
+  .lf.invalid > .select-line {
+    border-bottom-color: var(--color-fail);
+  }
+  .select-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--color-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    padding: 8px 10px;
+    outline: none;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: 99px;
+    color: var(--color-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    padding: 4px 11px;
+    transition: opacity 0.18s ease;
+  }
+  .chip:hover,
+  .chip:focus-visible {
+    border-color: var(--color-brand);
+    outline: none;
+  }
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    padding: 8px 4px;
+    cursor: pointer;
+  }
+  .check-row input {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--color-text);
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 1px 9px;
+    border-radius: 99px;
+    border: 1px solid var(--color-border);
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+  .badge::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .badge-pass {
+    color: var(--color-pass);
+    border-color: color-mix(in srgb, var(--color-pass) 35%, transparent);
+  }
+  .badge-warn {
+    color: var(--color-warn);
+    border-color: color-mix(in srgb, var(--color-warn) 35%, transparent);
+  }
+  .badge-fail {
+    color: var(--color-fail);
+    border-color: color-mix(in srgb, var(--color-fail) 35%, transparent);
+  }
+  .row-caret {
+    width: 22px;
+    height: 22px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 6px;
+    border: none;
+    background: none;
+    color: var(--color-muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+  }
+  .row-caret:hover {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+  }
+  tr.sub-row td {
+    background: color-mix(in srgb, var(--color-surface-2) 55%, transparent);
+  }
+  .index-link {
+    display: block;
+    padding: 7px 10px;
+    border-radius: 8px;
+    color: var(--color-muted);
+    font-size: 13px;
+    text-decoration: none;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+  .index-link[aria-current='true'] {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-weight: 700;
+  }
+  .index-link:hover,
+  .index-link:focus-visible {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    outline: none;
+  }
+  .select-search {
+    width: 100%;
+    margin-bottom: 6px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 14px;
+    padding: 6px 10px 8px;
+    outline: none;
+  }
+  .select-opt[aria-selected='true'] {
+    background: var(--color-surface-2);
+  }
+  .select-opt:hover,
+  .select-opt:focus-visible {
+    background: var(--color-surface-2);
   }
   .lf .end {
     position: absolute;

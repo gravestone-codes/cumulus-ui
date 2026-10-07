@@ -198,7 +198,7 @@ export function OnboardSwitch() {
             <LineDropdown
               label="Group"
               value={group}
-              onChange={(e) => setGroup(e.target.value)}
+              onChange={setGroup}
               options={[
                 { value: '', label: 'Ungrouped' },
                 ...(groupsQuery.data ?? []).map((g) => ({ value: g.id, label: g.display_name })),

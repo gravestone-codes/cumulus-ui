@@ -82,6 +82,22 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/groups/:groupId/interfaces',
+    element: (
+      <RequireAuth>
+        <Interfaces />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/groups/:groupId/interfaces/:ifaceId',
+    element: (
+      <RequireAuth>
+        <InterfaceDetail />
+      </RequireAuth>
+    ),
+  },
+  {
     path: '/groups/:groupId',
     element: (
       <RequireAuth>

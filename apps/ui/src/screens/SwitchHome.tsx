@@ -127,9 +127,14 @@ export function SwitchHome() {
             <ActivityList rows={activity.data} onOpen={() => navigate(`/switches/${switchId}/audit`)} />
           )}
         </Card>
-        <Card title="Packets over time">
-          <SwitchTraffic switchId={switchId} />
-        </Card>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Card
+            title="Traffic over time"
+            info="All of this switch's interfaces added together: bits (or packets) per second received (In) and sent (Out). A frame crossing the switch counts once in and once out. Hover the graph for exact values."
+          >
+            <SwitchTraffic switchId={switchId} />
+          </Card>
+        </div>
       </div>
     </AppShell>
   );
@@ -150,13 +155,15 @@ function SwitchTraffic({ switchId }: { switchId: string }) {
     staleTime: 60_000,
   });
   const unit = metric === 'packets' ? pps : bps;
+  // History answers bytes per second; the graph speaks bits per second.
+  const scale = metric === 'bytes' ? 8 : 1;
   const points = (traffic.data?.points ?? []).map((p) => ({
     label:
       range === '24h'
         ? new Date(p.t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
         : new Date(p.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-    In: p.in,
-    Out: p.out,
+    In: p.in * scale,
+    Out: p.out * scale,
   }));
   const hasOut = points.some((p) => p.Out > 0);
   return (

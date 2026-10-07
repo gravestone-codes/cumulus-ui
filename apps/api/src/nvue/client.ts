@@ -38,11 +38,21 @@ export class NvueError extends Error {
 
 const TIMEOUT_MS = 15000;
 
-/** Encode each path segment (ids may contain subnets, CIDRs, tildes). */
+/**
+ * Encode each path segment (ids may contain subnets, CIDRs, tildes).
+ * Idempotent: callers pre-encode slash-bearing ids (`changeset%2Fcumulus%2F…`)
+ * so the gate sees one segment; those must not be encoded twice.
+ */
 export function encodePath(path: string): string {
   return path
     .split('/')
-    .map((seg) => encodeURIComponent(seg))
+    .map((seg) => {
+      try {
+        return encodeURIComponent(decodeURIComponent(seg));
+      } catch {
+        return encodeURIComponent(seg);
+      }
+    })
     .join('/');
 }
 

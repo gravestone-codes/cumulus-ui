@@ -84,7 +84,7 @@ export function GroupHome() {
       <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 16px' }}>
         {groupId}
         <Hint
-          text={`Group scope: one change fans out to every member. Group-safe paths (NTP, DNS, syslog, VLANs) apply everywhere. Per-switch-unique paths (${UNIQUE_EXAMPLES}) are refused here, change those per switch.`}
+          text={`Group scope: one change fans out to every member, each with its own dry-run and result. Shared settings take one value; per-switch-unique values (${UNIQUE_EXAMPLES}) take one value per member, never a shared one.`}
         />
       </h1>
       {switches.isError && <Alert tone="fail">Could not load switches: {switches.error.message}</Alert>}

@@ -1,6 +1,7 @@
 /**
- * Counter history tests: pure counter math, rollup compaction, and the
- * history endpoint (seeded SQL rows — no switch needed for reads).
+ * Counter history tests: pure counter math, rollup compaction, the history
+ * and live-seed endpoints (seeded SQL rows — no switch needed for reads),
+ * and the sampler's token reuse against a fake switch.
  */
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
@@ -9,8 +10,11 @@ import { buildApp } from '../app.js';
 import { migrate, db } from '../db.js';
 import { type AuthConfig } from '../auth/config.js';
 import { sessionCookie } from '../test-sessions.js';
-import { counterDelta, extractCounters, rollupTick } from './sampler.js';
-import { toRates } from './routes.js';
+import { counterDelta, extractCounters, rollupTick, sampleSwitch } from './sampler.js';
+import { setSwitchCredential } from '../users/store.js';
+import { dropUserTokens, getSwitchToken, setSwitchToken } from '../switchauth/sessions.js';
+import { startFakeNvue, json } from '../test-nvue.js';
+import { mergeHours, toRates } from './routes.js';
 
 const CFG: AuthConfig = { credKey: 'test-cred-key-long-enough-12345', idleMinutes: 30 };
 
@@ -123,6 +127,20 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
       );
       expect(Number(oldLeft.rows[0]?.n)).toBe(0);
 
+      // A short window wholly past raw retention (a comparison 10 days back)
+      // reads hourly buckets instead of coming back empty.
+      const oldFrom = new Date(base - 10 * 86400_000 - 3 * 3600_000).toISOString();
+      const oldTo = new Date(base - 10 * 86400_000 + 3600_000).toISOString();
+      const old = await api
+        .get(
+          `/api/v1/switches/sh1/interfaces/swp1/history?from=${encodeURIComponent(oldFrom)}&to=${encodeURIComponent(oldTo)}&metric=bytes`,
+        )
+        .set('Cookie', cookie);
+      expect(old.status).toBe(200);
+      expect(old.body.points.length).toBeGreaterThan(0);
+      // History start survives the rollup (hourly buckets count).
+      expect(Date.parse(old.body.earliest)).toBeLessThan(Date.parse(oldTo));
+
       const month = await api
         .get('/api/v1/switches/sh1/interfaces/swp1/history?range=30d&metric=bytes')
         .set('Cookie', cookie);
@@ -139,9 +157,7 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
       expect(custom.status).toBe(200);
       expect(custom.body.points.length).toBeGreaterThan(0);
 
-      const agg = await api
-        .get('/api/v1/switches/sh1/traffic?range=24h&metric=bytes')
-        .set('Cookie', cookie);
+      const agg = await api.get('/api/v1/switches/sh1/traffic?range=24h&metric=bytes').set('Cookie', cookie);
       expect(agg.status).toBe(200);
       expect(agg.body.points.length).toBeGreaterThan(0);
       expect(agg.body.points[0]).toHaveProperty('in');
@@ -162,5 +178,117 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
       await pool.query(`DELETE FROM switches WHERE id = 'sh1'`);
       await app.close();
     }
+  });
+  it('serves recent raw readings to seed the live graph; denies uncovered users', async () => {
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url) VALUES ('sh2', 't', 'https://sh2:8765')
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url`,
+    );
+    const base = Date.now();
+    for (const ago of [30, 20, 10, 1]) {
+      await db().query(
+        `INSERT INTO interface_samples (switch_id, iface, ts, in_bytes, out_bytes, in_pkts, out_pkts, drops, errors)
+         VALUES ('sh2', 'swp1', $1, $2, $2, $2, $2, 1, 2) ON CONFLICT DO NOTHING`,
+        [new Date(base - ago * 60_000), (100 - ago) * 1000],
+      );
+    }
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const admin = await sessionCookie(pool, 'qh-admin', { appRoles: ['app-admin'] });
+    const nobody = await sessionCookie(pool, 'qh-nobody');
+    const api = request(app.server);
+    try {
+      expect(await api.get('/api/v1/switches/sh2/interfaces/swp1/samples')).toMatchObject({ status: 401 });
+      expect(
+        await api.get('/api/v1/switches/sh2/interfaces/swp1/samples').set('Cookie', nobody),
+      ).toMatchObject({ status: 403 });
+      expect(
+        await api.get('/api/v1/switches/sh2/interfaces/swp1/samples?minutes=0').set('Cookie', admin),
+      ).toMatchObject({ status: 400 });
+
+      const res = await api
+        .get('/api/v1/switches/sh2/interfaces/swp1/samples?minutes=15')
+        .set('Cookie', admin);
+      expect(res.status).toBe(200);
+      // 15 minutes back: the 10- and 1-minute-old readings, oldest first, numeric.
+      expect(res.body.samples).toHaveLength(2);
+      expect(Date.parse(res.body.earliest)).toBeLessThanOrEqual(res.body.samples[0].t);
+      expect(res.body.samples[0]).toMatchObject({ inB: 90_000, outB: 90_000, dr: 1, er: 2 });
+      expect(res.body.samples[0].t).toBeLessThan(res.body.samples[1].t);
+
+      // Coverage: same gate; hours holding two+ readings come back as spans.
+      expect(
+        await api.get('/api/v1/switches/sh2/interfaces/swp1/coverage').set('Cookie', nobody),
+      ).toMatchObject({ status: 403 });
+      const cov = await api.get('/api/v1/switches/sh2/interfaces/swp1/coverage').set('Cookie', admin);
+      expect(cov.status).toBe(200);
+      expect(cov.body.spans.length).toBeGreaterThan(0);
+      const first = cov.body.spans[0];
+      expect(Date.parse(first.from)).toBeLessThanOrEqual(base - 10 * 60_000);
+      expect((Date.parse(first.to) - Date.parse(first.from)) % 3600_000).toBe(0);
+    } finally {
+      await pool.query(`DELETE FROM interface_samples WHERE switch_id = 'sh2'`);
+      await pool.query(`DELETE FROM sessions WHERE user_sub IN ('qh-admin', 'qh-nobody')`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('qh-admin', 'qh-nobody')`);
+      await pool.query(`DELETE FROM users WHERE id IN ('qh-admin', 'qh-nobody')`);
+      await pool.query(`DELETE FROM switches WHERE id = 'sh2'`);
+      await app.close();
+    }
+  });
+
+  it('sampler rides the cached user token instead of minting every tick', async () => {
+    let mints = 0;
+    const fake = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (url.pathname === '/nvue_v1/api-token') {
+        mints++;
+        json(res, 200, { token: 'minted-jwt' });
+      } else if (url.pathname === '/nvue_v1/interface') {
+        json(res, 200, { swp1: { link: { stats: { 'in-bytes': 5, 'out-bytes': 6 } } } });
+      } else {
+        json(res, 404, { message: 'nope' });
+      }
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem, trust_verified)
+       VALUES ('sh3', 't', $1, $2, $3, true)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint,
+         cert_pem = EXCLUDED.cert_pem, trust_verified = true`,
+      [fake.baseUrl, fake.pin, fake.caPem],
+    );
+    await sessionCookie(pool, 'qh-sampler');
+    await setSwitchCredential('qh-sampler', 'sh3', 'cumulus', 's3cret', CFG.credKey);
+    try {
+      setSwitchToken('qh-sampler', 'sh3', 'cached-jwt');
+      expect(await sampleSwitch(CFG.credKey, 'qh-sampler', 'sh3')).toBe(1);
+      expect(mints).toBe(0);
+      expect(getSwitchToken('qh-sampler', 'sh3')).toBe('cached-jwt');
+
+      // No cached token: mint once, then keep riding it.
+      dropUserTokens('qh-sampler');
+      await sampleSwitch(CFG.credKey, 'qh-sampler', 'sh3');
+      await sampleSwitch(CFG.credKey, 'qh-sampler', 'sh3');
+      expect(mints).toBe(1);
+      expect(getSwitchToken('qh-sampler', 'sh3')).toBe('minted-jwt');
+    } finally {
+      dropUserTokens('qh-sampler');
+      await pool.query(`DELETE FROM interface_samples WHERE switch_id = 'sh3'`);
+      await pool.query(`DELETE FROM switch_credentials WHERE user_sub = 'qh-sampler'`);
+      await pool.query(`DELETE FROM sessions WHERE user_sub = 'qh-sampler'`);
+      await pool.query(`DELETE FROM users WHERE id = 'qh-sampler'`);
+      await pool.query(`DELETE FROM switches WHERE id = 'sh3'`);
+      await fake.close();
+    }
+  });
+});
+
+describe('mergeHours', () => {
+  const H = 3600_000;
+  it('joins back-to-back hours and splits at gaps', () => {
+    expect(mergeHours([0, H, 2 * H, 5 * H])).toEqual([
+      { from: new Date(0).toISOString(), to: new Date(3 * H).toISOString() },
+      { from: new Date(5 * H).toISOString(), to: new Date(6 * H).toISOString() },
+    ]);
+    expect(mergeHours([])).toEqual([]);
   });
 });
