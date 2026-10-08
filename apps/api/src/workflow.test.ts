@@ -11,6 +11,7 @@ import { type AuthConfig } from './auth/config.js';
 import { sessionCookie } from './test-sessions.js';
 import { setSwitchToken, dropUserTokens } from './switchauth/sessions.js';
 import { getEditSession } from './workflow/branches.js';
+import { pendingBody, pendingCall } from './workflow/rebase.js';
 import { json, startFakeNvue, type FakeNvue } from './test-nvue.js';
 
 const CFG: AuthConfig = { credKey: 'test-cred-key-long-enough-12345', idleMinutes: 30 };
@@ -28,6 +29,35 @@ async function dbReachable(): Promise<boolean> {
   }
 }
 
+describe('rebase pruning (pure)', () => {
+  it('keeps only leaves the switch does not already hold', () => {
+    expect(pendingBody({ description: 'mine', mtu: 9000 }, { description: 'theirs', mtu: 9000 })).toEqual({
+      description: 'mine',
+    });
+    expect(pendingBody({ link: { speed: '100G', mtu: 9216 } }, { link: { speed: '100G' } })).toEqual({
+      link: { mtu: 9216 },
+    });
+    expect(pendingBody({ description: 'x' }, { description: 'x', state: 'up' })).toBeNull();
+    // Empty-object leaf = "exists": landed once the key is there.
+    expect(
+      pendingBody({ bond: { member: { swp1: {} } } }, { bond: { member: { swp1: { x: 1 } } } }),
+    ).toBeNull();
+    expect(pendingBody({ bond: { member: { swp2: {} } } }, { bond: { member: { swp1: {} } } })).toEqual({
+      bond: { member: { swp2: {} } },
+    });
+    expect(pendingBody({ description: 'x' }, undefined)).toEqual({ description: 'x' });
+  });
+
+  it('drops a DELETE once the object is gone; refuses a PATCH without a recorded body', () => {
+    const del = { path: '/interface/bond9', method: 'DELETE', before: {} };
+    expect(pendingCall(del, undefined)).toBeNull();
+    expect(pendingCall(del, { type: 'bond' })).toEqual({ path: '/interface/bond9', method: 'DELETE' });
+    expect(() => pendingCall({ path: '/interface/swp1', method: 'PATCH', before: {} }, {})).toThrow(
+      /restage/,
+    );
+  });
+});
+
 const LIVE = await dbReachable();
 if (!LIVE) console.warn('workflow tests skipped: DATABASE_URL unreachable');
 
@@ -44,6 +74,8 @@ describe.skipIf(!LIVE)('branches + staging', () => {
     jobs: {} as Record<string, string[]>,
     /** When set, apply answers like real NVUE (no job id) and GET /revision/:id walks these states. */
     revStates: null as string[] | null,
+    /** When set, staging PATCHes on the switch fail (rebase rollback). */
+    failPatch: false,
   };
 
   beforeAll(async () => {
@@ -60,7 +92,7 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       ) {
         json(res, 200, nvueState.iface);
       } else if (req.method === 'PATCH' && url.pathname === '/nvue_v1/interface/swp1') {
-        json(res, 200, {});
+        json(res, nvueState.failPatch ? 500 : 200, nvueState.failPatch ? { message: 'boom' } : {});
       } else if (
         req.method === 'PATCH' &&
         url.pathname.startsWith('/nvue_v1/revision/') &&
@@ -414,6 +446,194 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       await pool.query(`DELETE FROM sessions WHERE user_sub = 'wf-apply3'`);
       await pool.query(`DELETE FROM user_roles WHERE user_sub = 'wf-apply3'`);
       await pool.query(`DELETE FROM edit_sessions WHERE user_sub = 'wf-apply3'`);
+      await app.close();
+    }
+  });
+
+  it('rebase: re-stages on a fresh branch, landed leaves drop, nothing left = already applied', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool, 'wf-rb', { appRoles: ['net-operator'] });
+    setSwitchToken('wf-rb', 'swf', 'stub-jwt');
+    nvueState.iface = { state: 'up', description: 'old', mtu: 1500 };
+    const startedAt = (await pool.query<{ now: Date }>('SELECT now()')).rows[0]?.now;
+    const api = request(app.server);
+    try {
+      const opened = await api.post('/api/v1/switches/swf/branch').set('Cookie', cookie);
+      const oldBranch = opened.body.branch as string;
+      await api
+        .post('/api/v1/switches/swf/stage')
+        .set('Cookie', cookie)
+        .send({ path: '/interface/swp1', method: 'PATCH', body: { description: 'mine', mtu: 9000 } });
+      // Someone else lands mtu 9000 (same as mine) and a different description.
+      nvueState.iface = { state: 'up', description: 'theirs', mtu: 9000 };
+      fake.hits.length = 0;
+
+      const rebased = await api.post('/api/v1/switches/swf/rebase').set('Cookie', cookie);
+      expect(rebased.status).toBe(200);
+      expect(rebased.body).toMatchObject({
+        rebased: true,
+        alreadyApplied: false,
+        baseRev: 'applied',
+        staged: ['/interface/swp1'],
+        dropped: [],
+      });
+      expect(rebased.body.branch).not.toBe(oldBranch);
+      const session = await getEditSession('wf-rb', 'swf');
+      expect(session?.branch).toBe(rebased.body.branch);
+      expect(session?.staged).toEqual([
+        {
+          path: '/interface/swp1',
+          method: 'PATCH',
+          before: { description: 'theirs' },
+          after: { description: 'mine' },
+        },
+      ]);
+      expect(
+        fake.hits.some((h) => h.includes('POST /nvue_v1/revision') && h.includes('base_rev=applied')),
+      ).toBe(true);
+      expect(fake.hits.some((h) => h.includes(`DELETE /nvue_v1/revision/${oldBranch}`))).toBe(true);
+      const audited = await pool.query(
+        `SELECT 1 FROM audit_log WHERE user_sub = 'wf-rb' AND path = '/api/v1/switches/swf/rebase'
+         AND rev = $1 AND ts >= $2`,
+        [rebased.body.branch, startedAt],
+      );
+      expect(audited.rowCount).toBe(1);
+
+      // Now my description lands too: nothing left, the draft is closed.
+      nvueState.iface = { state: 'up', description: 'mine', mtu: 9000 };
+      const done = await api.post('/api/v1/switches/swf/rebase').set('Cookie', cookie);
+      expect(done.body).toMatchObject({
+        rebased: false,
+        alreadyApplied: true,
+        branch: null,
+        staged: [],
+        dropped: ['/interface/swp1'],
+      });
+      expect(await getEditSession('wf-rb', 'swf')).toBeNull();
+      expect((await api.post('/api/v1/switches/swf/rebase').set('Cookie', cookie)).status).toBe(409);
+    } finally {
+      nvueState.iface = { state: 'up', description: 'old' };
+      dropUserTokens('wf-rb');
+      await pool.query(`DELETE FROM sessions WHERE user_sub = 'wf-rb'`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub = 'wf-rb'`);
+      await pool.query(`DELETE FROM edit_sessions WHERE user_sub = 'wf-rb'`);
+      await app.close();
+    }
+  });
+
+  it('rebase: a failed re-stage restores the old draft; deny cases are refused and audited', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool, 'wf-rb2', { appRoles: ['net-operator'] });
+    const viewer = await sessionCookie(pool, 'wf-rbv', { appRoles: ['viewer'] });
+    setSwitchToken('wf-rb2', 'swf', 'stub-jwt');
+    setSwitchToken('wf-rbv', 'swf', 'stub-jwt');
+    const draft = [
+      {
+        path: '/interface/swp1',
+        method: 'PATCH',
+        before: { description: 'old' },
+        after: { description: 'mine' },
+      },
+    ];
+    for (const sub of ['wf-rb2', 'wf-rbv']) {
+      await pool.query(
+        `INSERT INTO edit_sessions (user_sub, switch_id, branch, base_rev, staged_paths) VALUES ($1, 'swf', 'OLD', 'applied', $2)`,
+        [sub, JSON.stringify(draft)],
+      );
+    }
+    nvueState.iface = { state: 'up', description: 'theirs' };
+    const api = request(app.server);
+    try {
+      nvueState.failPatch = true;
+      const failed = await api.post('/api/v1/switches/swf/rebase').set('Cookie', cookie);
+      expect(failed.status).toBe(500);
+      const kept = await getEditSession('wf-rb2', 'swf');
+      expect(kept).toMatchObject({ branch: 'OLD', baseRev: 'applied', staged: draft });
+      nvueState.failPatch = false;
+
+      expect((await api.post('/api/v1/switches/swf/rebase')).status).toBe(401);
+      expect((await api.post('/api/v1/switches/nope/rebase').set('Cookie', cookie)).status).toBe(404);
+      const denied = await api.post('/api/v1/switches/swf/rebase').set('Cookie', viewer);
+      expect(denied.status).toBe(403);
+      expect(await getEditSession('wf-rbv', 'swf')).toMatchObject({ branch: 'OLD', staged: draft });
+      const audited = await pool.query(
+        `SELECT 1 FROM audit_log WHERE user_sub = 'wf-rbv' AND path = '/api/v1/switches/swf/rebase'`,
+      );
+      expect(audited.rowCount).toBeGreaterThan(0);
+    } finally {
+      nvueState.failPatch = false;
+      nvueState.iface = { state: 'up', description: 'old' };
+      dropUserTokens('wf-rb2');
+      dropUserTokens('wf-rbv');
+      await pool.query(`DELETE FROM sessions WHERE user_sub IN ('wf-rb2', 'wf-rbv')`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('wf-rb2', 'wf-rbv')`);
+      await pool.query(`DELETE FROM edit_sessions WHERE user_sub IN ('wf-rb2', 'wf-rbv')`);
+      await app.close();
+    }
+  });
+
+  it('rebase: group members rebase independently', async () => {
+    const fakeB = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (req.method === 'GET' && url.pathname === '/nvue_v1/interface/swp1') {
+        json(res, 200, { description: 'mine' });
+      } else if (req.method === 'DELETE' && url.pathname.startsWith('/nvue_v1/revision/')) json(res, 200, {});
+      else json(res, 404, { message: 'nope' });
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES
+       ('swR1', 't', $1, $2, $3), ('swR2', 't', $4, $5, $6), ('swR3', 't', $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fake.baseUrl, fake.pin, fake.caPem, fakeB.baseUrl, fakeB.pin, fakeB.caPem],
+    );
+    await pool.query(`INSERT INTO groups (id, display_name) VALUES ('GR', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(
+      `INSERT INTO switch_groups (switch_id, group_id) VALUES ('swR1', 'GR'), ('swR2', 'GR'), ('swR3', 'GR') ON CONFLICT DO NOTHING`,
+    );
+    const draft = JSON.stringify([
+      {
+        path: '/interface/swp1',
+        method: 'PATCH',
+        before: { description: 'old' },
+        after: { description: 'mine' },
+      },
+    ]);
+    for (const sw of ['swR1', 'swR2']) {
+      await pool.query(
+        `INSERT INTO edit_sessions (user_sub, switch_id, branch, base_rev, staged_paths) VALUES ('wf-rbg', $1, 'OLD', 'applied', $2)`,
+        [sw, draft],
+      );
+    }
+    nvueState.iface = { state: 'up', description: 'theirs' };
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool, 'wf-rbg', { appRoles: ['net-operator'] });
+    for (const sw of ['swR1', 'swR2', 'swR3']) setSwitchToken('wf-rbg', sw, 'stub-jwt');
+    const api = request(app.server);
+    try {
+      const res = await api.post('/api/v1/groups/GR/rebase').set('Cookie', cookie).send({});
+      expect(res.status).toBe(200);
+      const byId = Object.fromEntries(res.body.results.map((r: { switchId: string }) => [r.switchId, r]));
+      // swR3 holds no draft: skipped. swR1 re-staged; swR2 already holds my value.
+      expect(Object.keys(byId).sort()).toEqual(['swR1', 'swR2']);
+      expect(byId.swR1).toMatchObject({ ok: true, rebased: true, staged: ['/interface/swp1'] });
+      expect(byId.swR2).toMatchObject({ ok: true, rebased: false, alreadyApplied: true });
+      expect(await getEditSession('wf-rbg', 'swR2')).toBeNull();
+
+      const nobody = await sessionCookie(pool, 'wf-rbg-none', { appRoles: [] });
+      expect((await api.post('/api/v1/groups/GR/rebase').set('Cookie', nobody).send({})).status).toBe(403);
+    } finally {
+      nvueState.iface = { state: 'up', description: 'old' };
+      dropUserTokens('wf-rbg');
+      await pool.query(`DELETE FROM sessions WHERE user_sub IN ('wf-rbg', 'wf-rbg-none')`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('wf-rbg', 'wf-rbg-none')`);
+      await pool.query(`DELETE FROM edit_sessions WHERE user_sub = 'wf-rbg'`);
+      await pool.query(`DELETE FROM switch_groups WHERE switch_id IN ('swR1', 'swR2', 'swR3')`);
+      await pool.query(`DELETE FROM switches WHERE id IN ('swR1', 'swR2', 'swR3')`);
+      await pool.query(`DELETE FROM groups WHERE id = 'GR'`);
+      await fakeB.close();
       await app.close();
     }
   });

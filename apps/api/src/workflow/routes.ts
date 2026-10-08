@@ -19,7 +19,8 @@ import { getAction } from '../nvue/revisions.js';
 import { runAction } from './actions.js';
 import { GuardError } from '../nvue/guard.js';
 import { stageChange, StageError } from './stage.js';
-import { fanoutAction, fanoutApply, fanoutQuery, fanoutStage } from './fanout.js';
+import { fanoutAction, fanoutApply, fanoutQuery, fanoutRebase, fanoutStage } from './fanout.js';
+import { rebaseSession } from './rebase.js';
 
 export interface WorkflowDeps {
   cfg: AuthConfig;
@@ -260,6 +261,40 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     }
   });
 
+  // Stale draft → fresh branch off current applied, same intents re-staged (roadmap 4.5).
+  app.post('/api/v1/switches/:id/rebase', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const sw = await getSwitch(id);
+    if (!sw) return problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
+    const roles = await getUserRoles(who.sub);
+    try {
+      return await rebaseSession({ sub: who.sub, username: who.username, roles, credKey: cfg.credKey }, sw);
+    } catch (err) {
+      if (err instanceof StageError) {
+        if (err.status === 403) {
+          await audit({
+            userSub: who.sub,
+            username: who.username,
+            roles: roles.map((r) => r.id),
+            switchId: id,
+            method: 'POST',
+            path: request.url,
+          });
+        }
+        return problem(
+          reply,
+          err.status,
+          err.status === 403 ? 'Forbidden' : 'Conflict',
+          err.message,
+          request.url,
+        );
+      }
+      return switchProblem(reply, err, request.url);
+    }
+  });
+
   app.get('/api/v1/switches/:id/jobs/:jobId', async (request, reply) => {
     const who = await resolveCaller(request, cfg);
     if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
@@ -420,6 +455,22 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     const roles = await getUserRoles(who.sub);
     if (await denyGroupRoute(request, reply, who, roles, 'POST')) return reply;
     const results = await fanoutApply(
+      { sub: who.sub, username: who.username, roles, credKey: cfg.credKey },
+      gid,
+      { members: parsed.data.members },
+    );
+    return { results };
+  });
+
+  app.post('/api/v1/groups/:gid/rebase', async (request, reply) => {
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const { gid } = request.params as { gid: string };
+    const parsed = z.object({ members: Members }).safeParse(request.body ?? {});
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'members must be switch ids', request.url);
+    const roles = await getUserRoles(who.sub);
+    if (await denyGroupRoute(request, reply, who, roles, 'POST')) return reply;
+    const results = await fanoutRebase(
       { sub: who.sub, username: who.username, roles, credKey: cfg.credKey },
       gid,
       { members: parsed.data.members },

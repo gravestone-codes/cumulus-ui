@@ -11,6 +11,7 @@ import { getEditSession, openBranch, BranchConflictError } from './branches.js';
 import { stageChange, type StageContext } from './stage.js';
 import { applySession } from './apply.js';
 import { runAction } from './actions.js';
+import { rebaseSession, type RebaseResult } from './rebase.js';
 
 export interface FanoutResult {
   switchId: string;
@@ -112,6 +113,35 @@ export async function fanoutApply(
     }
   }
   return results;
+}
+
+/**
+ * Rebase every targeted member that holds a draft, independently: one stale
+ * member never blocks another. Members without a draft are skipped quietly.
+ */
+export async function fanoutRebase(
+  ctx: StageContext,
+  groupId: string,
+  opts: FanoutTargets = {},
+): Promise<Array<Omit<FanoutResult, 'branch'> & Partial<RebaseResult>>> {
+  const { switches, strays } = await targets(groupId, opts.members);
+  const mine = (
+    await Promise.all(
+      switches.map(async (sw) => ((await getEditSession(ctx.sub, sw.id))?.staged.length ? sw : null)),
+    )
+  ).filter((sw) => sw !== null);
+  return [
+    ...strays,
+    ...(await Promise.all(
+      mine.map(async (sw) => {
+        try {
+          return { switchId: sw.id, ok: true, ...(await rebaseSession(ctx, sw)) };
+        } catch (err) {
+          return { switchId: sw.id, ok: false, error: (err as Error).message };
+        }
+      }),
+    )),
+  ];
 }
 
 export interface FanoutActionResult extends FanoutResult {

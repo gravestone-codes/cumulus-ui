@@ -147,6 +147,16 @@ export interface StagedDiff {
   before?: unknown;
   mine?: unknown;
 }
+/** Outcome of re-staging a stale draft on a fresh branch off applied. */
+export interface RebaseResult {
+  rebased: boolean;
+  /** Nothing left to stage: someone else already applied the same values. */
+  alreadyApplied: boolean;
+  branch: string | null;
+  baseRev: string | null;
+  staged: string[];
+  dropped: string[];
+}
 export type StageCall = { path: string; method: 'PATCH' | 'DELETE'; body?: Record<string, unknown> };
 
 export const api = {
@@ -236,6 +246,13 @@ export const api = {
     post<{ applied: boolean; jobId: string | null; paths: string[] }>(
       `/api/v1/switches/${encodeURIComponent(switchId)}/apply`,
       {},
+    ),
+  rebaseBranch: (switchId: string) =>
+    post<RebaseResult>(`/api/v1/switches/${encodeURIComponent(switchId)}/rebase`, {}),
+  groupRebase: (groupId: string, members?: string[]) =>
+    post<{ results: Array<MemberResult & Partial<RebaseResult>> }>(
+      `/api/v1/groups/${encodeURIComponent(groupId)}/rebase`,
+      members ? { members } : {},
     ),
   getJob: (switchId: string, jobId: string) =>
     request<{ id: string; state: string }>(
