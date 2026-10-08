@@ -7,12 +7,11 @@
  */
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Badge, Breadcrumb, Button, ReconnectModal, Spinner, type RowMenuItem } from '../components/ui.js';
-import { ReadError, ResourceList } from '../components/resource.js';
-import { DataTable, type GridColumn } from '../components/DataTable.js';
-import { MixedValue } from '../components/mixed.js';
+import { Badge, Breadcrumb, Button, type RowMenuItem } from '../components/ui.js';
+import { ResourceList } from '../components/resource.js';
+import { type GridColumn } from '../components/DataTable.js';
+import { holdersOf, MergedList, type MergedColumn, type MergedRow } from '../components/MergedList.js';
 import { firstDefined, ifaceState } from '../lib/format.js';
-import { mergeValues } from '../lib/merge.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { CreateInterface, DeleteInterface } from './iface/CreateInterface.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
@@ -85,12 +84,27 @@ export function Interfaces() {
           ]}
         />
       ) : (
-        <GroupList
-          list={list}
+        <MergedList
+          group
+          title="Interfaces"
+          noun="interfaces"
+          {...list}
+          columns={GROUP_COLUMNS}
+          extra={[stateColumn(list.members)]}
+          storageKey="cumulus.group-interfaces.v1"
           actions={newButton}
           onOpen={(name) => navigate(`${base}/interfaces/${name}`)}
           onOpenSwitch={(sw, name) => navigate(`/switches/${sw}/interfaces/${name}`)}
-          onDelete={(name, members) => setDeleting({ name, members })}
+          rowActions={(r, holders): RowMenuItem[] => [
+            { label: 'Open', onClick: () => navigate(`${base}/interfaces/${r.name}`) },
+            {
+              label: `Delete on ${holders.length} switch${holders.length === 1 ? '' : 'es'}`,
+              danger: true,
+              disabled: !holders.every((sw) => DELETABLE.includes(String(r.per[sw]?.['type']))),
+              title: 'Only bonds and sub-interfaces can be deleted',
+              onClick: () => setDeleting({ name: r.name, members: holders }),
+            },
+          ]}
         />
       )}
       {creating && (
@@ -114,184 +128,33 @@ export function Interfaces() {
   );
 }
 
-/** One group row: an interface name and every member's object for it. */
-type GroupRow = { name: string; per: Record<string, Obj | undefined>; sw?: string };
+/** Value columns merged across members (drift = any of them mixed, or absent somewhere). */
+const GROUP_COLUMNS: MergedColumn[] = [
+  { key: 'type', label: 'Type', get: (o) => firstDefined(o, 'type') ?? '' },
+  { key: 'speed', label: 'Speed', get: (o) => firstDefined(o, 'link/speed') ?? '' },
+  { key: 'mtu', label: 'MTU', get: (o) => firstDefined(o, 'link/mtu') ?? '' },
+  { key: 'description', label: 'Description', get: (o) => firstDefined(o, 'description') ?? '' },
+];
 
-function GroupList({
-  list,
-  actions,
-  onOpen,
-  onOpenSwitch,
-  onDelete,
-}: {
-  list: ReturnType<typeof usePerSwitch<Record<string, Obj>>>;
-  actions: React.ReactNode;
-  onOpen: (name: string) => void;
-  onOpenSwitch: (sw: string, name: string) => void;
-  onDelete: (name: string, members: string[]) => void;
-}) {
-  const [driftOnly, setDriftOnly] = useState(false);
-  const [reconnect, setReconnect] = useState<string | null>(null);
-  const { members } = list;
-  const names = [...new Set(members.flatMap((sw) => Object.keys(list.objects[sw] ?? {})))].sort((a, b) =>
-    a.localeCompare(b, undefined, { numeric: true }),
-  );
-  const rows: GroupRow[] = names.map((name) => ({
-    name,
-    per: Object.fromEntries(members.map((sw) => [sw, list.objects[sw]?.[name]])),
-  }));
-  const holders = (r: GroupRow) => (r.sw ? [r.sw] : members.filter((sw) => r.per[sw] !== undefined));
-  const merged = (r: GroupRow, leaf: string) =>
-    mergeValues(Object.fromEntries(holders(r).map((sw) => [sw, firstDefined(r.per[sw], leaf) ?? ''])));
-  const drifts = (r: GroupRow) =>
-    holders(r).length < members.length ||
-    ['link/mtu', 'link/speed', 'description', 'type'].some((l) => merged(r, l).kind === 'mixed');
-
-  const cell = (r: GroupRow, leaf: string, label: string) => {
-    const m = merged(r, leaf);
-    if (m.kind === 'mixed')
+/** State badges, counted per state across a group row's holders. */
+function stateColumn(members: string[]): GridColumn<MergedRow> {
+  const states = (r: MergedRow) => holdersOf(r, members).map((sw) => ifaceState(r.per[sw]) ?? 'unknown');
+  return {
+    key: 'state',
+    label: 'State',
+    value: (r) => states(r).join(' '),
+    render: (r) => {
+      const counts = new Map<string, number>();
+      for (const s of states(r)) counts.set(s, (counts.get(s) ?? 0) + 1);
       return (
-        <MixedValue
-          groups={m.groups}
-          label={`${r.name} ${label}`}
-          onOpen={(sw) => onOpenSwitch(sw, r.name)}
-        />
+        <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+          {[...counts].map(([s, n]) => (
+            <Badge key={s} tone={stateTone(s)}>
+              {r.sw ? s : `${s} ${n}`}
+            </Badge>
+          ))}
+        </span>
       );
-    return m.kind === 'same' && m.value !== '' ? m.value : '—';
+    },
   };
-  const text = (r: GroupRow, leaf: string) => {
-    const m = merged(r, leaf);
-    return m.kind === 'mixed' ? 'mixed' : m.kind === 'same' ? m.value || '—' : '—';
-  };
-
-  const cols: GridColumn<GroupRow>[] = [
-    { key: 'name', label: 'Name', always: true, value: (r) => r.sw ?? r.name },
-    {
-      key: 'present',
-      label: 'Present',
-      value: (r) => (r.sw ? '' : `${holders(r).length}/${members.length}`),
-      render: (r) =>
-        r.sw ? null : (
-          <span style={{ color: holders(r).length < members.length ? 'var(--color-warn)' : undefined }}>
-            {holders(r).length}/{members.length}
-          </span>
-        ),
-    },
-    {
-      key: 'state',
-      label: 'State',
-      value: (r) =>
-        holders(r)
-          .map((sw) => ifaceState(r.per[sw]) ?? 'unknown')
-          .join(' '),
-      render: (r) => {
-        const counts = new Map<string, number>();
-        for (const sw of holders(r)) {
-          const s = ifaceState(r.per[sw]) ?? 'unknown';
-          counts.set(s, (counts.get(s) ?? 0) + 1);
-        }
-        return (
-          <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
-            {[...counts].map(([s, n]) => (
-              <Badge key={s} tone={stateTone(s)}>
-                {r.sw ? s : `${s} ${n}`}
-              </Badge>
-            ))}
-          </span>
-        );
-      },
-    },
-    { key: 'type', label: 'Type', value: (r) => text(r, 'type'), render: (r) => cell(r, 'type', 'type') },
-    {
-      key: 'speed',
-      label: 'Speed',
-      value: (r) => text(r, 'link/speed'),
-      render: (r) => cell(r, 'link/speed', 'speed'),
-    },
-    {
-      key: 'mtu',
-      label: 'MTU',
-      value: (r) => text(r, 'link/mtu'),
-      render: (r) => cell(r, 'link/mtu', 'MTU'),
-    },
-    {
-      key: 'description',
-      label: 'Description',
-      value: (r) => text(r, 'description'),
-      render: (r) => cell(r, 'description', 'description'),
-    },
-  ];
-
-  const failed = Object.entries(list.errors);
-  return (
-    <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>Interfaces</h1>
-        {!list.loading && (
-          <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>
-            {members.length} switch{members.length === 1 ? '' : 'es'} · {names.length} interfaces
-          </span>
-        )}
-        <span style={{ flex: 1 }} />
-        <Button
-          auto
-          variant="secondary"
-          aria-pressed={driftOnly}
-          onClick={() => setDriftOnly((d) => !d)}
-          style={driftOnly ? { borderColor: 'var(--color-warn)', color: 'var(--color-warn)' } : undefined}
-        >
-          Only drift
-        </Button>
-        {actions}
-      </div>
-      {failed.length > 0 && (
-        <p style={{ fontSize: 13, color: 'var(--color-warn)', margin: '0 0 12px' }}>
-          Not shown: {failed.map(([sw, e]) => `${sw} (${e})`).join(', ')}.{' '}
-          <button type="button" className="chip" onClick={() => setReconnect(failed[0]?.[0] ?? null)}>
-            Reconnect {failed[0]?.[0]}
-          </button>
-        </p>
-      )}
-      {list.error ? (
-        <ReadError switchId="" message={list.error.message} onFixed={list.refetch} />
-      ) : list.loading ? (
-        <Spinner label="Loading interfaces" />
-      ) : (
-        <DataTable<GroupRow>
-          cols={cols}
-          rows={driftOnly ? rows.filter(drifts) : rows}
-          storageKey={`cumulus.group-interfaces.v1`}
-          rowKey={(r) => r.name}
-          subRows={(r) => (r.sw ? undefined : holders(r).map((sw) => ({ ...r, sw })))}
-          onRowClick={(r) => (r.sw ? onOpenSwitch(r.sw, r.name) : onOpen(r.name))}
-          empty={
-            <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>
-              No interfaces on this group’s switches.
-            </p>
-          }
-          actions={(r): RowMenuItem[] => [
-            { label: 'Open', onClick: () => onOpen(r.name) },
-            {
-              label: `Delete on ${holders(r).length} switch${holders(r).length === 1 ? '' : 'es'}`,
-              danger: true,
-              disabled: !holders(r).every((sw) => DELETABLE.includes(String(r.per[sw]?.['type']))),
-              title: 'Only bonds and sub-interfaces can be deleted',
-              onClick: () => onDelete(r.name, holders(r)),
-            },
-          ]}
-        />
-      )}
-      {reconnect && (
-        <ReconnectModal
-          switchId={reconnect}
-          open
-          onClose={() => setReconnect(null)}
-          onDone={() => {
-            setReconnect(null);
-            list.refetch();
-          }}
-        />
-      )}
-    </section>
-  );
 }

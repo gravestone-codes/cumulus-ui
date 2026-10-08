@@ -9,6 +9,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Breadcrumb, Spinner, Tabs } from '../components/ui.js';
 import { ReadError } from '../components/resource.js';
 import { presence } from '../lib/merge.js';
+import { getPath } from '../lib/format.js';
 import { InterfaceStats, InterfaceTraffic } from './iface/Traffic.js';
 import { GroupTraffic } from './iface/GroupTraffic.js';
 import { CountersCard, PhyCard, TransceiverCard } from './iface/StatsExtras.js';
@@ -16,6 +17,7 @@ import { ConfigTab, displayValue } from './iface/ConfigTab.js';
 import { NeighborsTab } from './iface/NeighborsTab.js';
 import { InterfaceActions } from './iface/Actions.js';
 import { ScopeShell } from './iface/ScopeShell.js';
+import { sectionsFor } from './iface/sections.js';
 import { PresenceBanner } from './iface/Presence.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
@@ -35,6 +37,9 @@ export function InterfaceDetail() {
   const failed = Object.keys(oper.errors);
   const absentOnly = absent.filter((sw) => !failed.includes(sw));
   const type = present.map((sw) => displayValue(oper.objects[sw]?.['type'])).find(Boolean);
+  const cfgType = present
+    .map((sw) => displayValue(getPath(cfg.objects[sw] ?? oper.objects[sw], 'type')))
+    .find(Boolean);
 
   return (
     <ScopeShell scope={scope} active="/interfaces">
@@ -118,10 +123,15 @@ export function InterfaceDetail() {
             ) : (
               <ConfigTab
                 scope={scope}
-                ifaceId={ifaceId}
+                objectPath={path}
+                name={ifaceId}
+                sections={sectionsFor(cfgType)}
                 cfg={cfg.objects}
                 oper={oper.objects}
                 present={present}
+                onOpenSwitch={(sw) =>
+                  navigate(`/switches/${encodeURIComponent(sw)}/interfaces/${encodeURIComponent(ifaceId)}`)
+                }
               />
             )
           ) : (

@@ -20,7 +20,7 @@ export interface FieldDef {
 }
 
 export interface ReadOnlyDef {
-  /** Leaf path from the interface root in the operational object. */
+  /** Leaf path from the object root in the operational object. */
   leaf: string;
   label: string;
   /** Naturally different on every switch (MACs): locked marker in groups. */
@@ -30,7 +30,7 @@ export interface ReadOnlyDef {
 export interface SectionDef {
   id: string;
   title: string;
-  /** Subtree under `/interface/{id}`; '' = the interface root. */
+  /** Subtree under the object path; '' = the object root. */
   base: string;
   fields: FieldDef[];
   /** Live (operational) values shown in the card but not edited here. */
@@ -185,7 +185,7 @@ export const SECTIONS: SectionDef[] = [
   },
 ];
 
-/** Full leaf path from the interface root. */
+/** Full leaf path from the object root. */
 export const fieldPath = (s: SectionDef, f: FieldDef) => (s.base ? `${s.base}/${f.leaf}` : f.leaf);
 
 /** Values that read as "not configured" (feature defaults off). */

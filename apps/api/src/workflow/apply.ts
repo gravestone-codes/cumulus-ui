@@ -217,12 +217,16 @@ export async function pollRevision(
   const interval = opts.intervalMs ?? 2000;
   const deadline = Date.now() + (opts.timeoutMs ?? 300_000);
   for (;;) {
-    const state = await withSwitchToken(userSub, switchId, { credKey: opts.credKey }, (client, token) =>
-      getRevisionState(client, token, branch),
+    const { state, issues } = await withSwitchToken(
+      userSub,
+      switchId,
+      { credKey: opts.credKey },
+      (client, token) => getRevisionState(client, token, branch),
     );
     if (state === 'applied' || state === 'applied_and_saved') return state;
     if (state.includes('fail') || state === 'invalid' || state === 'ays_no') {
-      throw new Error(`apply of revision ${branch} failed: ${state}`);
+      const why = issues.length > 0 ? ` — ${issues.join('; ')}` : '';
+      throw new Error(`apply of revision ${branch} failed: ${state}${why}`);
     }
     if (Date.now() > deadline) {
       throw new Error(`apply of revision ${branch} did not finish in time (last state: ${state})`);

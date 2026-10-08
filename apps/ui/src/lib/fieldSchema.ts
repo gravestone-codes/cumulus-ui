@@ -12,6 +12,9 @@ export type FieldKind = 'number' | 'choice' | 'keyed' | 'set' | 'text';
 
 type Schema = Record<string, unknown>;
 
+/** Numbers in keys sort as numbers (VLAN 2 before 10). */
+const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+
 const isObj = (v: unknown): v is Schema => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 /** Sub-schema at a slash path of property names. Undefined when the spec lacks it. */
@@ -59,10 +62,28 @@ export function boundsOf(s: Schema | undefined): { min?: number; max?: number } 
   return { min: pick('minimum'), max: pick('maximum') };
 }
 
+/**
+ * Free-entry kind of an anyOf that mixes a value branch with keywords
+ * (`untagged: 1–4094 | none`, `mac-address: <mac> | auto`); the keywords
+ * stay valid entries. Undefined when the leaf is keywords only.
+ */
+function freeKind(s: Schema): 'number' | 'text' | undefined {
+  const branches = Array.isArray(s['anyOf']) ? s['anyOf'].filter(isObj) : [];
+  if (!branches.some((b) => enumValues(b).length > 0)) return undefined;
+  for (const b of branches) {
+    if (enumValues(b).length > 0) continue;
+    if (b['type'] === 'integer' || b['type'] === 'number') return 'number';
+    if (b['type'] === 'string') return 'text';
+  }
+  return undefined;
+}
+
 /** Kind from the schema shape; `hint` wins (spec-less leaves such as description). */
 export function kindOf(s: Schema | undefined, hint?: FieldKind): FieldKind {
   if (hint) return hint;
   if (!s) return 'text';
+  const free = freeKind(s);
+  if (free) return free;
   if (enumValues(s).length > 0) return 'choice';
   if (s['type'] === 'integer' || s['type'] === 'number') return 'number';
   if (isObj(s['additionalProperties']) || s['x-propertyNames'] !== undefined) {
@@ -76,14 +97,14 @@ export function kindOf(s: Schema | undefined, hint?: FieldKind): FieldKind {
 export function decodeValue(kind: FieldKind, raw: unknown): string {
   if (raw === undefined || raw === null) return '';
   if (kind === 'keyed') return isObj(raw) ? (Object.keys(raw)[0] ?? '') : String(raw);
-  if (kind === 'set') return isObj(raw) ? Object.keys(raw).sort().join('\n') : '';
+  if (kind === 'set') return isObj(raw) ? Object.keys(raw).sort(natural).join('\n') : '';
   if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') return String(raw);
   return '';
 }
 
 /** Form text → the JSON value NVUE expects at the leaf. Sets are handled by `setDelta`. */
 export function encodeValue(kind: FieldKind, text: string, choices: string[] = []): unknown {
-  if (kind === 'number') return Number(text);
+  if (kind === 'number') return choices.includes(text) ? text : Number(text);
   if (kind === 'keyed') return { [text]: {} };
   // Numeric enums (lanes: 1|2|4|8) travel as numbers.
   if (kind === 'choice' && choices.length > 0 && choices.every((c) => /^\d+$/.test(c))) return Number(text);
@@ -99,7 +120,7 @@ export function setEntries(text: string): string[] {
         .map((s) => s.trim())
         .filter(Boolean),
     ),
-  ].sort();
+  ].sort(natural);
 }
 
 /** Added and removed entries between two set texts. */
@@ -126,7 +147,7 @@ export function mergeBodies(a: Record<string, unknown>, b: Record<string, unknow
 
 /** Validation message for a value, or null when acceptable. */
 export function invalidReason(kind: FieldKind, text: string, s: Schema | undefined): string | null {
-  if (kind === 'number' && text !== '') {
+  if (kind === 'number' && text !== '' && !choicesOf(s).includes(text)) {
     const n = Number(text);
     const { min, max } = boundsOf(s);
     if (!Number.isInteger(n)) return 'Must be a whole number.';
