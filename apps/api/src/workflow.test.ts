@@ -12,6 +12,8 @@ import { sessionCookie } from './test-sessions.js';
 import { setSwitchToken, dropUserTokens } from './switchauth/sessions.js';
 import { getEditSession } from './workflow/branches.js';
 import { pendingBody, pendingCall } from './workflow/rebase.js';
+import { occImage } from './workflow/apply.js';
+import type { NvueClient } from './nvue/client.js';
 import { parseAppliedRevision } from './nvue/revisions.js';
 import { checkSwitch, pollTick } from './workflow/poller.js';
 import { json, startFakeNvue, type FakeNvue } from './test-nvue.js';
@@ -82,6 +84,31 @@ describe('rebase pruning (pure)', () => {
     expect(() => pendingCall({ path: '/interface/swp1', method: 'PATCH', before: {} }, {})).toThrow(
       /restage/,
     );
+  });
+});
+
+describe('OCC image (pure)', () => {
+  const calls: Array<{ path: string; rev?: string }> = [];
+  const live = { description: 'd', link: { stats: { 'in-pkts': 15 } }, bond: { member: { swp30: {} } } };
+  const client = {
+    call: async (c: { path: string; rev?: string }) => {
+      calls.push({ path: c.path, rev: c.rev });
+      if (c.path.endsWith('gone')) throw new Error('404');
+      return { status: 200, data: live };
+    },
+  } as unknown as NvueClient;
+
+  it('lenses a PATCH to its leaves; reads a DELETE from applied config; null when absent', async () => {
+    expect(await occImage(client, 't', '/interface/swp1', 'PATCH', { description: 'x' })).toEqual({
+      description: 'd',
+    });
+    expect(await occImage(client, 't', '/interface/bond9', 'DELETE', null)).toEqual(live);
+    expect(await occImage(client, 't', '/interface/gone', 'DELETE', null)).toBeNull();
+    expect(calls).toEqual([
+      { path: '/interface/swp1', rev: undefined },
+      { path: '/interface/bond9', rev: 'applied' },
+      { path: '/interface/gone', rev: 'applied' },
+    ]);
   });
 });
 

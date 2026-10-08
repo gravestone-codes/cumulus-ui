@@ -170,7 +170,7 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 - [ ] 2.2 `ResourceDetail` (R8): header + empty tab slots for widgets; resolves path → store identity (§2)
 - [ ] 2.3 `ResourceForm` (R9): schema-driven PATCH form (enums→selects, refs→subforms); prove on one interface field
 - [ ] 2.4 `ViewSwitcher` (R10): `?view=` dropdown from spec enum; prove on interface `status/counters/lldp/rates`
-- [ ] 2.5 `InterfacePicker` (R11): searchable selector resolving to `S1` identity (foundation for every later domain)
+- [x] 2.5 `InterfacePicker` (R11): searchable selector resolving to `S1` identity (foundation for every later domain)
 - [ ] 2.6 Delete-with-confirm (generic DELETE, path echo; danger class decides confirm style)
 - [ ] ✅ **Milestone M2:** any collection path in the manifest renders as list→detail→edit with zero hand-written forms
 
@@ -183,7 +183,7 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 - [x] 3A.3 Views: wire `?view=status/counters/lldp/rates/neighbor` via `ViewSwitcher` (shipped as detail tabs: Statistics / Config / Neighbors)
 - [x] 3A.4 Counters widget (custom) + clear-counters via `ActionRunner` (`POST …/counters`)
 - [x] 3A.5 LLDP neighbor tab (custom read widget)
-- [ ] 3A.6 `BondBuilder` (R12) — canonical, lives here, writes `S1` objects: create bond + members via `InterfacePicker`, PATCH with `?rev` (create/delete done; members still typed — waits on 2.5 `InterfacePicker`)
+- [x] 3A.6 `BondBuilder` (R12) — canonical, lives here, writes `S1` objects: create bond + members via `InterfacePicker`, PATCH with `?rev`
 - [x] 3A.7 Basic edit: description/MTU/speed via `ResourceForm` + branch + dry-run + apply
 - [ ] ⏸️ STOP: interfaces are usable, not finished. ACL/QoS tabs arrive in 3G as consumers.
 
