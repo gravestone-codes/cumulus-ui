@@ -128,10 +128,10 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 - [ ] 4.2 Staging is free and isolated: each editing session gets its **own branch**. Two users drafting the same object never touch each other's work.
 - [ ] 4.3 `Presence` (R19): opening an object someone else is staging shows a **non-blocking** banner with a link to their staged diff (`GET ?rev=<their-branch>`). Coordination over locking.
 - [ ] 4.4 Apply is the only serialized moment: per-switch `ApplyPipeline` queue (our `ttsBegin/ttsCommit` — seconds long, never think-time). Fan-out applies (R22) queue per switch independently.
-- [ ] 4.5 Apply-time check per branch: (a) is `applied` still my base? (b) do my staged paths overlap what landed since? Disjoint → auto-apply. Same-path overlap → `ConflictScreen` (R20). First to apply wins; second rebases. Loser's draft survives as a branch (better than F&O, where the loser retypes).
+- [x] 4.5 Apply-time check per branch: (a) is `applied` still my base? (b) do my staged paths overlap what landed since? Disjoint → auto-apply. Same-path overlap → `ConflictScreen` (R20). First to apply wins; second rebases. Loser's draft survives as a branch (better than F&O, where the loser retypes).
 - [ ] 4.6 Out-of-band detection: poll the applied-revision ID per switch (lightweight); only on change fetch the full state. Interval admin-adjustable, polling organized by group. Unexpected movement → "switch changed outside the app" banner; refresh required before new edit sessions (CLI/direct-API writers are just another lane).
 - [ ] 4.7 Strict-mode toggle (per domain or per switch, default OFF): "refuse staging when another unapplied branch touches these paths" — the A10-NSO `abort-when-config-session-exist` behavior, opt-in.
-- [ ] ✅ **Milestone M1b (two-user demo, on hardware):** Alice + Bob stage the same object on separate branches; Alice applies; Bob gets the conflict screen with both diffs; Bob rebases and applies. No data loss, no locks.
+- [x] ✅ **Milestone M1b (two-user demo, on hardware):** Alice + Bob stage the same object on separate branches; Alice applies; Bob gets the conflict screen with both diffs; Bob rebases and applies. No data loss, no locks.
 
 ---
 
@@ -160,7 +160,7 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 - [x] 1.7 `FanOut` (R22): group-targeted mirrored writes — stage same payload per switch (own branch each), aggregated diffs, per-switch apply tracking; partial-failure semantics per §3 (no sibling auto-rollback)
 - [x] 1.8 Cache keyed on `(switch, path, rev, view)`; identity stores (S1–S6) sit above the cache
 - [x] ✅ **Milestone M1:** single user can create branch → PATCH one field → dry-run → apply → see job, against hardware
-- [ ] ✅ **Milestone M1b:** two-user conflict demo per §4
+- [x] ✅ **Milestone M1b:** two-user conflict demo per §4
 
 ## Phase 2 — Generic bricks (build once, configure forever)
 

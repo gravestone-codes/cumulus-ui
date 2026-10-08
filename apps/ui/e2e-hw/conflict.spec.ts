@@ -114,8 +114,14 @@ test('two users, one field: presence, conflict, rebase, apply', async ({ browser
       for (const { page } of [alice, bob]) await page.request.delete(`/api/v1/switches/${sw.id}/branch`);
     }
     await openEditor(alice.page);
-    await stage(alice.page, '');
-    await alice.page.getByRole('button', { name: /^Apply/ }).click();
-    await expectAllDone(alice.page);
+    const dialog = alice.page.getByRole('dialog');
+    await dialog.getByLabel('Description').fill('');
+    await dialog.getByRole('button', { name: 'Review change' }).click();
+    const dryRun = alice.page.getByText('Dry-run');
+    await expect(dryRun.or(dialog.getByText('No changes to stage.'))).toBeVisible({ timeout: 60_000 });
+    if (await dryRun.isVisible()) {
+      await alice.page.getByRole('button', { name: /^Apply/ }).click();
+      await expectAllDone(alice.page);
+    }
   }
 });
