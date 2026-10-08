@@ -435,6 +435,7 @@ describe.skipIf(!LIVE)('branches + staging', () => {
           before: { description: 'old' },
           mine: { description: 'new' },
           current: { description: 'theirs' },
+          landedBy: null,
         },
       ]);
       nvueState.iface = { description: 'new' };
@@ -446,6 +447,7 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       await pool.query(`DELETE FROM sessions WHERE user_sub = 'wf-apply3'`);
       await pool.query(`DELETE FROM user_roles WHERE user_sub = 'wf-apply3'`);
       await pool.query(`DELETE FROM edit_sessions WHERE user_sub = 'wf-apply3'`);
+      await pool.query(`DELETE FROM audit_log WHERE user_sub = 'wf-apply3'`);
       await app.close();
     }
   });
@@ -693,6 +695,7 @@ describe.skipIf(!LIVE)('branches + staging', () => {
           mine: { description: 'new' },
           current: { description: 'old' },
           state: 'clean',
+          landedBy: null,
         },
       ]);
       // Leaves the body doesn't touch (counters, state) never conflict.
@@ -986,6 +989,157 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       await pool.query(`DELETE FROM edit_sessions WHERE user_sub = 'wf-grace'`);
       await pool.query('DELETE FROM switches WHERE id = $1', ['swg']);
       await fakeG.close();
+      await app.close();
+    }
+  });
+
+  it('apply conflict names who landed it, and the failed attempt is audited', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const alice = await sessionCookie(pool, 'wf-cf-alice', { appRoles: ['net-admin'] });
+    const bob = await sessionCookie(pool, 'wf-cf-bob', { appRoles: ['net-admin'] });
+    for (const sub of ['wf-cf-alice', 'wf-cf-bob']) setSwitchToken(sub, 'swf', 'stub-jwt');
+    nvueState.iface = { state: 'up', description: 'old' };
+    const api = request(app.server);
+    try {
+      await api.post('/api/v1/switches/swf/branch').set('Cookie', bob);
+      await api
+        .post('/api/v1/switches/swf/stage')
+        .set('Cookie', bob)
+        .send({ path: '/interface/swp1', method: 'PATCH', body: { description: 'bob' } });
+      await api.post('/api/v1/switches/swf/branch').set('Cookie', alice);
+      await api
+        .post('/api/v1/switches/swf/stage')
+        .set('Cookie', alice)
+        .send({ path: '/interface/swp1', method: 'PATCH', body: { description: 'alice' } });
+      expect((await api.post('/api/v1/switches/swf/apply').set('Cookie', alice)).status).toBe(200);
+      nvueState.iface = { state: 'up', description: 'alice' };
+
+      const conflicted = await api.post('/api/v1/switches/swf/apply').set('Cookie', bob);
+      expect(conflicted.status).toBe(409);
+      expect(conflicted.body.conflicts).toEqual([
+        {
+          path: '/interface/swp1',
+          method: 'PATCH',
+          before: { description: 'old' },
+          mine: { description: 'bob' },
+          current: { description: 'alice' },
+          landedBy: { userSub: 'wf-cf-alice', username: 'wf-cf-alice' },
+        },
+      ]);
+      // The loser's draft survives; the attempt itself is audited (R2e).
+      expect((await getEditSession('wf-cf-bob', 'swf'))?.staged).toHaveLength(1);
+      const { rows } = await pool.query<{ id: number }>(
+        `SELECT id FROM audit_log WHERE user_sub = 'wf-cf-bob' AND path LIKE '%/apply'`,
+      );
+      expect(rows).toHaveLength(1);
+      nvueState.iface = { state: 'up', description: 'old' };
+    } finally {
+      for (const sub of ['wf-cf-alice', 'wf-cf-bob']) dropUserTokens(sub);
+      await pool.query(`DELETE FROM sessions WHERE user_sub IN ('wf-cf-alice', 'wf-cf-bob')`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('wf-cf-alice', 'wf-cf-bob')`);
+      await pool.query(`DELETE FROM edit_sessions WHERE user_sub IN ('wf-cf-alice', 'wf-cf-bob')`);
+      await pool.query(`DELETE FROM audit_log WHERE user_sub IN ('wf-cf-alice', 'wf-cf-bob')`);
+      await app.close();
+    }
+  });
+
+  it('fanout: per-member apply conflicts, then per-member rebase and apply', async () => {
+    let liveB: Record<string, unknown> = { state: 'up', description: 'old' };
+    const jobsB: Record<string, string[]> = {};
+    let counterB = 0;
+    const fakeB = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (req.method === 'POST' && url.pathname === '/nvue_v1/revision') json(res, 201, { rev: 'NB9' });
+      else if (req.method === 'GET' && url.pathname === '/nvue_v1/interface/swp1') json(res, 200, liveB);
+      else if (req.method === 'PATCH' && url.pathname === '/nvue_v1/interface/swp1') json(res, 200, {});
+      else if (req.method === 'PATCH' && url.pathname.startsWith('/nvue_v1/revision/')) {
+        const job = `JB${++counterB}`;
+        jobsB[job] = ['running', 'success'];
+        json(res, 200, { job });
+      } else if (req.method === 'GET' && url.pathname.startsWith('/nvue_v1/action/')) {
+        const job = url.pathname.split('/').pop() ?? '';
+        const queue = jobsB[job] ?? ['running'];
+        json(res, 200, { id: job, state: queue.length > 1 ? queue.shift() : queue[0] });
+      } else if (req.method === 'DELETE' && url.pathname.startsWith('/nvue_v1/revision/')) {
+        json(res, 200, {});
+      } else json(res, 404, { message: 'nope' });
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES ('swH', 't', $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fakeB.baseUrl, fakeB.pin, fakeB.caPem],
+    );
+    await pool.query(`INSERT INTO groups (id, display_name) VALUES ('G9', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(
+      `INSERT INTO switch_groups (switch_id, group_id) VALUES ('swf', 'G9'), ('swH', 'G9') ON CONFLICT DO NOTHING`,
+    );
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool, 'wf-fan9', { appRoles: ['net-admin'] });
+    for (const sub of ['swf', 'swH']) setSwitchToken('wf-fan9', sub, 'stub-jwt');
+    nvueState.iface = { state: 'up', description: 'old' };
+    const api = request(app.server);
+    try {
+      const staged = await api
+        .post('/api/v1/groups/G9/stage')
+        .set('Cookie', cookie)
+        .send({ path: '/interface/swp1', method: 'PATCH', body: { description: 'mirrored' } });
+      expect(staged.status).toBe(200);
+      // Only swH moves out from under us; swf stays clean.
+      liveB = { state: 'up', description: 'theirs' };
+      const applied = await api.post('/api/v1/groups/G9/apply').set('Cookie', cookie);
+      expect(applied.status).toBe(200);
+      const byId = Object.fromEntries(applied.body.results.map((r: { switchId: string }) => [r.switchId, r]));
+      expect(byId.swf.ok).toBe(true);
+      expect(byId.swH.ok).toBe(false);
+      expect(byId.swH.conflict).toBe(true);
+      expect(byId.swH.conflicts).toEqual([
+        {
+          path: '/interface/swp1',
+          method: 'PATCH',
+          before: { description: 'old' },
+          mine: { description: 'mirrored' },
+          current: { description: 'theirs' },
+          landedBy: null,
+        },
+      ]);
+      // Clean members applied; only the conflicted member keeps its draft.
+      expect(await getEditSession('wf-fan9', 'swf')).toBeNull();
+      expect(await getEditSession('wf-fan9', 'swH')).not.toBeNull();
+
+      const rebased = await api
+        .post('/api/v1/groups/G9/rebase')
+        .set('Cookie', cookie)
+        .send({ members: ['swH'] });
+      expect(rebased.body.results).toMatchObject([
+        {
+          switchId: 'swH',
+          ok: true,
+          rebased: true,
+          alreadyApplied: false,
+          staged: ['/interface/swp1'],
+          dropped: [],
+        },
+      ]);
+      const reapplied = await api
+        .post('/api/v1/groups/G9/apply')
+        .set('Cookie', cookie)
+        .send({ members: ['swH'] });
+      expect(reapplied.body.results).toEqual([
+        { switchId: 'swH', ok: true, jobId: expect.any(String), paths: ['/interface/swp1'] },
+      ]);
+      expect(await getEditSession('wf-fan9', 'swH')).toBeNull();
+    } finally {
+      dropUserTokens('wf-fan9');
+      await pool.query(`DELETE FROM sessions WHERE user_sub = 'wf-fan9'`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub = 'wf-fan9'`);
+      await pool.query(`DELETE FROM edit_sessions WHERE user_sub = 'wf-fan9'`);
+      await pool.query(`DELETE FROM audit_log WHERE user_sub = 'wf-fan9'`);
+      await pool.query(`DELETE FROM switch_groups WHERE switch_id IN ('swf', 'swH') AND group_id = 'G9'`);
+      await pool.query(`DELETE FROM switches WHERE id = 'swH'`);
+      await pool.query(`DELETE FROM groups WHERE id = 'G9'`);
+      await fakeB.close();
       await app.close();
     }
   });

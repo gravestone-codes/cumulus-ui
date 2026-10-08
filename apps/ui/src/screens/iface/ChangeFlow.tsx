@@ -7,7 +7,14 @@
  * onto silently — the user discards it or goes back.
  */
 import { useEffect, useRef, useState } from 'react';
-import { api, ApiError, type MemberResult, type StageCall, type StagedDiff } from '../../lib/api.js';
+import {
+  api,
+  ApiError,
+  type ApplyConflict,
+  type MemberResult,
+  type StageCall,
+  type StagedDiff,
+} from '../../lib/api.js';
 import { Alert, Button, Spinner, Tabs } from '../../components/ui.js';
 import { stageRounds } from './plan.js';
 import type { Scope } from './scope.js';
@@ -26,6 +33,14 @@ const shortVal = (v: unknown) =>
 
 async function discard(switches: string[]) {
   await Promise.all(switches.map((sw) => api.discardBranch(sw).catch(() => undefined)));
+}
+
+/** Apply-time 409s carry the overlap diffs; anything else is a plain error. */
+function applyConflictsOf(err: unknown): ApplyConflict[] | null {
+  if (err instanceof ApiError && err.status === 409 && Array.isArray(err.data.conflicts)) {
+    return err.data.conflicts as ApplyConflict[];
+  }
+  return null;
 }
 
 export function ChangeFlow({
@@ -54,10 +69,14 @@ export function ChangeFlow({
   doneText: string;
 }) {
   const group = scope.kind === 'group';
-  const [step, setStep] = useState<'staging' | 'conflict' | 'review' | 'applying' | 'done'>('staging');
+  const [step, setStep] = useState<'staging' | 'conflict' | 'applyConflict' | 'review' | 'applying' | 'done'>(
+    'staging',
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<string[]>([]);
+  const [applyConflicts, setApplyConflicts] = useState<Record<string, ApplyConflict[]>>({});
+  const [conflictTab, setConflictTab] = useState('');
   const [staged, setStaged] = useState<string[]>([]);
   const [failed, setFailed] = useState<Record<string, string>>({});
   const [diffs, setDiffs] = useState<Record<string, StagedDiff[]>>({});
@@ -155,11 +174,35 @@ export function ChangeFlow({
     try {
       let res: MemberResult[];
       if (scope.kind === 'switch') {
-        const r = await api.applyBranch(scope.id);
-        if (r.jobId) await waitJob(scope.id, r.jobId);
-        res = [{ switchId: scope.id, ok: true, jobId: r.jobId }];
+        try {
+          const r = await api.applyBranch(scope.id);
+          if (r.jobId) await waitJob(scope.id, r.jobId);
+          res = [{ switchId: scope.id, ok: true, jobId: r.jobId }];
+        } catch (err) {
+          const conflicts = applyConflictsOf(err);
+          if (conflicts) {
+            setApplyConflicts({ [scope.id]: conflicts });
+            setConflictTab(scope.id);
+            setBusy(false);
+            setStep('applyConflict');
+            return;
+          }
+          throw err;
+        }
       } else {
         res = (await api.groupApply(scope.id, staged)).results;
+        const clashes: Record<string, ApplyConflict[]> = {};
+        for (const r of res) {
+          if (!r.ok && r.conflicts?.length) clashes[r.switchId] = r.conflicts;
+        }
+        if (Object.keys(clashes).length > 0) {
+          setResults(res);
+          setApplyConflicts(clashes);
+          setConflictTab(Object.keys(clashes)[0] ?? '');
+          setBusy(false);
+          setStep('applyConflict');
+          return;
+        }
       }
       setResults(res);
       setStep('done');
@@ -174,6 +217,75 @@ export function ChangeFlow({
       setStep('review');
     }
     setBusy(false);
+  }
+
+  async function rebaseAndApply() {
+    const members = Object.keys(applyConflicts);
+    setBusy(true);
+    setError(null);
+    try {
+      let res: MemberResult[];
+      if (scope.kind === 'switch') {
+        const r = await api.rebaseBranch(scope.id);
+        if (r.alreadyApplied || !r.rebased) {
+          notify('pass', 'Already applied by someone else — nothing left to change.');
+          setBusy(false);
+          onClose();
+          return;
+        }
+        if (r.dropped.length > 0) {
+          notify('warn', `Already landed elsewhere — dropped ${r.dropped.join(', ')}.`);
+        }
+        setStep('applying');
+        const a = await api.applyBranch(scope.id);
+        if (a.jobId) await waitJob(scope.id, a.jobId);
+        res = [{ switchId: scope.id, ok: true, jobId: a.jobId }];
+      } else {
+        const rb = (await api.groupRebase(scope.id, members)).results;
+        const failed = rb.filter((r) => !r.ok);
+        if (failed.length > 0) {
+          throw new Error(failed.map((r) => `${r.switchId}: ${r.error ?? 'rebase failed'}`).join('; '));
+        }
+        const dropped = rb.flatMap((r) => r.dropped ?? []);
+        if (dropped.length > 0) {
+          notify('warn', `Already landed elsewhere — dropped ${dropped.join(', ')}.`);
+        }
+        const fresh = rb.filter((r) => r.rebased).map((r) => r.switchId);
+        if (fresh.length === 0) {
+          notify('pass', 'Already applied by someone else — nothing left to change.');
+          setBusy(false);
+          onClose();
+          return;
+        }
+        setStep('applying');
+        const applied = (await api.groupApply(scope.id, fresh)).results;
+        const merged = new Map(results.map((r) => [r.switchId, r]));
+        for (const r of applied) merged.set(r.switchId, r);
+        res = [...merged.values()];
+      }
+      setApplyConflicts({});
+      setResults(res);
+      setStep('done');
+      onApplied();
+      const okCount = res.filter((r) => r.ok).length;
+      notify(
+        okCount === res.length ? 'pass' : 'warn',
+        group ? `${doneText}: applied on ${okCount} of ${res.length}.` : `${doneText}: applied.`,
+      );
+    } catch (err) {
+      // The draft survives a failed rebase — stay on the conflict screen.
+      setError(err instanceof ApiError || err instanceof Error ? err.message : 'Rebase failed.');
+      setStep('applyConflict');
+    }
+    setBusy(false);
+  }
+
+  async function discardMine() {
+    setBusy(true);
+    await discard(Object.keys(applyConflicts));
+    setBusy(false);
+    notify('warn', 'Discarded your staged changes.');
+    onClose();
   }
 
   async function waitJob(sw: string, jobId: string) {
@@ -229,6 +341,55 @@ export function ChangeFlow({
             </Button>
           )}
         </div>
+      </>
+    );
+  }
+
+  if (step === 'applyConflict') {
+    const conflicted = Object.keys(applyConflicts);
+    const appliedClean = results.filter((r) => r.ok);
+    return (
+      <>
+        <Alert tone="warn">
+          {conflicted.join(', ')} changed since you staged — someone applied there first. Your draft is kept.
+        </Alert>
+        {group && appliedClean.length > 0 && (
+          <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '10px 0 0' }}>
+            Applied on {appliedClean.map((r) => r.switchId).join(', ')} — only{' '}
+            {conflicted.length === 1 ? 'this member' : 'these members'} conflicted.
+          </p>
+        )}
+        <div style={{ marginTop: 12 }}>
+          {conflicted.length > 1 && (
+            <Tabs
+              tabs={conflicted.map((sw) => ({
+                id: sw,
+                label: `${sw} · ${applyConflicts[sw]?.length ?? 0}`,
+              }))}
+              active={conflictTab}
+              onChange={setConflictTab}
+            />
+          )}
+          {conflicted.length === 1 && (
+            <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>{conflicted[0]}</p>
+          )}
+          <ConflictList rows={applyConflicts[conflictTab] ?? []} />
+        </div>
+        {error && <Alert tone="fail">{error}</Alert>}
+        <div style={actionsRow}>
+          <Button auto variant="secondary" onClick={onBack} disabled={busy}>
+            Back
+          </Button>
+          <Button auto variant="danger" onClick={discardMine} disabled={busy}>
+            {busy ? 'Discarding…' : 'Discard mine'}
+          </Button>
+          <Button auto onClick={rebaseAndApply} disabled={busy}>
+            {busy ? 'Rebasing…' : 'Rebase and apply'}
+          </Button>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '8px 0 0', textAlign: 'right' }}>
+          Back keeps your draft.
+        </p>
       </>
     );
   }
@@ -330,6 +491,55 @@ export function DiffList({ rows }: { rows: StagedDiff[] }) {
   );
 }
 
+/** One overlap as base · mine · landed, with attribution for the landed value. */
+export function ConflictList({ rows }: { rows: ApplyConflict[] }) {
+  return (
+    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+      {rows.map((c, i) => (
+        <li
+          key={`${c.path}-${i}`}
+          style={{
+            background: 'var(--color-surface-2)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 8,
+            padding: '10px 12px',
+            fontSize: 13,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          <span className="mono">
+            {c.method === 'DELETE' ? 'remove ' : ''}
+            {decodeURIComponent(c.path)}
+          </span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 8 }}>
+            <div>
+              <div style={conflictHead}>Base · when you staged</div>
+              <div className="mono" style={{ color: 'var(--color-muted)' }}>
+                {shortVal(c.before)}
+              </div>
+            </div>
+            <div>
+              <div style={conflictHead}>Mine · staged</div>
+              <div className="mono" style={{ color: 'var(--color-text)', fontWeight: 700 }}>
+                {c.method === 'DELETE' ? 'removed' : shortVal(c.mine)}
+              </div>
+            </div>
+            <div>
+              <div style={conflictHead}>Landed · on the switch now</div>
+              <div className="mono" style={{ color: 'var(--color-warn)', fontWeight: 700 }}>
+                {shortVal(c.current)}
+              </div>
+              <div style={{ color: 'var(--color-muted)', fontSize: 12, marginTop: 2 }}>
+                {c.landedBy ? `by ${c.landedBy.username}` : 'changed outside the app'}
+              </div>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Per-switch outcome rows (fan-out apply and group actions share this). */
 export function ResultList({ results, unchanged = [] }: { results: MemberResult[]; unchanged?: string[] }) {
   return (
@@ -352,6 +562,14 @@ export function ResultList({ results, unchanged = [] }: { results: MemberResult[
   );
 }
 
+const conflictHead: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: 'var(--color-muted)',
+  marginBottom: 2,
+};
 const resultRow: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',

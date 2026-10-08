@@ -9,7 +9,7 @@ import { gateCheck, mayAccessSwitch, type Role } from '../rbac/store.js';
 import { withSwitchToken } from '../nvue/clients.js';
 import { getEditSession, openBranch, BranchConflictError } from './branches.js';
 import { stageChange, type StageContext } from './stage.js';
-import { applySession } from './apply.js';
+import { applySession, OverlapError, type Conflict } from './apply.js';
 import { runAction } from './actions.js';
 import { rebaseSession, type RebaseResult } from './rebase.js';
 
@@ -22,6 +22,8 @@ export interface FanoutResult {
   error?: string;
   /** Unapplied changes already staged there (exclusive stage only) — discard first. */
   conflict?: boolean;
+  /** Apply-time overlap details (mine/landed/base + attribution) for the conflict screen. */
+  conflicts?: Conflict[];
 }
 
 export interface FanoutTargets {
@@ -109,7 +111,12 @@ export async function fanoutApply(
       );
       results.push({ switchId: sw.id, ok: true, jobId: applied.jobId, paths: applied.paths });
     } catch (err) {
-      results.push({ switchId: sw.id, ok: false, error: (err as Error).message });
+      results.push({
+        switchId: sw.id,
+        ok: false,
+        error: (err as Error).message,
+        ...(err instanceof OverlapError ? { conflict: true, conflicts: err.conflicts } : {}),
+      });
     }
   }
   return results;

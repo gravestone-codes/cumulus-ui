@@ -32,9 +32,16 @@ export async function collectDiffs(
       mine,
       current,
       state: diffState(s.before, mine, current),
+      // Attribution is resolved only on apply conflicts (findLandedBy); dry-run rows carry none.
+      landedBy: null,
     });
   }
   return diffs;
+}
+
+export interface LandedBy {
+  userSub: string;
+  username: string;
 }
 
 export interface Conflict {
@@ -46,6 +53,8 @@ export interface Conflict {
   mine: unknown;
   /** Live operational value right now. */
   current: unknown;
+  /** Who applied the landed value, when known from our audit (null = outside the app). */
+  landedBy: LandedBy | null;
 }
 
 export type DiffState = 'clean' | 'applied' | 'conflict';
@@ -81,6 +90,22 @@ export class OverlapError extends Error {
     super(`${conflicts.length} staged path(s) changed on the switch since staging`);
     this.conflicts = conflicts;
   }
+}
+
+/**
+ * Who last applied `path` on `switchId`, from our audit (apply rows carry the
+ * covered paths in `after.paths`). Null when nothing in the trail covers it —
+ * the change landed outside the app (CLI / direct API).
+ */
+export async function findLandedBy(switchId: string, path: string): Promise<LandedBy | null> {
+  const { rows } = await db().query<{ user_sub: string; username: string }>(
+    `SELECT user_sub, username FROM audit_log
+      WHERE switch_id = $1 AND method = 'POST' AND path LIKE '%/apply' AND after->'paths' ? $2
+      ORDER BY id DESC LIMIT 1`,
+    [switchId, path],
+  );
+  const row = rows[0];
+  return row ? { userSub: row.user_sub, username: row.username } : null;
 }
 
 export interface ApplyResult {
@@ -191,10 +216,27 @@ export async function applySession(
     const diffs = await withSwitchToken(ctx.sub, switchId, run, (client, token) =>
       collectDiffs(client, token, session.staged),
     );
-    const conflicts: Conflict[] = diffs
+    const raw = diffs
       .filter((d) => d.state === 'conflict')
       .map(({ path, method, before, mine, current }) => ({ path, method, before, mine, current }));
-    if (conflicts.length > 0) throw new OverlapError(conflicts);
+    if (raw.length > 0) {
+      const conflicts: Conflict[] = await Promise.all(
+        raw.map(async (c) => ({ ...c, landedBy: await findLandedBy(switchId, c.path) })),
+      );
+      // The attempt itself is material: who tried, against what (R2e).
+      await audit({
+        userSub: ctx.sub,
+        username: ctx.username,
+        roles: ctx.roleIds,
+        switchId,
+        method: 'POST',
+        path: `/api/v1/switches/${switchId}/apply`,
+        before: session.staged,
+        after: { conflicts },
+        rev: session.branch,
+      });
+      throw new OverlapError(conflicts);
+    }
 
     const { jobId } = await withSwitchToken(ctx.sub, switchId, run, (client, token) =>
       applyRevision(client, token, session.branch),

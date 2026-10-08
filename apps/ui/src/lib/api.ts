@@ -16,10 +16,18 @@ export interface Problem {
 export class ApiError extends Error {
   readonly status: number;
   readonly title: string;
-  constructor(problem: Problem, fallback: string) {
+  /** Extra error payload fields (e.g. `conflicts` on a 409 apply). */
+  readonly data: Record<string, unknown>;
+  constructor(problem: Problem & Record<string, unknown>, fallback: string) {
     super(problem.detail ?? problem.title ?? fallback);
     this.status = problem.status;
     this.title = problem.title;
+    const data: Record<string, unknown> = { ...problem };
+    delete data.type;
+    delete data.title;
+    delete data.status;
+    delete data.detail;
+    this.data = data;
   }
 }
 
@@ -45,7 +53,13 @@ async function request<T>(path: string, init?: RequestInit & { json?: unknown })
   if (!res.ok) {
     const detail = body?.detail ?? body?.title ?? `HTTP ${res.status}: ${text.slice(0, 200)}`;
     throw new ApiError(
-      { type: 'about:blank', title: body?.title ?? 'Error', status: res.status, detail },
+      {
+        ...(body ?? {}),
+        type: 'about:blank',
+        title: body?.title ?? 'Error',
+        status: res.status,
+        detail,
+      },
       `request failed: ${path}`,
     );
   }
@@ -131,6 +145,18 @@ export interface MemberResult<T = unknown> {
   finalState?: string | null;
   /** Unapplied changes already staged there; discard before staging this change. */
   conflict?: boolean;
+  /** Apply-time overlap details for the conflict screen (mine/landed/base). */
+  conflicts?: ApplyConflict[];
+}
+/** One apply-time overlap: my staged value vs what landed vs my base. */
+export interface ApplyConflict {
+  path: string;
+  method: string;
+  before?: unknown;
+  mine?: unknown;
+  current?: unknown;
+  /** Who applied the landed value, when known (null = changed outside the app). */
+  landedBy?: { userSub: string; username: string } | null;
 }
 /** Another user on a switch: an open editor and/or unapplied staged work. */
 export interface PresenceEntry {
