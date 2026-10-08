@@ -243,15 +243,15 @@ function GroupList({
           </span>
         )}
         <span style={{ flex: 1 }} />
-        <button
-          type="button"
-          className="chip"
+        <Button
+          auto
+          variant="secondary"
           aria-pressed={driftOnly}
           onClick={() => setDriftOnly((d) => !d)}
           style={driftOnly ? { borderColor: 'var(--color-warn)', color: 'var(--color-warn)' } : undefined}
         >
           Only drift
-        </button>
+        </Button>
         {actions}
       </div>
       {failed.length > 0 && (

@@ -159,7 +159,7 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 - [x] 1.6 `DiffPreview` (R21): dry-run diff (staged vs applied) per switch, shown before every apply
 - [x] 1.7 `FanOut` (R22): group-targeted mirrored writes — stage same payload per switch (own branch each), aggregated diffs, per-switch apply tracking; partial-failure semantics per §3 (no sibling auto-rollback)
 - [x] 1.8 Cache keyed on `(switch, path, rev, view)`; identity stores (S1–S6) sit above the cache
-- [ ] ✅ **Milestone M1:** single user can create branch → PATCH one field → dry-run → apply → see job, against hardware
+- [x] ✅ **Milestone M1:** single user can create branch → PATCH one field → dry-run → apply → see job, against hardware
 - [ ] ✅ **Milestone M1b:** two-user conflict demo per §4
 
 ## Phase 2 — Generic bricks (build once, configure forever)
@@ -178,13 +178,13 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 
 ### 3A — Interfaces (foundation; thin, NOT complete)
 
-- [ ] 3A.1 List: `GET /interface` via `ResourceList` (status, type filters)
-- [ ] 3A.2 Detail: `GET /interface/{id}` via `ResourceDetail` → `S1`
-- [ ] 3A.3 Views: wire `?view=status/counters/lldp/rates/neighbor` via `ViewSwitcher`
-- [ ] 3A.4 Counters widget (custom) + clear-counters via `ActionRunner` (`POST …/counters`)
-- [ ] 3A.5 LLDP neighbor tab (custom read widget)
-- [ ] 3A.6 `BondBuilder` (R12) — canonical, lives here, writes `S1` objects: create bond + members via `InterfacePicker`, PATCH with `?rev`
-- [ ] 3A.7 Basic edit: description/MTU/speed via `ResourceForm` + branch + dry-run + apply
+- [x] 3A.1 List: `GET /interface` via `ResourceList` (status, type filters)
+- [x] 3A.2 Detail: `GET /interface/{id}` via `ResourceDetail` → `S1`
+- [x] 3A.3 Views: wire `?view=status/counters/lldp/rates/neighbor` via `ViewSwitcher` (shipped as detail tabs: Statistics / Config / Neighbors)
+- [x] 3A.4 Counters widget (custom) + clear-counters via `ActionRunner` (`POST …/counters`)
+- [x] 3A.5 LLDP neighbor tab (custom read widget)
+- [ ] 3A.6 `BondBuilder` (R12) — canonical, lives here, writes `S1` objects: create bond + members via `InterfacePicker`, PATCH with `?rev` (create/delete done; members still typed — waits on 2.5 `InterfacePicker`)
+- [x] 3A.7 Basic edit: description/MTU/speed via `ResourceForm` + branch + dry-run + apply
 - [ ] ⏸️ STOP: interfaces are usable, not finished. ACL/QoS tabs arrive in 3G as consumers.
 
 ### 3B — Bridge / VLAN (first consumer of interfaces + bonds)
