@@ -22,6 +22,7 @@ import { getPath } from '../../lib/format.js';
 import { fieldPath, type SectionDef } from './sections.js';
 import { planCalls, type PerSwitchDraft, type PlanField, type SharedDraft } from './plan.js';
 import { ChangeFlow } from './ChangeFlow.js';
+import { useHeartbeat } from './Presence.js';
 import { usePerSwitch, type Scope } from './scope.js';
 
 const KEEP = '\u0000keep';
@@ -76,6 +77,7 @@ export function SectionEdit({
   const schema = useSectionSchema(ifaceId, section);
   const liveField = section.fields.find((f) => f.optionsFrom);
   const liveOptions = useLiveOptions(scope, liveField?.optionsFrom, present);
+  useHeartbeat(present, ifacePath);
 
   const [shared, setShared] = useState<SharedDraft>(preset);
   const [perSw, setPerSw] = useState<PerSwitchDraft>({});

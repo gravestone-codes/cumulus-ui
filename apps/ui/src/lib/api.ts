@@ -132,6 +132,21 @@ export interface MemberResult<T = unknown> {
   /** Unapplied changes already staged there; discard before staging this change. */
   conflict?: boolean;
 }
+/** Another user on a switch: an open editor and/or unapplied staged work. */
+export interface PresenceEntry {
+  userSub: string;
+  username: string;
+  open: boolean;
+  staged: number;
+  updatedAt: string | null;
+}
+/** One staged path as a dry-run row (before → intent). */
+export interface StagedDiff {
+  path: string;
+  method: string;
+  before?: unknown;
+  mine?: unknown;
+}
 export type StageCall = { path: string; method: 'PATCH' | 'DELETE'; body?: Record<string, unknown> };
 
 export const api = {
@@ -207,6 +222,16 @@ export const api = {
         current?: unknown;
       }>;
     }>(`/api/v1/switches/${encodeURIComponent(switchId)}/diff`),
+  heartbeat: (switchId: string, path: string) =>
+    post<{ ok: true }>(`/api/v1/switches/${encodeURIComponent(switchId)}/presence`, { path }),
+  presence: (switchId: string, path: string) =>
+    request<PresenceEntry[]>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/presence?${new URLSearchParams({ path })}`,
+    ),
+  theirStaged: (switchId: string, userSub: string, path: string) =>
+    request<{ branch: string; baseRev: string | null; diffs: StagedDiff[] }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/presence/${encodeURIComponent(userSub)}/staged?${new URLSearchParams({ path })}`,
+    ),
   applyBranch: (switchId: string) =>
     post<{ applied: boolean; jobId: string | null; paths: string[] }>(
       `/api/v1/switches/${encodeURIComponent(switchId)}/apply`,

@@ -9,11 +9,11 @@ import { problem } from '../lib/problems.js';
 import { type AuthConfig } from '../auth/config.js';
 import { resolveCaller } from '../auth/caller.js';
 import { gateCheck, getUserRoles, mayAccessSwitch, type Role } from '../rbac/store.js';
-import { audit } from '../audit/store.js';
+import { audit, redact } from '../audit/store.js';
 import { withSwitchToken } from '../nvue/clients.js';
 import { getSwitch, markSeen } from '../inventory/store.js';
 import { BranchConflictError, discardBranch, getEditSession, openBranch } from './branches.js';
-import { heartbeat, presentOthers } from './presence.js';
+import { heartbeat, overlaps, presentOthers } from './presence.js';
 import { applySession, OverlapError, collectDiffs } from './apply.js';
 import { getAction } from '../nvue/revisions.js';
 import { runAction } from './actions.js';
@@ -140,12 +140,39 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     }
   });
 
+  /** Switch exists and some role covers it; denials are audited. Null = problem already sent. */
+  async function coveredSwitch(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    who: { sub: string; username: string },
+    id: string,
+  ): Promise<{ roles: Role[]; groups: string[] } | null> {
+    const sw = await getSwitch(id);
+    if (!sw) {
+      problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
+      return null;
+    }
+    const roles = await getUserRoles(who.sub);
+    if (mayAccessSwitch(roles, sw.groups)) return { roles, groups: sw.groups };
+    await audit({
+      userSub: who.sub,
+      username: who.username,
+      roles: roles.map((r) => r.id),
+      switchId: id,
+      method: request.method,
+      path: request.url,
+    });
+    problem(reply, 403, 'Forbidden', `no role covers switch ${id}`, request.url);
+    return null;
+  }
+
   app.post('/api/v1/switches/:id/presence', async (request, reply) => {
     const who = await resolveCaller(request, cfg);
     if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
     const { id } = request.params as { id: string };
     const parsed = z.object({ path: z.string().min(1) }).safeParse(request.body);
     if (!parsed.success) return problem(reply, 400, 'Bad Request', 'path required', request.url);
+    if (!(await coveredSwitch(request, reply, who, id))) return reply;
     await heartbeat(who.sub, who.username, id, parsed.data.path);
     return { ok: true };
   });
@@ -154,7 +181,37 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     const who = await resolveCaller(request, cfg);
     if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
     const { id } = request.params as { id: string };
-    return presentOthers(who.sub, id);
+    const parsed = z.object({ path: z.string().min(1).optional() }).safeParse(request.query);
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'path must be a string', request.url);
+    if (!(await coveredSwitch(request, reply, who, id))) return reply;
+    return presentOthers(who.sub, id, parsed.data.path);
+  });
+
+  // Another user's unapplied staged changes, read-only (R19 "view their changes").
+  // Served from their stored intents, each path gated as a GET for the caller; secrets redacted.
+  app.get('/api/v1/switches/:id/presence/:user/staged', async (request, reply) => {
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const { id, user } = request.params as { id: string; user: string };
+    const parsed = z.object({ path: z.string().min(1).optional() }).safeParse(request.query);
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'path must be a string', request.url);
+    const covered = await coveredSwitch(request, reply, who, id);
+    if (!covered) return reply;
+    const session = await getEditSession(user, id);
+    const { path } = parsed.data;
+    const diffs = (session?.staged ?? [])
+      .filter((s) => path === undefined || overlaps(s.path, path))
+      .filter((s) => gateCheck(covered.roles, { method: 'GET', path: s.path, switchGroups: covered.groups }))
+      .map((s) => ({
+        path: s.path,
+        method: s.method,
+        before: redact(s.before),
+        mine: redact(s.after ?? null),
+      }));
+    if (!session || diffs.length === 0) {
+      return problem(reply, 404, 'Not Found', `no staged changes by ${user} on ${id}`, request.url);
+    }
+    return { branch: session.branch, baseRev: session.baseRev, diffs };
   });
 
   app.post('/api/v1/switches/:id/apply', async (request, reply) => {

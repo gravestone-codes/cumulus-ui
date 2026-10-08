@@ -7,12 +7,10 @@
  * onto silently — the user discards it or goes back.
  */
 import { useEffect, useRef, useState } from 'react';
-import { api, ApiError, type MemberResult, type StageCall } from '../../lib/api.js';
+import { api, ApiError, type MemberResult, type StageCall, type StagedDiff } from '../../lib/api.js';
 import { Alert, Button, Spinner, Tabs } from '../../components/ui.js';
 import { stageRounds } from './plan.js';
 import type { Scope } from './scope.js';
-
-type DiffRow = { path: string; method: string; before?: unknown; mine?: unknown };
 
 const JOB_DONE = new Set([
   'successful',
@@ -62,7 +60,7 @@ export function ChangeFlow({
   const [conflict, setConflict] = useState<string[]>([]);
   const [staged, setStaged] = useState<string[]>([]);
   const [failed, setFailed] = useState<Record<string, string>>({});
-  const [diffs, setDiffs] = useState<Record<string, DiffRow[]>>({});
+  const [diffs, setDiffs] = useState<Record<string, StagedDiff[]>>({});
   const [tab, setTab] = useState('');
   const [results, setResults] = useState<MemberResult[]>([]);
   const [jobState, setJobState] = useState<string | null>(null);
@@ -301,7 +299,8 @@ export function ChangeFlow({
   );
 }
 
-function DiffList({ rows }: { rows: DiffRow[] }) {
+/** Staged paths as before → after rows (own dry-run and others' staged work share it). */
+export function DiffList({ rows }: { rows: StagedDiff[] }) {
   return (
     <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
       {rows.map((d, i) => (

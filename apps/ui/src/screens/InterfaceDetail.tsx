@@ -16,6 +16,7 @@ import { ConfigTab, displayValue } from './iface/ConfigTab.js';
 import { NeighborsTab } from './iface/NeighborsTab.js';
 import { InterfaceActions } from './iface/Actions.js';
 import { ScopeShell } from './iface/ScopeShell.js';
+import { PresenceBanner } from './iface/Presence.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
 type Tab = 'statistics' | 'config' | 'neighbors';
@@ -73,6 +74,7 @@ export function InterfaceDetail() {
         </Alert>
       ) : (
         <>
+          <PresenceBanner members={present} path={path} label={ifaceId} group={group} />
           {failed.length > 0 && (
             <div style={{ marginBottom: 12 }}>
               <Alert tone="warn">

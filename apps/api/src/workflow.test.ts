@@ -191,11 +191,20 @@ describe.skipIf(!LIVE)('branches + staging', () => {
     const api = request(app.server);
     try {
       await api.post('/api/v1/switches/swf/presence').set('Cookie', alice).send({ path: '/interface/swp1' });
-      await api.post('/api/v1/switches/swf/presence').set('Cookie', bob).send({ path: '/interface/swp1' });
+      await api
+        .post('/api/v1/switches/swf/presence')
+        .set('Cookie', bob)
+        .send({ path: '/interface/swp1/link' });
       const seenByAlice = await api.get('/api/v1/switches/swf/presence').set('Cookie', alice);
-      expect(seenByAlice.body.map((e: { userSub: string }) => e.userSub)).toEqual(['wf-bob']);
+      expect(seenByAlice.body).toMatchObject([{ userSub: 'wf-bob', open: true, staged: 0 }]);
       const seenByBob = await api.get('/api/v1/switches/swf/presence').set('Cookie', bob);
       expect(seenByBob.body.map((e: { userSub: string }) => e.userSub)).toEqual(['wf-alice']);
+
+      // Path-narrowed: an editor inside or around the object counts, a sibling does not.
+      const onSwp1 = await api.get('/api/v1/switches/swf/presence?path=/interface/swp1').set('Cookie', alice);
+      expect(onSwp1.body.map((e: { userSub: string }) => e.userSub)).toEqual(['wf-bob']);
+      const onSwp2 = await api.get('/api/v1/switches/swf/presence?path=/interface/swp2').set('Cookie', alice);
+      expect(onSwp2.body).toEqual([]);
 
       await pool.query(
         `UPDATE presence SET updated_at = now() - interval '5 minutes' WHERE user_sub = 'wf-bob'`,
@@ -206,6 +215,105 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       await pool.query(`DELETE FROM presence WHERE user_sub IN ('wf-alice', 'wf-bob')`);
       await pool.query(`DELETE FROM sessions WHERE user_sub IN ('wf-alice', 'wf-bob')`);
       await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('wf-alice', 'wf-bob')`);
+      await app.close();
+    }
+  });
+
+  it('presence: unapplied staged work shows, their diff is read-only, redacted and role-gated', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const alice = await sessionCookie(pool, 'wf-alice', { appRoles: ['net-operator'] });
+    const viewer = await sessionCookie(pool, 'wf-pviewer', { appRoles: ['viewer'] });
+    await pool.query(`INSERT INTO groups (id, display_name) VALUES ('GP', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(`INSERT INTO roles (id, display_name) VALUES ('wf-scoped', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(
+      `INSERT INTO role_rules (role_id, method, path_prefix) VALUES ('wf-scoped', 'GET', '/') ON CONFLICT DO NOTHING`,
+    );
+    await pool.query(
+      `INSERT INTO role_groups (role_id, group_id) VALUES ('wf-scoped', 'GP') ON CONFLICT DO NOTHING`,
+    );
+    const outsider = await sessionCookie(pool, 'wf-outsider', { appRoles: ['wf-scoped'] });
+    await pool.query(
+      `INSERT INTO edit_sessions (user_sub, switch_id, branch, base_rev, staged_paths)
+       VALUES ('wf-bob', 'swf', 'NB', 'applied', $1)`,
+      [
+        JSON.stringify([
+          {
+            path: '/interface/swp1',
+            method: 'PATCH',
+            before: { description: 'old' },
+            after: { description: 'bob' },
+          },
+          { path: '/system', method: 'PATCH', before: {}, after: { secret: 'hunter2' } },
+        ]),
+      ],
+    );
+    const api = request(app.server);
+    try {
+      const seen = await api.get('/api/v1/switches/swf/presence?path=/interface/swp1').set('Cookie', alice);
+      expect(seen.body).toMatchObject([{ userSub: 'wf-bob', open: false, staged: 1, updatedAt: null }]);
+
+      const theirs = await api
+        .get('/api/v1/switches/swf/presence/wf-bob/staged?path=/interface/swp1')
+        .set('Cookie', viewer);
+      expect(theirs.status).toBe(200);
+      expect(theirs.body).toEqual({
+        branch: 'NB',
+        baseRev: 'applied',
+        diffs: [
+          {
+            path: '/interface/swp1',
+            method: 'PATCH',
+            before: { description: 'old' },
+            mine: { description: 'bob' },
+          },
+        ],
+      });
+      const all = await api.get('/api/v1/switches/swf/presence/wf-bob/staged').set('Cookie', viewer);
+      expect(all.body.diffs[1].mine).toEqual({ secret: '[redacted]' });
+
+      const none = await api
+        .get('/api/v1/switches/swf/presence/wf-bob/staged?path=/interface/swp2')
+        .set('Cookie', viewer);
+      expect(none.status).toBe(404);
+
+      const countDenials = async () =>
+        (
+          await pool.query(
+            `SELECT 1 FROM audit_log WHERE user_sub = 'wf-outsider' AND path LIKE '/api/v1/switches/swf/presence%'`,
+          )
+        ).rowCount ?? 0;
+      const deniedBefore = await countDenials();
+      // Deny: unauthenticated, and a role scoped to a group swf is not in.
+      expect((await api.get('/api/v1/switches/swf/presence')).status).toBe(401);
+      expect((await api.get('/api/v1/switches/swf/presence/wf-bob/staged')).status).toBe(401);
+      expect((await api.get('/api/v1/switches/swf/presence').set('Cookie', outsider)).status).toBe(403);
+      expect(
+        (
+          await api
+            .post('/api/v1/switches/swf/presence')
+            .set('Cookie', outsider)
+            .send({ path: '/interface/swp1' })
+        ).status,
+      ).toBe(403);
+      expect(
+        (await api.get('/api/v1/switches/swf/presence/wf-bob/staged').set('Cookie', outsider)).status,
+      ).toBe(403);
+      expect((await countDenials()) - deniedBefore).toBe(3);
+
+      // Allow once swf joins the role's group.
+      await pool.query(
+        `INSERT INTO switch_groups (switch_id, group_id) VALUES ('swf', 'GP') ON CONFLICT DO NOTHING`,
+      );
+      expect(
+        (await api.get('/api/v1/switches/swf/presence/wf-bob/staged').set('Cookie', outsider)).status,
+      ).toBe(200);
+    } finally {
+      await pool.query(`DELETE FROM switch_groups WHERE switch_id = 'swf' AND group_id = 'GP'`);
+      await pool.query(`DELETE FROM edit_sessions WHERE user_sub = 'wf-bob'`);
+      await pool.query(`DELETE FROM sessions WHERE user_sub IN ('wf-alice', 'wf-pviewer', 'wf-outsider')`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('wf-alice', 'wf-pviewer', 'wf-outsider')`);
+      await pool.query(`DELETE FROM roles WHERE id = 'wf-scoped'`);
       await app.close();
     }
   });

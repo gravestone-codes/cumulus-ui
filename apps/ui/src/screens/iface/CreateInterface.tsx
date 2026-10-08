@@ -19,6 +19,7 @@ import {
 } from '../../components/ui.js';
 import { boundsOf, choicesOf, leafSchema, setEntries } from '../../lib/fieldSchema.js';
 import { ChangeFlow } from './ChangeFlow.js';
+import { useHeartbeat } from './Presence.js';
 import { refreshInterfaces, type Scope } from './scope.js';
 
 /** Linux interface names: ≤15 chars, no spaces or slashes. */
@@ -63,6 +64,7 @@ export function CreateInterface({
     queryFn: () => api.fields('/interface/x/bond', 'PATCH'),
     staleTime: Infinity,
   });
+  useHeartbeat(plan ? Object.keys(plan.calls) : [], `/interface/${plan?.name ?? ''}`);
   const modes = choicesOf(leafSchema(bond.data?.schema, 'mode'));
   const vlanBounds = boundsOf(leafSchema(root.data?.schema, 'vlan'));
 
@@ -204,6 +206,7 @@ export function DeleteInterface({
   const calls = Object.fromEntries(
     members.map((sw) => [sw, [{ path: `/interface/${ifname}`, method: 'DELETE' as const }]]),
   );
+  useHeartbeat(members, `/interface/${ifname}`);
   return (
     <Modal open onClose={onClose} title={`Delete ${ifname}`} width={scope.kind === 'group' ? 600 : 460}>
       <ChangeFlow
