@@ -12,6 +12,7 @@ import { sessionCookie } from './test-sessions.js';
 import { setSwitchToken, dropUserTokens } from './switchauth/sessions.js';
 import { getEditSession } from './workflow/branches.js';
 import { pendingBody, pendingCall } from './workflow/rebase.js';
+import { enqueueApply } from './workflow/apply.js';
 import { parseAppliedRevision } from './nvue/revisions.js';
 import { checkSwitch, pollTick } from './workflow/poller.js';
 import { json, startFakeNvue, type FakeNvue } from './test-nvue.js';
@@ -82,6 +83,28 @@ describe('rebase pruning (pure)', () => {
     expect(() => pendingCall({ path: '/interface/swp1', method: 'PATCH', before: {} }, {})).toThrow(
       /restage/,
     );
+  });
+});
+
+describe('apply queue (pure)', () => {
+  it('serializes applies per switch; other switches never wait; a failure frees the queue', async () => {
+    const log: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const a1 = enqueueApply('sw1', async () => {
+      log.push('a1 start');
+      await gate;
+      log.push('a1 end');
+      throw new Error('boom');
+    });
+    const a2 = enqueueApply('sw1', async () => void log.push('a2'));
+    const b1 = enqueueApply('sw2', async () => void log.push('b1'));
+    await b1;
+    expect(log).toEqual(['a1 start', 'b1']);
+    release();
+    await expect(a1).rejects.toThrow('boom');
+    await a2;
+    expect(log).toEqual(['a1 start', 'b1', 'a1 end', 'a2']);
   });
 });
 
