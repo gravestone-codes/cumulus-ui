@@ -99,7 +99,7 @@ export async function rebaseSession(
     if (calls.length > 0) {
       next = await withSwitchToken(ctx.sub, sw.id, run, (client, token) => createBranch(client, token));
       await db().query(
-        `UPDATE edit_sessions SET branch = $3, base_rev = $4, staged_paths = '[]', updated_at = now()
+        `UPDATE edit_sessions SET branch = $3, base_rev = $4, staged_paths = '[]', updated_at = now(), based_at = now()
          WHERE user_sub = $1 AND switch_id = $2`,
         [ctx.sub, sw.id, next.branch, next.baseRev],
       );
@@ -108,9 +108,9 @@ export async function rebaseSession(
       } catch (err) {
         // Put the old draft back exactly as it was; the half-built branch is best-effort cleanup.
         await db().query(
-          `UPDATE edit_sessions SET branch = $3, base_rev = $4, staged_paths = $5::jsonb, updated_at = now()
+          `UPDATE edit_sessions SET branch = $3, base_rev = $4, staged_paths = $5::jsonb, updated_at = now(), based_at = $6
            WHERE user_sub = $1 AND switch_id = $2`,
-          [ctx.sub, sw.id, old.branch, old.baseRev, JSON.stringify(old.staged)],
+          [ctx.sub, sw.id, old.branch, old.baseRev, JSON.stringify(old.staged), old.basedAt],
         );
         await dropRevision(ctx, sw.id, next.branch);
         throw err;

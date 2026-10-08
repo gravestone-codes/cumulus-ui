@@ -199,9 +199,11 @@ export async function deleteSwitch(switchId: string): Promise<boolean> {
   return (rowCount ?? 0) > 0;
 }
 
-/** List all groups. */
-export async function listGroups(): Promise<Group[]> {
-  const { rows } = await db().query<Group>('SELECT id, display_name, parent_id FROM groups ORDER BY id');
+/** List all groups, with each group's revision-poll interval (roadmap 4.6). */
+export async function listGroups(): Promise<Array<Group & { poll_interval_sec: number }>> {
+  const { rows } = await db().query<Group & { poll_interval_sec: number }>(
+    'SELECT id, display_name, parent_id, poll_interval_sec FROM groups ORDER BY id',
+  );
   return rows;
 }
 
@@ -231,6 +233,15 @@ export async function renameGroup(groupId: string, displayName: string): Promise
   const { rowCount } = await db().query('UPDATE groups SET display_name = $2 WHERE id = $1', [
     groupId,
     displayName,
+  ]);
+  return (rowCount ?? 0) > 0;
+}
+
+/** Set how often a group's switches are polled for out-of-band changes (seconds, 5–86400). */
+export async function setGroupPollInterval(groupId: string, seconds: number): Promise<boolean> {
+  const { rowCount } = await db().query('UPDATE groups SET poll_interval_sec = $2 WHERE id = $1', [
+    groupId,
+    seconds,
   ]);
   return (rowCount ?? 0) > 0;
 }

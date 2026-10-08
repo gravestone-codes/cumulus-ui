@@ -21,6 +21,7 @@ import { GuardError } from '../nvue/guard.js';
 import { stageChange, StageError } from './stage.js';
 import { fanoutAction, fanoutApply, fanoutQuery, fanoutRebase, fanoutStage } from './fanout.js';
 import { rebaseSession } from './rebase.js';
+import { ackDrift, DriftError, unseenDrifts } from './drift.js';
 
 export interface WorkflowDeps {
   cfg: AuthConfig;
@@ -77,6 +78,17 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     } catch (err) {
       if (err instanceof BranchConflictError) {
         return problem(reply, 409, 'Conflict', err.message, request.url);
+      }
+      if (err instanceof DriftError) {
+        return reply.code(409).send({
+          type: 'about:blank',
+          title: 'Conflict',
+          status: 409,
+          detail: err.message,
+          instance: request.url,
+          code: 'switch-changed',
+          drift: err.drift,
+        });
       }
       throw err;
     }
@@ -215,6 +227,24 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     return { branch: session.branch, baseRev: session.baseRev, diffs };
   });
 
+  // Out-of-band changes (roadmap 4.6) the caller has not refreshed past, on switches their roles cover.
+  // Screens show a banner from this; new edit sessions are refused until the user refreshes (ack).
+  app.get('/api/v1/drift', async (request, reply) => {
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const roles = await getUserRoles(who.sub);
+    return (await unseenDrifts(who.sub)).filter((d) => mayAccessSwitch(roles, d.groups));
+  });
+
+  app.post('/api/v1/switches/:id/drift/ack', async (request, reply) => {
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const { id } = request.params as { id: string };
+    if (!(await coveredSwitch(request, reply, who, id))) return reply;
+    await ackDrift(who.sub, id);
+    return { ok: true };
+  });
+
   app.post('/api/v1/switches/:id/apply', async (request, reply) => {
     const { id } = request.params as { id: string };
     const who = await resolveCaller(request, cfg);
@@ -245,6 +275,7 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
           status: 409,
           detail: err.message,
           conflicts: err.conflicts,
+          ...(err.outOfBand ? { outOfBand: err.outOfBand } : {}),
         });
       }
       const status = (err as { status?: number }).status;

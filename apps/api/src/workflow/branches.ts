@@ -6,6 +6,7 @@
 import { db } from '../db.js';
 import { withSwitchToken } from '../nvue/clients.js';
 import { createBranch } from '../nvue/revisions.js';
+import { DriftError, unseenDrift } from './drift.js';
 
 export interface StagedPath {
   path: string;
@@ -22,6 +23,8 @@ export interface EditSession {
   branch: string;
   baseRev: string | null;
   staged: StagedPath[];
+  /** When the branch was cut off applied (drift after this makes the draft stale). */
+  basedAt: string;
 }
 
 interface SessionRow {
@@ -30,6 +33,7 @@ interface SessionRow {
   branch: string;
   base_rev: string | null;
   staged_paths: StagedPath[];
+  based_at: Date;
 }
 
 function toSession(row: SessionRow): EditSession {
@@ -39,6 +43,7 @@ function toSession(row: SessionRow): EditSession {
     branch: row.branch,
     baseRev: row.base_rev,
     staged: row.staged_paths ?? [],
+    basedAt: row.based_at.toISOString(),
   };
 }
 
@@ -60,7 +65,11 @@ export class BranchConflictError extends Error {
   }
 }
 
-/** Open a branch. 409s when unapplied changes exist; replaces empty sessions silently. */
+/**
+ * Open a branch. 409s when unapplied changes exist, or (DriftError) when the
+ * switch changed outside the app since this user last refreshed; replaces
+ * empty sessions silently.
+ */
 export async function openBranch(
   userSub: string,
   switchId: string,
@@ -68,19 +77,25 @@ export async function openBranch(
 ): Promise<EditSession> {
   const existing = await getEditSession(userSub, switchId);
   if (existing && existing.staged.length > 0) throw new BranchConflictError(existing.branch);
+  const drift = await unseenDrift(userSub, switchId);
+  if (drift) throw new DriftError(drift);
   const { branch, baseRev } = await withSwitchToken(
     userSub,
     switchId,
     { credKey: opts?.credKey },
     (client, token) => createBranch(client, token),
   );
-  await db().query(
-    `INSERT INTO edit_sessions (user_sub, switch_id, branch, base_rev, staged_paths, updated_at)
-     VALUES ($1, $2, $3, $4, '[]', now())
-     ON CONFLICT (user_sub, switch_id) DO UPDATE SET branch = $3, base_rev = $4, staged_paths = '[]', updated_at = now()`,
+  const { rows } = await db().query<SessionRow>(
+    `INSERT INTO edit_sessions (user_sub, switch_id, branch, base_rev, staged_paths, updated_at, based_at)
+     VALUES ($1, $2, $3, $4, '[]', now(), now())
+     ON CONFLICT (user_sub, switch_id) DO UPDATE
+       SET branch = $3, base_rev = $4, staged_paths = '[]', updated_at = now(), based_at = now()
+     RETURNING *`,
     [userSub, switchId, branch, baseRev],
   );
-  return { userSub, switchId, branch, baseRev, staged: [] };
+  const row = rows[0];
+  if (!row) throw new Error('edit session upsert returned no row');
+  return toSession(row);
 }
 
 /** Append a staged path snapshot (atomic array concat). */

@@ -21,6 +21,7 @@ import {
   listSwitches,
   renameGroup,
   renameSwitch,
+  setGroupPollInterval,
   setSwitchGroups,
 } from './store.js';
 import { requireAppAdmin } from '../users/routes.js';
@@ -201,22 +202,40 @@ export async function inventoryRoutes(app: FastifyInstance, deps: InventoryDeps)
     return { ok: true };
   });
 
+  // Rename and/or set the out-of-band poll interval (roadmap 4.6: admin-adjustable, per group).
+  const GroupPatch = z
+    .object({
+      display_name: z.string().min(1).max(128).optional(),
+      poll_interval_sec: z.number().int().min(5).max(86400).optional(),
+    })
+    .refine((b) => b.display_name !== undefined || b.poll_interval_sec !== undefined);
+
   app.patch('/api/v1/inventory/groups/:id', async (request, reply) => {
     const g = await gate(request, reply, cfg);
     if (!g) return reply;
     const { id } = request.params as { id: string };
-    const parsed = RenameBody.safeParse(request.body);
-    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'display_name required', request.url);
-    if (!(await renameGroup(id, parsed.data.display_name))) {
-      return problem(reply, 404, 'Not Found', `no group ${id}`, request.url);
+    const parsed = GroupPatch.safeParse(request.body);
+    if (!parsed.success) {
+      return problem(
+        reply,
+        400,
+        'Bad Request',
+        'display_name or poll_interval_sec (5–86400) required',
+        request.url,
+      );
     }
+    const { display_name, poll_interval_sec } = parsed.data;
+    const found =
+      (display_name === undefined || (await renameGroup(id, display_name))) &&
+      (poll_interval_sec === undefined || (await setGroupPollInterval(id, poll_interval_sec)));
+    if (!found) return problem(reply, 404, 'Not Found', `no group ${id}`, request.url);
     await audit({
       userSub: g.sub,
       username: g.username,
       roles: g.roleIds,
       method: 'PATCH',
       path: request.url,
-      after: { display_name: parsed.data.display_name },
+      after: parsed.data,
     });
     return { ok: true };
   });
