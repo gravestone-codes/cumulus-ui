@@ -1,6 +1,6 @@
 /**
  * Shared navigation: the rail from final.html §9 — Dashboard, Interfaces,
- * VRFs, BGP, Audit Log. One definition used by every switch-scoped screen.
+ * Bridge, VRFs, BGP, Audit Log. One definition used by every switch-scoped screen.
  * Unsliced domains render disabled until their slice lands (roadmap order);
  * a slice deletes its `disabled` flag and adds its route — one line.
  */
@@ -12,6 +12,7 @@ export function switchNav(switchId: string): Array<NavItem & { to: string }> {
   return [
     { to: base, label: 'Dashboard', icon: 'dashboard' },
     { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
+    { to: `${base}/bridge`, label: 'Bridge', icon: 'bridge' },
     { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs', disabled: true },
     { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit' },
@@ -36,14 +37,15 @@ export function globalNav(): Array<NavItem & { to: string }> {
 
 /**
  * Group rail: the same domain items as a switch, applied to every member.
- * Interfaces read and write through FanOut; the rest stay disabled until
- * their slices land.
+ * Interfaces and Bridge read and write through FanOut; the rest stay
+ * disabled until their slices land.
  */
 export function groupNav(groupId: string): Array<NavItem & { to: string }> {
   const base = `/groups/${groupId}`;
   return [
     { to: base, label: 'Overview', icon: 'dashboard' },
     { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
+    { to: `${base}/bridge`, label: 'Bridge', icon: 'bridge' },
     { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs', disabled: true },
     { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit', disabled: true },

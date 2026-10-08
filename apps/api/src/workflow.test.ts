@@ -186,7 +186,17 @@ describe.skipIf(!LIVE)('branches + staging', () => {
         nvueState.revStates
       ) {
         const q = nvueState.revStates;
-        json(res, 200, { state: q.length > 1 ? q.shift() : q[0] });
+        const state = q.length > 1 ? q.shift() : q[0];
+        const issue =
+          state === 'invalid'
+            ? {
+                '00000': {
+                  code: 'generic',
+                  message: 'br_default: VLAN(s) 3999 falls under the reserved vlan range',
+                },
+              }
+            : {};
+        json(res, 200, { state, transition: { issue, progress: '' } });
       } else if (req.method === 'PATCH' && url.pathname.startsWith('/nvue_v1/revision/')) {
         if (nvueState.applied) nvueState.applied = { id: `rev_A${++counter}`, user: 'cumulus', type: 'API' };
         const job = `J${++counter}`;
@@ -747,6 +757,10 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       nvueState.revStates = ['apply', 'apply_fail'];
       await expect(pollRevision('wf-rev', 'swf', 'R1', { intervalMs: 5, timeoutMs: 500 })).rejects.toThrow(
         /failed/,
+      );
+      nvueState.revStates = ['apply', 'invalid'];
+      await expect(pollRevision('wf-rev', 'swf', 'R1', { intervalMs: 5, timeoutMs: 500 })).rejects.toThrow(
+        /failed: invalid — br_default: VLAN\(s\) 3999 falls under the reserved vlan range/,
       );
     } finally {
       nvueState.revStates = null;

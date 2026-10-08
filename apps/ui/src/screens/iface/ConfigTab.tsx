@@ -2,10 +2,10 @@
  * Config tab (design §8B, §3A): section index on the left; picking one
  * shows only that section's card, in the existing tile layout. Values come from the applied config
  * (config-only subtrees live there); status rows from operational state.
- * Group scope shows the same cards with mixed / per-switch markers.
+ * Group scope shows the same cards with mixed / per-switch markers. Any
+ * object with sections uses it (interfaces, bridge domains).
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button, Spinner, useToast } from '../../components/ui.js';
 import { Card } from '../../components/cards.js';
@@ -13,55 +13,60 @@ import { ValueGrid } from '../../components/resource.js';
 import { MixedValue, PerSwitchValue } from '../../components/mixed.js';
 import { mergeValues } from '../../lib/merge.js';
 import { getPath } from '../../lib/format.js';
-import { fieldPath, isConfigured, sectionsFor, type SectionDef } from './sections.js';
+import { fieldPath, isConfigured, type SectionDef } from './sections.js';
 import { SectionEdit } from './SectionEdit.js';
 import { refreshInterfaces, type Scope } from './scope.js';
 import type { SharedDraft } from './plan.js';
 
 type Obj = Record<string, unknown> | undefined;
 
+const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+
 /** Any NVUE value as display text: tag/set objects → their keys, scalars as-is. */
 export function displayValue(raw: unknown): string {
   if (raw === undefined || raw === null || raw === '') return '';
   if (typeof raw === 'object')
     return Object.keys(raw as object)
-      .sort()
+      .sort(natural)
       .join(', ');
   return String(raw);
 }
 
 export function ConfigTab({
   scope,
-  ifaceId,
+  objectPath,
+  name,
+  sections,
   cfg,
   oper,
   present,
+  onOpenSwitch,
 }: {
   scope: Scope;
-  ifaceId: string;
+  /** NVUE path of the object (`/interface/swp1`, `/bridge/domain/br_default`). */
+  objectPath: string;
+  /** Object name in titles, e.g. "swp1". */
+  name: string;
+  sections: SectionDef[];
   cfg: Record<string, Obj>;
   oper: Record<string, Obj>;
   present: string[];
+  /** Open the object on one member switch (mixed-value drill-in). */
+  onOpenSwitch: (sw: string) => void;
 }) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [editing, setEditing] = useState<{ section: SectionDef; preset?: SharedDraft } | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const group = scope.kind === 'group';
-  const type = present.map((sw) => displayValue(getPath(cfg[sw] ?? oper[sw], 'type'))).find(Boolean);
 
   const valuesOf = (objs: Record<string, Obj>, path: string) =>
     Object.fromEntries(present.map((sw) => [sw, displayValue(getPath(objs[sw], path))]));
 
-  const sections = sectionsFor(type);
   const configured = (s: SectionDef) =>
     s.pinned || isConfigured(s.fields.flatMap((f) => Object.values(valuesOf(cfg, fieldPath(s, f)))));
   const ordered = [...sections.filter(configured), ...sections.filter((s) => !configured(s))];
   const shown = ordered.find((s) => s.id === picked) ?? ordered[0];
-
-  const openSwitch = (sw: string) =>
-    navigate(`/switches/${encodeURIComponent(sw)}/interfaces/${encodeURIComponent(ifaceId)}`);
 
   function cell(
     objs: Record<string, Obj>,
@@ -80,10 +85,10 @@ export function ConfigTab({
     if (m.kind === 'none') return '—';
     if (group && opts.perSwitch) {
       const groups = m.kind === 'same' ? [{ value: m.value, switches: present }] : m.groups;
-      return <PerSwitchValue groups={groups} label={label} show={(v) => v || '—'} onOpen={openSwitch} />;
+      return <PerSwitchValue groups={groups} label={label} show={(v) => v || '—'} onOpen={onOpenSwitch} />;
     }
     if (m.kind === 'same') return m.value || '—';
-    return <MixedValue groups={m.groups} label={label} onAlign={opts.align} onOpen={openSwitch} />;
+    return <MixedValue groups={m.groups} label={label} onAlign={opts.align} onOpen={onOpenSwitch} />;
   }
 
   if (present.length === 0) return <Spinner label="Loading configuration" />;
@@ -150,7 +155,8 @@ export function ConfigTab({
       {editing && (
         <SectionEdit
           scope={scope}
-          ifaceId={ifaceId}
+          objectPath={objectPath}
+          name={name}
           section={editing.section}
           cfg={cfg}
           present={present}

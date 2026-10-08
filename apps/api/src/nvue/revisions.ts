@@ -102,15 +102,30 @@ export function extractJobId(data: unknown): string | null {
   return parseBranchId(data);
 }
 
-/** A revision's state string (pending, apply, applied, apply_fail, …); 'unknown' if absent. */
-export async function getRevisionState(client: NvueClient, token: string, branch: string): Promise<string> {
+/**
+ * A revision's state (pending, apply, applied, apply_fail, invalid, …;
+ * 'unknown' if absent) plus NVUE's validation messages from
+ * `transition.issue` — the reason an invalid revision was refused.
+ */
+export async function getRevisionState(
+  client: NvueClient,
+  token: string,
+  branch: string,
+): Promise<{ state: string; issues: string[] }> {
   const { data } = await client.call({
     path: `/revision/${encodeURIComponent(branch)}`,
     method: 'GET',
     token,
   });
-  const state = (data as { state?: unknown } | null)?.state;
-  return typeof state === 'string' ? state : 'unknown';
+  const rev = data as { state?: unknown; transition?: { issue?: unknown } } | null;
+  const issue = rev?.transition?.issue;
+  const issues =
+    typeof issue === 'object' && issue !== null
+      ? Object.values(issue)
+          .map((i) => (i as { message?: unknown } | null)?.message)
+          .filter((m): m is string => typeof m === 'string' && m !== '')
+      : [];
+  return { state: typeof rev?.state === 'string' ? rev.state : 'unknown', issues };
 }
 
 /** The applied revision's identity: NVUE's last apply-id, plus who/how (CLI, API) when reported. */

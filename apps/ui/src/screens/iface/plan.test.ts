@@ -32,6 +32,28 @@ describe('planCalls', () => {
     });
   });
 
+  it('sends a changed set whole, so a filled-in default is kept, not replaced', () => {
+    const VLAN = field('vlan', 'set');
+    const plan = planCalls(
+      '/bridge/domain/br_default',
+      ['a'],
+      [VLAN],
+      { a: { vlan: '1' } },
+      { vlan: '1, 10' },
+      {},
+    );
+    expect(plan.ok && plan.calls['a']?.[0]?.body).toEqual({ vlan: { '1': {}, '10': {} } });
+    const back = planCalls(
+      '/bridge/domain/br_default',
+      ['a'],
+      [VLAN],
+      { a: { vlan: '1\n10' } },
+      { vlan: '1' },
+      {},
+    );
+    expect(back.ok && back.calls['a']?.[0]?.body).toEqual({ vlan: { '1': {}, '10': null } });
+  });
+
   it('keeps mixed fields untouched, encodes keyed values, adds and removes per-switch set keys', () => {
     const plan = planCalls(
       '/interface/swp1',

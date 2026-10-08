@@ -189,7 +189,7 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 
 ### 3B — Bridge / VLAN (first consumer of interfaces + bonds)
 
-- [ ] 3B.1 List/detail: `GET /bridge/domain…` via generics → `S4`
+- [x] 3B.1 List/detail: `GET /bridge/domain…` via generics → `S4`
 - [ ] 3B.2 `VlanAttachment` (R13): attach interface/bond (via `InterfacePicker` → `S1`, bonds via `BondBuilder` — **import, don't rebuild**)
 - [ ] 3B.3 MAC-table view + clear-dynamic-MAC via `ActionRunner` (POST)
 - [ ] 3B.4 STP tab (read + edit via `ResourceForm`)

@@ -50,10 +50,13 @@ const sameValue = (kind: FieldKind, a: string, b: string) =>
 /**
  * Build every member's calls. `current[sw][path]` is the decoded applied
  * value. Clears and set-key removals are `null` in the one PATCH — NVUE's
- * documented unset; leaves have no DELETE route of their own.
+ * documented unset; leaves have no DELETE route of their own. A changed set
+ * sends its whole target membership: kept keys as `{}` merge as no-ops, and
+ * a default NVUE only fills in on reads (bridge VLAN 1) is pinned rather
+ * than replaced by the first added key.
  */
 export function planCalls(
-  ifacePath: string,
+  objectPath: string,
   members: string[],
   fields: PlanField[],
   current: Record<string, Record<string, string>>,
@@ -69,8 +72,8 @@ export function planCalls(
       const want = target(f, sw, now, shared, perSwitch);
       if (sameValue(f.kind, now, want)) continue;
       if (f.kind === 'set') {
-        const { add, remove } = setDelta(now, want);
-        const keys = [...add.map((k) => [k, {}]), ...remove.map((k) => [k, null])];
+        const { remove } = setDelta(now, want);
+        const keys = [...setEntries(want).map((k) => [k, {}]), ...remove.map((k) => [k, null])];
         body = mergeBodies(body, nest(f.path, Object.fromEntries(keys)));
         continue;
       }
@@ -82,7 +85,7 @@ export function planCalls(
       if (reason) return { ok: false, error: `${f.label}${members.length > 1 ? ` (${sw})` : ''}: ${reason}` };
       body = mergeBodies(body, nest(f.path, encodeValue(f.kind, want, f.choices)));
     }
-    if (Object.keys(body).length > 0) calls[sw] = [{ path: ifacePath, method: 'PATCH', body }];
+    if (Object.keys(body).length > 0) calls[sw] = [{ path: objectPath, method: 'PATCH', body }];
     else unchanged.push(sw);
   }
   if (Object.keys(calls).length === 0) return { ok: false, error: 'No changes to stage.' };

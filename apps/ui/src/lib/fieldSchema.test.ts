@@ -30,6 +30,29 @@ const LINK = {
     },
   },
 };
+const DOMAIN = {
+  properties: {
+    untagged: {
+      anyOf: [
+        { type: 'integer', minimum: 1, maximum: 4094 },
+        { type: 'string', enum: ['none', null] },
+      ],
+    },
+    'mac-address': {
+      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+          anyOf: [
+            { type: 'string', format: 'mac' },
+            { type: 'string', enum: [null] },
+          ],
+        },
+        { type: 'string', enum: ['auto', null] },
+      ],
+    },
+  },
+};
 const IP = {
   properties: { address: { type: 'object', 'x-propertyNames': { anyOf: [] }, additionalProperties: {} } },
 };
@@ -47,6 +70,14 @@ describe('kind + choices from the spec', () => {
     expect(choicesOf(leafSchema(LINK, 'breakout'))).toEqual(['1x', '4x', 'disabled']);
     expect(kindOf(leafSchema(IP, 'address'))).toBe('set');
     expect(kindOf(undefined, 'text')).toBe('text');
+  });
+  it('reads value-or-keyword leaves as free entry with the keywords kept', () => {
+    const untagged = leafSchema(DOMAIN, 'untagged');
+    expect(kindOf(untagged)).toBe('number');
+    expect(choicesOf(untagged)).toEqual(['none']);
+    expect(boundsOf(untagged)).toEqual({ min: 1, max: 4094 });
+    expect(kindOf(leafSchema(DOMAIN, 'mac-address'))).toBe('text');
+    expect(choicesOf(leafSchema(DOMAIN, 'mac-address'))).toEqual(['auto']);
   });
 });
 
@@ -71,5 +102,10 @@ describe('decode/encode', () => {
     expect(invalidReason('number', '100', mtu)).toBe('Must be at least 552.');
     expect(invalidReason('number', '9.5', mtu)).toBe('Must be a whole number.');
     expect(invalidReason('number', '9000', mtu)).toBeNull();
+    const untagged = leafSchema(DOMAIN, 'untagged');
+    expect(invalidReason('number', 'none', untagged)).toBeNull();
+    expect(invalidReason('number', '5000', untagged)).toBe('Must be at most 4094.');
+    expect(encodeValue('number', 'none', ['none'])).toBe('none');
+    expect(encodeValue('number', '10', ['none'])).toBe(10);
   });
 });

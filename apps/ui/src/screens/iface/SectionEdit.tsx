@@ -29,12 +29,16 @@ const KEEP = '\u0000keep';
 /** Set values show comma-separated in one line field. */
 const setText = (v: string) => setEntries(v).join(', ');
 
-/** Spec schema for a section's subtree (none for the interface root: hinted leaves only). */
-export function useSectionSchema(ifaceId: string, section: SectionDef) {
+/** A section needs the spec unless it sits at the object root with every leaf kind-hinted. */
+const needsSchema = (s: SectionDef) => s.base !== '' || s.fields.some((f) => !f.kind);
+
+/** Spec schema for a section's subtree; cached per collection, since every object shares it. */
+export function useSectionSchema(objectPath: string, section: SectionDef) {
+  const collection = objectPath.slice(0, objectPath.lastIndexOf('/'));
   return useQuery({
-    queryKey: ['spec-fields', 'interface', section.base],
-    queryFn: () => api.fields(`/interface/${ifaceId}/${section.base}`, 'PATCH'),
-    enabled: section.base !== '',
+    queryKey: ['spec-fields', collection, section.base],
+    queryFn: () => api.fields(section.base ? `${objectPath}/${section.base}` : objectPath, 'PATCH'),
+    enabled: needsSchema(section),
     staleTime: Infinity,
   });
 }
@@ -50,7 +54,8 @@ function useLiveOptions(scope: Scope, path: string | undefined, members: string[
 
 export function SectionEdit({
   scope,
-  ifaceId,
+  objectPath,
+  name,
   section,
   cfg,
   present,
@@ -60,11 +65,14 @@ export function SectionEdit({
   notify,
 }: {
   scope: Scope;
-  ifaceId: string;
+  /** NVUE path of the edited object; every PATCH goes here. */
+  objectPath: string;
+  /** Object name in titles and warnings. */
+  name: string;
   section: SectionDef;
-  /** Applied config per switch (interface root objects). */
+  /** Applied config per switch (object root). */
   cfg: Record<string, Record<string, unknown> | undefined>;
-  /** Members that have this interface. */
+  /** Members that have this object. */
   present: string[];
   /** Pre-filled shared values (Align all to …). */
   preset?: SharedDraft;
@@ -72,12 +80,11 @@ export function SectionEdit({
   onApplied: () => void;
   notify: (tone: 'pass' | 'warn' | 'fail', text: string) => void;
 }) {
-  const ifacePath = `/interface/${ifaceId}`;
   const group = scope.kind === 'group';
-  const schema = useSectionSchema(ifaceId, section);
+  const schema = useSectionSchema(objectPath, section);
   const liveField = section.fields.find((f) => f.optionsFrom);
   const liveOptions = useLiveOptions(scope, liveField?.optionsFrom, present);
-  useHeartbeat(present, ifacePath);
+  useHeartbeat(present, objectPath);
 
   const [shared, setShared] = useState<SharedDraft>(preset);
   const [perSw, setPerSw] = useState<PerSwitchDraft>({});
@@ -88,7 +95,7 @@ export function SectionEdit({
   const sectionSchema = schema.data?.schema;
   const fields: Array<PlanField & { schema: Record<string, unknown> | undefined }> = section.fields.map(
     (f) => {
-      const s = section.base ? leafSchema(sectionSchema, f.leaf) : undefined;
+      const s = leafSchema(sectionSchema, f.leaf);
       const kind = kindOf(s, f.kind);
       const choices = f.optionsFrom ? (liveOptions ?? []) : choicesOf(s);
       return {
@@ -115,7 +122,7 @@ export function SectionEdit({
     shared['link/state'] === 'down' && present.some((sw) => current[sw]?.['link/state'] !== 'down');
 
   function review() {
-    const p = planCalls(ifacePath, present, fields, current, shared, perSw);
+    const p = planCalls(objectPath, present, fields, current, shared, perSw);
     if (!p.ok) {
       setError(p.error);
       return;
@@ -124,7 +131,7 @@ export function SectionEdit({
     setPlan({ calls: p.calls, unchanged: p.unchanged });
   }
 
-  const title = `${section.title} · ${ifaceId}${group ? ` · ${present.length} switch${present.length === 1 ? '' : 'es'}` : ''}`;
+  const title = `${section.title} · ${name}${group ? ` · ${present.length} switch${present.length === 1 ? '' : 'es'}` : ''}`;
   const wide = fields.some((f) => f.perSwitch);
 
   function renderField(f: (typeof fields)[number]) {
@@ -226,9 +233,8 @@ export function SectionEdit({
               ? `Mixed — keep each (${mixedNote})`
               : f.kind === 'set'
                 ? 'comma-separated'
-                : min !== undefined
-                  ? `${min}–${max}`
-                  : undefined
+                : [min !== undefined ? `${min}–${max}` : '', ...f.choices].filter(Boolean).join(' · ') ||
+                  undefined
           }
           error={draft !== undefined && draft !== '' ? (f.invalid(draft) ?? undefined) : undefined}
           onChange={(e) => {
@@ -240,7 +246,7 @@ export function SectionEdit({
     );
   }
 
-  const loading = (section.base !== '' && schema.isPending) || (liveField && liveOptions === null);
+  const loading = (needsSchema(section) && schema.isPending) || (liveField && liveOptions === null);
 
   return (
     <Modal open onClose={onClose} title={title} width={wide || (group && plan) ? 600 : 460}>
@@ -255,7 +261,7 @@ export function SectionEdit({
           onClose={onClose}
           onApplied={onApplied}
           notify={notify}
-          doneText={`${section.title} on ${ifaceId}`}
+          doneText={`${section.title} on ${name}`}
         />
       ) : (
         <>
@@ -265,8 +271,8 @@ export function SectionEdit({
           {goingDown && (
             <Alert tone="warn">
               {isMgmt
-                ? `${ifaceId} is a management port — taking it down cuts this app off from the switch.`
-                : `Taking ${ifaceId} down stops all traffic on it.`}
+                ? `${name} is a management port — taking it down cuts this app off from the switch.`
+                : `Taking ${name} down stops all traffic on it.`}
             </Alert>
           )}
           {error && <Alert tone="fail">{error}</Alert>}

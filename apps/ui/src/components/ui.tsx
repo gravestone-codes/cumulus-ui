@@ -321,7 +321,8 @@ export interface NavItem {
   icon?: NavIcon;
 }
 
-export type NavIcon = 'dashboard' | 'interfaces' | 'vrfs' | 'bgp' | 'audit' | 'switches' | 'software';
+export type NavIcon =
+  'dashboard' | 'interfaces' | 'bridge' | 'vrfs' | 'bgp' | 'audit' | 'switches' | 'software';
 
 /* Hand-drawn stroke icon set (final.html §9). One set, keyed by item. */
 const NAV_ICONS: Record<NavIcon, ReactNode> = {
@@ -344,6 +345,19 @@ const NAV_ICONS: Record<NavIcon, ReactNode> = {
       strokeLinecap="round"
     >
       <path d="M3 12h4l3-7 4 14 3-7h4" />
+    </svg>
+  ),
+  bridge: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    >
+      <path d="M2 17h20M4 17V9M20 17V9M4 9c4 0 6 4 8 4s4-4 8-4M8 17v-4.5M12 17v-4M16 17v-4.5" />
     </svg>
   ),
   vrfs: (
