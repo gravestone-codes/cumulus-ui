@@ -27,10 +27,7 @@ export async function collectDiffs(
   const diffs: PathDiff[] = [];
   for (const s of staged) {
     const mine = s.after ?? null;
-    const current = await client
-      .call({ path: s.path, method: 'GET', token })
-      .then((r) => (s.method === 'PATCH' && mine !== null ? lens(r.data, mine) : r.data))
-      .catch(() => null);
+    const current = await occImage(client, token, s.path, s.method, mine);
     diffs.push({
       path: s.path,
       method: s.method,
@@ -80,6 +77,26 @@ export function lens(data: unknown, shape: unknown): unknown {
   return Object.fromEntries(
     Object.entries(shape).map(([k, v]) => [k, lens(isObj(data) ? data[k] : undefined, v)]),
   );
+}
+
+/**
+ * The OCC image of one staged path: a PATCH compares the operational leaves
+ * its body touches; a DELETE compares the applied config of the whole object
+ * (operational counters tick constantly and would always "conflict"). Null
+ * when the path is absent.
+ */
+export async function occImage(
+  client: NvueClient,
+  token: string,
+  path: string,
+  method: string,
+  body: unknown,
+): Promise<unknown> {
+  const patch = method === 'PATCH' && body !== null && body !== undefined;
+  return client
+    .call({ path, method: 'GET', token, ...(patch ? {} : { rev: 'applied' }) })
+    .then((r) => (patch ? lens(r.data, body) : r.data))
+    .catch(() => null);
 }
 
 /** Classify one staged path against live state. Pure — unit-tested. */

@@ -17,7 +17,9 @@ import {
   Tabs,
   useToast,
 } from '../../components/ui.js';
-import { boundsOf, choicesOf, leafSchema, setEntries } from '../../lib/fieldSchema.js';
+import { InterfacePicker } from '../../components/InterfacePicker.js';
+import { boundsOf, choicesOf, leafSchema } from '../../lib/fieldSchema.js';
+import { bondedPorts, pickerOptions } from '../../lib/interfacePicker.js';
 import { ChangeFlow } from './ChangeFlow.js';
 import { useHeartbeat } from './Presence.js';
 import { refreshInterfaces, type Scope } from './scope.js';
@@ -29,22 +31,22 @@ export function CreateInterface({
   scope,
   members,
   existing,
-  ports,
+  lists,
   onClose,
 }: {
   scope: Scope;
   members: string[];
   /** Interface names present per member. */
   existing: Record<string, string[]>;
-  /** Candidate bond members / sub-interface parents (swp, bond), union across members. */
-  ports: string[];
+  /** Each member's interface list (backend read): picker options come from here. */
+  lists: Record<string, Record<string, Record<string, unknown>> | undefined>;
   onClose: () => void;
 }) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [kind, setKind] = useState<'bond' | 'sub'>('bond');
   const [name, setName] = useState('');
-  const [bondMembers, setBondMembers] = useState('');
+  const [bondMembers, setBondMembers] = useState<string[]>([]);
   const [mode, setMode] = useState('');
   const [parent, setParent] = useState('');
   const [vlan, setVlan] = useState('');
@@ -67,18 +69,21 @@ export function CreateInterface({
   useHeartbeat(plan ? Object.keys(plan.calls) : [], `/interface/${plan?.name ?? ''}`);
   const modes = choicesOf(leafSchema(bond.data?.schema, 'mode'));
   const vlanBounds = boundsOf(leafSchema(root.data?.schema, 'vlan'));
+  // A port already in a bond can be neither another bond's member nor a sub-interface parent.
+  const bonded = bondedPorts(lists);
+  const memberOptions = pickerOptions(members, lists, { types: ['swp'], exclude: bonded });
+  const parentOptions = pickerOptions(members, lists, { types: ['swp', 'bond'], exclude: bonded });
 
   function review() {
     let ifname: string;
     let body: Record<string, unknown>;
     if (kind === 'bond') {
       ifname = name.trim();
-      const list = setEntries(bondMembers);
       if (!IFNAME.test(ifname)) return setError('Name: letters, digits, . _ - only, up to 15 characters.');
-      if (list.length === 0) return setError('Add at least one member port.');
+      if (bondMembers.length === 0) return setError('Pick at least one member port.');
       body = {
         type: 'bond',
-        bond: { member: Object.fromEntries(list.map((m) => [m, {}])), ...(mode ? { mode } : {}) },
+        bond: { member: Object.fromEntries(bondMembers.map((m) => [m, {}])), ...(mode ? { mode } : {}) },
       };
     } else {
       const n = Number(vlan);
@@ -144,11 +149,13 @@ export function CreateInterface({
                 placeholder="bond1"
                 onChange={(e) => setName(e.target.value)}
               />
-              <LineField
+              <InterfacePicker
                 label="Member ports"
+                multiple
+                options={memberOptions}
+                members={members}
                 value={bondMembers}
-                placeholder={ports.slice(0, 2).join(', ') || 'swp1, swp2'}
-                onChange={(e) => setBondMembers(e.target.value)}
+                onChange={setBondMembers}
               />
               <LineDropdown
                 label="Mode"
@@ -158,12 +165,13 @@ export function CreateInterface({
               />
             </>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20 }}>
-              <LineDropdown
+            <>
+              <InterfacePicker
                 label="Parent port"
-                value={parent}
-                onChange={setParent}
-                options={[{ value: '', label: '—' }, ...ports.map((p) => ({ value: p, label: p }))]}
+                options={parentOptions}
+                members={members}
+                value={parent ? [parent] : []}
+                onChange={(v) => setParent(v[0] ?? '')}
               />
               <LineField
                 label="VLAN"
@@ -172,7 +180,7 @@ export function CreateInterface({
                 placeholder={`${vlanBounds.min ?? 1}–${vlanBounds.max ?? 4094}`}
                 onChange={(e) => setVlan(e.target.value)}
               />
-            </div>
+            </>
           )}
           {error && <Alert tone="fail">{error}</Alert>}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>

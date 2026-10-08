@@ -22,7 +22,6 @@ type IfaceRow = Obj & { __id: string };
 
 /** Types the app may create and delete (physical ports, eth and lo are the switch's). */
 const DELETABLE = ['bond', 'sub'];
-const PORT_TYPES = ['swp', 'bond'];
 
 const stateTone = (s: string | undefined) => (s === 'up' ? 'pass' : s === 'down' ? 'fail' : 'muted');
 
@@ -50,15 +49,6 @@ export function Interfaces() {
   const [deleting, setDeleting] = useState<{ name: string; members: string[] } | null>(null);
 
   const existing = Object.fromEntries(list.members.map((sw) => [sw, Object.keys(list.objects[sw] ?? {})]));
-  const ports = [
-    ...new Set(
-      list.members.flatMap((sw) =>
-        Object.entries(list.objects[sw] ?? {})
-          .filter(([, o]) => PORT_TYPES.includes(String(o?.['type'])))
-          .map(([n]) => n),
-      ),
-    ),
-  ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
   const newButton = (
     <Button auto variant="secondary" onClick={() => setCreating(true)} disabled={list.loading}>
@@ -108,7 +98,7 @@ export function Interfaces() {
           scope={scope}
           members={list.members}
           existing={existing}
-          ports={ports}
+          lists={list.objects}
           onClose={() => setCreating(false)}
         />
       )}

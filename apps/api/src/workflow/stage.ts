@@ -1,13 +1,13 @@
 /**
  * Single-switch staging core (roadmap 1.1/1.6): gate on the STAGED method/path
- * (proxy-equivalent), snapshot the operational before-image (only the leaves the body touches), PATCH the user's
+ * (proxy-equivalent), snapshot the OCC before-image (occImage), PATCH the user's
  * branch, record, audit. Used by the single-switch route and FanOut alike.
  */
 import { gateCheck, mayAccessSwitch, type Role } from '../rbac/store.js';
 import { audit } from '../audit/store.js';
 import { withSwitchToken } from '../nvue/clients.js';
 import { addStagedPath, getEditSession } from './branches.js';
-import { lens } from './apply.js';
+import { occImage } from './apply.js';
 import type { Switch } from '../inventory/store.js';
 
 export interface StageContext {
@@ -48,10 +48,7 @@ export async function stageChange(
   if (!session) throw new StageError(409, 'no open branch — open one first');
   const run = { credKey: ctx.credKey };
   const before = await withSwitchToken(ctx.sub, sw.id, run, (client, token) =>
-    client
-      .call({ path: call.path, method: 'GET', token })
-      .then((r) => (call.method === 'PATCH' && call.body ? lens(r.data, call.body) : r.data))
-      .catch(() => null),
+    occImage(client, token, call.path, call.method, call.body),
   );
   await withSwitchToken(ctx.sub, sw.id, run, (client, token) =>
     client.call({ path: call.path, method: call.method, rev: session.branch, body: call.body, token }),

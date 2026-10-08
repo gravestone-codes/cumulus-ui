@@ -11,7 +11,7 @@ import { DriftError, unseenDrift } from './drift.js';
 export interface StagedPath {
   path: string;
   method: string;
-  /** Operational value snapshot taken at stage time (OCC before-image). */
+  /** OCC before-image taken at stage time (see occImage). */
   before: unknown;
   /** Our staged intent (PATCH body, null for DELETE). Absent on pre-1.3 rows. */
   after?: unknown;
