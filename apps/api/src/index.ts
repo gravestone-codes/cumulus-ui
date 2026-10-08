@@ -4,6 +4,7 @@ import { migrate } from './db.js';
 import { purgeAudit } from './audit/store.js';
 import { authConfig } from './auth/config.js';
 import { startHistoryJobs } from './history/sampler.js';
+import { startRevisionPoller } from './workflow/poller.js';
 
 const port = Number(process.env.PORT ?? 3000);
 const retentionDays = Number(process.env.AUDIT_RETENTION_DAYS ?? 90);
@@ -26,6 +27,7 @@ async function migrateWithRetry(attempts = 10, delayMs = 3000): Promise<void> {
 await migrateWithRetry();
 const app = await buildApp();
 startHistoryJobs(authConfig().credKey);
+startRevisionPoller(authConfig().credKey);
 setInterval(
   () => {
     purgeAudit(retentionDays).catch((err: unknown) => app.log.error({ err }, 'audit purge failed'));

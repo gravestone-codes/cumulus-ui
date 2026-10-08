@@ -6,10 +6,16 @@
  */
 import { db } from '../db.js';
 import { withSwitchToken } from '../nvue/clients.js';
-import { applyBranch as applyRevision, getAction, getRevisionState } from '../nvue/revisions.js';
+import {
+  applyBranch as applyRevision,
+  getAction,
+  getAppliedRevision,
+  getRevisionState,
+} from '../nvue/revisions.js';
 import { jsonEqual } from '../lib/json.js';
 import { audit } from '../audit/store.js';
 import { getEditSession, type StagedPath } from './branches.js';
+import { driftSinceDraft, observeRevision, type Drift } from './drift.js';
 import type { NvueClient } from '../nvue/client.js';
 
 /** Read live values and classify every staged path. Shared by dry-run and apply. */
@@ -83,12 +89,21 @@ export function diffState(before: unknown, mine: unknown, current: unknown): Dif
   return 'conflict';
 }
 
-/** Thrown when someone changed a staged path out from under us. → 409 + diffs. */
+/**
+ * Thrown when someone changed a staged path out from under us, or the switch
+ * moved outside the app after the draft was cut (`outOfBand`). → 409 + diffs.
+ */
 export class OverlapError extends Error {
   readonly conflicts: Conflict[];
-  constructor(conflicts: Conflict[]) {
-    super(`${conflicts.length} staged path(s) changed on the switch since staging`);
+  readonly outOfBand: Drift | null;
+  constructor(conflicts: Conflict[], outOfBand: Drift | null = null) {
+    super(
+      outOfBand
+        ? `${outOfBand.switchId} changed outside the app since you staged — review and rebase`
+        : `${conflicts.length} staged path(s) changed on the switch since staging`,
+    );
     this.conflicts = conflicts;
+    this.outOfBand = outOfBand;
   }
 }
 
@@ -131,6 +146,11 @@ export function enqueueApply<T>(switchId: string, fn: () => Promise<T>): Promise
       if (queues.get(switchId) === next) queues.delete(switchId);
     });
   return next;
+}
+
+/** True while an apply/rebase (or revision check) holds the switch's queue. */
+export function applyBusy(switchId: string): boolean {
+  return queues.has(switchId);
 }
 
 const SUCCESS = new Set([
@@ -213,11 +233,17 @@ export async function applySession(
       throw Object.assign(new Error('nothing staged — stage changes first'), { status: 409 });
     }
     const run = { credKey: ctx.credKey };
+    // Catch a move the poller has not seen yet; a switch that cannot say leaves it to the poller.
+    await withSwitchToken(ctx.sub, switchId, run, (client, token) => getAppliedRevision(client, token))
+      .then((rev) => observeRevision(switchId, rev))
+      .catch(() => null);
+    const outOfBand = await driftSinceDraft(ctx.sub, switchId);
     const diffs = await withSwitchToken(ctx.sub, switchId, run, (client, token) =>
       collectDiffs(client, token, session.staged),
     );
+    // A draft cut before an out-of-band move is reviewed whole, never applied blind.
     const raw = diffs
-      .filter((d) => d.state === 'conflict')
+      .filter((d) => outOfBand !== null || d.state === 'conflict')
       .map(({ path, method, before, mine, current }) => ({ path, method, before, mine, current }));
     if (raw.length > 0) {
       const conflicts: Conflict[] = await Promise.all(
@@ -232,10 +258,10 @@ export async function applySession(
         method: 'POST',
         path: `/api/v1/switches/${switchId}/apply`,
         before: session.staged,
-        after: { conflicts },
+        after: { conflicts, ...(outOfBand ? { outOfBand } : {}) },
         rev: session.branch,
       });
-      throw new OverlapError(conflicts);
+      throw new OverlapError(conflicts, outOfBand);
     }
 
     const { jobId } = await withSwitchToken(ctx.sub, switchId, run, (client, token) =>
@@ -243,6 +269,10 @@ export async function applySession(
     );
     if (jobId) await pollJob(ctx.sub, switchId, jobId, opts);
     else await pollRevision(ctx.sub, switchId, session.branch, { ...opts, credKey: ctx.credKey });
+    // Our own move: the new applied ID becomes the baseline, never drift.
+    await withSwitchToken(ctx.sub, switchId, run, (client, token) => getAppliedRevision(client, token))
+      .then((rev) => observeRevision(switchId, rev, { ours: true }))
+      .catch(() => null);
     await db().query('DELETE FROM edit_sessions WHERE user_sub = $1 AND switch_id = $2', [ctx.sub, switchId]);
     const result = { applied: true, jobId, paths: session.staged.map((s) => s.path) };
     await audit({

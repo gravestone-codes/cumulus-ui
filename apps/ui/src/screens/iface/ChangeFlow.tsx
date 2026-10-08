@@ -4,19 +4,22 @@
  * it stages (branch per switch; FanOut for groups, exclusive so reviews show
  * only this change), shows each switch's diff, applies only switches that
  * staged, and reports per switch. Unapplied work elsewhere is never piled
- * onto silently — the user discards it or goes back.
+ * onto silently — the user discards it or goes back. A switch changed outside
+ * the app must be refreshed before a new edit starts (roadmap 4.6).
  */
 import { useEffect, useRef, useState } from 'react';
 import {
   api,
   ApiError,
   type ApplyConflict,
+  type Drift,
   type MemberResult,
   type StageCall,
   type StagedDiff,
 } from '../../lib/api.js';
 import { Alert, Button, Spinner, Tabs } from '../../components/ui.js';
 import { stageRounds } from './plan.js';
+import { driftBy, useRefreshSwitches } from './ScopeShell.js';
 import type { Scope } from './scope.js';
 
 const JOB_DONE = new Set([
@@ -41,6 +44,11 @@ function applyConflictsOf(err: unknown): ApplyConflict[] | null {
     return err.data.conflicts as ApplyConflict[];
   }
   return null;
+}
+
+/** Opening a branch on a switch that changed outside the app since the user last refreshed. */
+function isSwitchChanged(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 409 && err.data.code === 'switch-changed';
 }
 
 export function ChangeFlow({
@@ -69,13 +77,16 @@ export function ChangeFlow({
   doneText: string;
 }) {
   const group = scope.kind === 'group';
-  const [step, setStep] = useState<'staging' | 'conflict' | 'applyConflict' | 'review' | 'applying' | 'done'>(
-    'staging',
-  );
+  const [step, setStep] = useState<
+    'staging' | 'conflict' | 'changed' | 'applyConflict' | 'review' | 'applying' | 'done'
+  >('staging');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<string[]>([]);
+  const [changed, setChanged] = useState<string[]>([]);
   const [applyConflicts, setApplyConflicts] = useState<Record<string, ApplyConflict[]>>({});
+  const [outOfBand, setOutOfBand] = useState<Record<string, Drift>>({});
+  const refreshSwitches = useRefreshSwitches();
   const [conflictTab, setConflictTab] = useState('');
   const [staged, setStaged] = useState<string[]>([]);
   const [failed, setFailed] = useState<Record<string, string>>({});
@@ -95,6 +106,11 @@ export function ChangeFlow({
         try {
           await api.openBranch(scope.id);
         } catch (err) {
+          if (isSwitchChanged(err)) {
+            setChanged([scope.id]);
+            setStep('changed');
+            return;
+          }
           if (err instanceof ApiError && err.status === 409) {
             setConflict([scope.id]);
             setStep('conflict');
@@ -106,8 +122,11 @@ export function ChangeFlow({
         ok = [scope.id];
       } else {
         const conflicted: string[] = [];
+        const drifted: string[] = [];
         for (const round of stageRounds(calls)) {
-          const members = round.members.filter((m) => !bad[m] && !conflicted.includes(m));
+          const members = round.members.filter(
+            (m) => !bad[m] && !conflicted.includes(m) && !drifted.includes(m),
+          );
           if (members.length === 0) continue;
           const res = await api.groupStage(scope.id, {
             path: round.path,
@@ -120,11 +139,18 @@ export function ChangeFlow({
           });
           for (const r of res.results) {
             if (r.ok) continue;
-            if (r.conflict) conflicted.push(r.switchId);
+            if (r.drift) drifted.push(r.switchId);
+            else if (r.conflict) conflicted.push(r.switchId);
             else bad[r.switchId] = r.error ?? 'stage failed';
           }
         }
-        ok = Object.keys(calls).filter((m) => !bad[m] && !conflicted.includes(m));
+        ok = Object.keys(calls).filter((m) => !bad[m] && !conflicted.includes(m) && !drifted.includes(m));
+        if (drifted.length > 0) {
+          await discard(ok);
+          setChanged(drifted);
+          setStep('changed');
+          return;
+        }
         if (conflicted.length > 0) {
           // Roll back this attempt so a retry starts clean on every member.
           await discard(ok);
@@ -181,6 +207,8 @@ export function ChangeFlow({
         } catch (err) {
           const conflicts = applyConflictsOf(err);
           if (conflicts) {
+            const oob = err instanceof ApiError ? (err.data.outOfBand as Drift | undefined) : undefined;
+            setOutOfBand(oob ? { [scope.id]: oob } : {});
             setApplyConflicts({ [scope.id]: conflicts });
             setConflictTab(scope.id);
             setBusy(false);
@@ -192,10 +220,13 @@ export function ChangeFlow({
       } else {
         res = (await api.groupApply(scope.id, staged)).results;
         const clashes: Record<string, ApplyConflict[]> = {};
+        const oob: Record<string, Drift> = {};
         for (const r of res) {
           if (!r.ok && r.conflicts?.length) clashes[r.switchId] = r.conflicts;
+          if (!r.ok && r.outOfBand) oob[r.switchId] = r.outOfBand;
         }
         if (Object.keys(clashes).length > 0) {
+          setOutOfBand(oob);
           setResults(res);
           setApplyConflicts(clashes);
           setConflictTab(Object.keys(clashes)[0] ?? '');
@@ -280,6 +311,18 @@ export function ChangeFlow({
     setBusy(false);
   }
 
+  async function refreshAndBack() {
+    setBusy(true);
+    setError(null);
+    try {
+      await refreshSwitches(changed);
+      onBack();
+    } catch (err) {
+      setError(err instanceof ApiError || err instanceof Error ? err.message : 'Refresh failed.');
+    }
+    setBusy(false);
+  }
+
   async function discardMine() {
     setBusy(true);
     await discard(Object.keys(applyConflicts));
@@ -345,13 +388,48 @@ export function ChangeFlow({
     );
   }
 
-  if (step === 'applyConflict') {
-    const conflicted = Object.keys(applyConflicts);
-    const appliedClean = results.filter((r) => r.ok);
+  if (step === 'changed') {
     return (
       <>
         <Alert tone="warn">
-          {conflicted.join(', ')} changed since you staged — someone applied there first. Your draft is kept.
+          {changed.join(', ')} changed outside the app since you loaded {changed.length === 1 ? 'it' : 'them'}
+          . Refresh to see the current config, then make your change again.
+        </Alert>
+        {error && <Alert tone="fail">{error}</Alert>}
+        <div style={actionsRow}>
+          <Button auto variant="secondary" onClick={onBack} disabled={busy}>
+            Back
+          </Button>
+          <Button auto onClick={() => void refreshAndBack()} disabled={busy}>
+            {busy ? 'Refreshing…' : 'Refresh'}
+          </Button>
+        </div>
+      </>
+    );
+  }
+
+  if (step === 'applyConflict') {
+    const conflicted = Object.keys(applyConflicts);
+    const appliedClean = results.filter((r) => r.ok);
+    const outside = conflicted.filter((sw) => outOfBand[sw]);
+    return (
+      <>
+        <Alert tone="warn">
+          {outside.length > 0 ? (
+            <>
+              {outside.map((sw) => (
+                <div key={sw}>
+                  {sw} changed outside the app since you staged{driftBy(outOfBand[sw] as Drift)}.
+                </div>
+              ))}
+              Review your draft against what is on the switch now. Your draft is kept.
+            </>
+          ) : (
+            <>
+              {conflicted.join(', ')} changed since you staged — someone applied there first. Your draft is
+              kept.
+            </>
+          )}
         </Alert>
         {group && appliedClean.length > 0 && (
           <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '10px 0 0' }}>
@@ -530,7 +608,11 @@ export function ConflictList({ rows }: { rows: ApplyConflict[] }) {
                 {shortVal(c.current)}
               </div>
               <div style={{ color: 'var(--color-muted)', fontSize: 12, marginTop: 2 }}>
-                {c.landedBy ? `by ${c.landedBy.username}` : 'changed outside the app'}
+                {JSON.stringify(c.current) === JSON.stringify(c.before)
+                  ? 'unchanged since you staged'
+                  : c.landedBy
+                    ? `by ${c.landedBy.username}`
+                    : 'changed outside the app'}
               </div>
             </div>
           </div>

@@ -147,6 +147,21 @@ export interface MemberResult<T = unknown> {
   conflict?: boolean;
   /** Apply-time overlap details for the conflict screen (mine/landed/base). */
   conflicts?: ApplyConflict[];
+  /** The switch changed outside the app since you last refreshed it — refresh before editing. */
+  drift?: boolean;
+  /** Your draft predates a change made outside the app; the whole draft is under review. */
+  outOfBand?: Drift;
+}
+/** A switch's applied revision moved outside the app (CLI or direct API). */
+export interface Drift {
+  switchId: string;
+  from: string;
+  to: string;
+  /** Switch-side attribution of the move, when NVUE reports it. */
+  by: { user: string | null; type: string | null; date: string | null } | null;
+  detectedAt: string;
+  /** Present on the banner feed: the switch's groups, for scope filtering. */
+  groups?: string[];
 }
 /** One apply-time overlap: my staged value vs what landed vs my base. */
 export interface ApplyConflict {
@@ -258,6 +273,9 @@ export const api = {
         current?: unknown;
       }>;
     }>(`/api/v1/switches/${encodeURIComponent(switchId)}/diff`),
+  drifts: () => request<Drift[]>('/api/v1/drift'),
+  ackDrift: (switchId: string) =>
+    post<{ ok: true }>(`/api/v1/switches/${encodeURIComponent(switchId)}/drift/ack`, {}),
   heartbeat: (switchId: string, path: string) =>
     post<{ ok: true }>(`/api/v1/switches/${encodeURIComponent(switchId)}/presence`, { path }),
   presence: (switchId: string, path: string) =>

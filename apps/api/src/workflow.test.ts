@@ -12,6 +12,8 @@ import { sessionCookie } from './test-sessions.js';
 import { setSwitchToken, dropUserTokens } from './switchauth/sessions.js';
 import { getEditSession } from './workflow/branches.js';
 import { pendingBody, pendingCall } from './workflow/rebase.js';
+import { parseAppliedRevision } from './nvue/revisions.js';
+import { checkSwitch, pollTick } from './workflow/poller.js';
 import { json, startFakeNvue, type FakeNvue } from './test-nvue.js';
 
 const CFG: AuthConfig = { credKey: 'test-cred-key-long-enough-12345', idleMinutes: 30 };
@@ -28,6 +30,31 @@ async function dbReachable(): Promise<boolean> {
     await pool.end();
   }
 }
+
+describe('applied revision parsing (pure)', () => {
+  it('reads the hardware last-apply shape; null without an id', () => {
+    const hw = {
+      'additional-data': { 'parent-revision-id': '40' },
+      'last-apply': {
+        'apply-id': 'rev_41_apply_1',
+        date: '2026-10-08 14:58:16',
+        rev_id: '41',
+        type: 'API',
+        user: 'cumulus',
+      },
+      state: 'applied',
+    };
+    expect(parseAppliedRevision(hw)).toEqual({
+      id: 'rev_41_apply_1',
+      user: 'cumulus',
+      type: 'API',
+      date: '2026-10-08 14:58:16',
+    });
+    expect(parseAppliedRevision({ 'last-apply': { rev_id: '7' } })?.id).toBe('7');
+    expect(parseAppliedRevision({ state: 'applied' })).toBeNull();
+    expect(parseAppliedRevision(null)).toBeNull();
+  });
+});
 
 describe('rebase pruning (pure)', () => {
   it('keeps only leaves the switch does not already hold', () => {
@@ -76,6 +103,8 @@ describe.skipIf(!LIVE)('branches + staging', () => {
     revStates: null as string[] | null,
     /** When set, staging PATCHes on the switch fail (rebase rollback). */
     failPatch: false,
+    /** When set, GET /revision/applied reports this apply-id; our applies bump it. */
+    applied: null as { id: string; user: string; type: string } | null,
   };
 
   beforeAll(async () => {
@@ -85,6 +114,9 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       const url = new URL(req.url ?? '/', 'https://x');
       if (req.method === 'POST' && url.pathname === '/nvue_v1/revision') {
         json(res, 201, { rev: `N${++counter}` });
+      } else if (req.method === 'GET' && url.pathname === '/nvue_v1/revision/applied' && nvueState.applied) {
+        const { id, user, type } = nvueState.applied;
+        json(res, 200, { 'last-apply': { 'apply-id': id, user, type }, state: 'applied' });
       } else if (
         req.method === 'GET' &&
         url.pathname === '/nvue_v1/interface/swp1' &&
@@ -107,6 +139,7 @@ describe.skipIf(!LIVE)('branches + staging', () => {
         const q = nvueState.revStates;
         json(res, 200, { state: q.length > 1 ? q.shift() : q[0] });
       } else if (req.method === 'PATCH' && url.pathname.startsWith('/nvue_v1/revision/')) {
+        if (nvueState.applied) nvueState.applied = { id: `rev_A${++counter}`, user: 'cumulus', type: 'API' };
         const job = `J${++counter}`;
         nvueState.jobs[job] = ['running', 'success'];
         json(res, 200, { job });
@@ -1140,6 +1173,192 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       await pool.query(`DELETE FROM switches WHERE id = 'swH'`);
       await pool.query(`DELETE FROM groups WHERE id = 'G9'`);
       await fakeB.close();
+      await app.close();
+    }
+  });
+
+  it('out-of-band: CLI apply is drift (logged, audited, banner); stale draft → conflict; new edit needs refresh', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const alice = await sessionCookie(pool, 'wf-oob-a', { appRoles: ['net-admin'] });
+    const bob = await sessionCookie(pool, 'wf-oob-b', { appRoles: ['net-admin'] });
+    await pool.query(`INSERT INTO groups (id, display_name) VALUES ('GO', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(
+      `INSERT INTO roles (id, display_name) VALUES ('wf-oob-scoped', 't') ON CONFLICT DO NOTHING`,
+    );
+    await pool.query(
+      `INSERT INTO role_rules (role_id, method, path_prefix) VALUES ('wf-oob-scoped', 'GET', '/') ON CONFLICT DO NOTHING`,
+    );
+    await pool.query(
+      `INSERT INTO role_groups (role_id, group_id) VALUES ('wf-oob-scoped', 'GO') ON CONFLICT DO NOTHING`,
+    );
+    const outsider = await sessionCookie(pool, 'wf-oob-out', { appRoles: ['wf-oob-scoped'] });
+    setSwitchToken('wf-oob-a', 'swf', 'stub-jwt');
+    setSwitchToken('wf-oob-b', 'swf', 'stub-jwt');
+    nvueState.iface = { state: 'up', description: 'old' };
+    nvueState.applied = { id: 'rev_1_apply_1', user: 'cumulus', type: 'API' };
+    const api = request(app.server);
+    try {
+      // First sighting is the baseline; an unchanged ID is not drift.
+      expect(await checkSwitch(CFG.credKey, 'wf-oob-a', 'swf')).toBeNull();
+      expect(await checkSwitch(CFG.credKey, 'wf-oob-a', 'swf')).toBeNull();
+
+      // Alice drafts against rev 1.
+      await api.post('/api/v1/switches/swf/branch').set('Cookie', alice);
+      await api
+        .post('/api/v1/switches/swf/stage')
+        .set('Cookie', alice)
+        .send({ path: '/interface/swp1', method: 'PATCH', body: { description: 'alice' } });
+
+      // `nv set … && nv config apply` on the switch: a disjoint path moves, the applied ID moves.
+      nvueState.applied = { id: 'rev_2_apply_1', user: 'root', type: 'CLI' };
+      const drift = await checkSwitch(CFG.credKey, 'wf-oob-a', 'swf');
+      expect(drift).toMatchObject({
+        switchId: 'swf',
+        from: 'rev_1_apply_1',
+        to: 'rev_2_apply_1',
+        by: { user: 'root', type: 'CLI' },
+      });
+      const audited = await pool.query(
+        `SELECT before, after, rev FROM audit_log WHERE user_sub = 'system' AND switch_id = 'swf' ORDER BY id DESC LIMIT 1`,
+      );
+      expect(audited.rows[0]).toMatchObject({
+        before: { applied: 'rev_1_apply_1' },
+        after: { applied: 'rev_2_apply_1', by: { user: 'root', type: 'CLI' } },
+        rev: 'rev_2_apply_1',
+      });
+
+      // Banner data: every covering user sees it; a user whose roles miss the switch does not.
+      const seen = await api.get('/api/v1/drift').set('Cookie', bob);
+      expect(seen.status).toBe(200);
+      expect(seen.body).toMatchObject([{ switchId: 'swf', to: 'rev_2_apply_1' }]);
+      expect((await api.get('/api/v1/drift').set('Cookie', outsider)).body).toEqual([]);
+      expect((await api.get('/api/v1/drift')).status).toBe(401);
+
+      // Alice's draft predates the move: the whole draft goes to the conflict screen, even though
+      // her path itself did not change.
+      const stale = await api.post('/api/v1/switches/swf/apply').set('Cookie', alice);
+      expect(stale.status).toBe(409);
+      expect(stale.body.outOfBand).toMatchObject({ from: 'rev_1_apply_1', to: 'rev_2_apply_1' });
+      expect(stale.body.conflicts).toEqual([
+        {
+          path: '/interface/swp1',
+          method: 'PATCH',
+          before: { description: 'old' },
+          mine: { description: 'alice' },
+          current: { description: 'old' },
+          landedBy: null,
+        },
+      ]);
+      expect(await getEditSession('wf-oob-a', 'swf')).not.toBeNull();
+
+      // Bob cannot start editing until he refreshes; the outsider cannot ack a switch he cannot see.
+      const refused = await api.post('/api/v1/switches/swf/branch').set('Cookie', bob);
+      expect(refused.status).toBe(409);
+      expect(refused.body).toMatchObject({ code: 'switch-changed', drift: { to: 'rev_2_apply_1' } });
+      expect((await api.post('/api/v1/switches/swf/drift/ack').set('Cookie', outsider)).status).toBe(403);
+      expect((await api.post('/api/v1/switches/swf/drift/ack').set('Cookie', bob)).body).toEqual({
+        ok: true,
+      });
+      expect((await api.get('/api/v1/drift').set('Cookie', bob)).body).toEqual([]);
+      expect((await api.post('/api/v1/switches/swf/branch').set('Cookie', bob)).status).toBe(200);
+      await api.delete('/api/v1/switches/swf/branch').set('Cookie', bob);
+
+      // Alice rebases onto the new applied revision and applies; our own move is never drift.
+      const rebased = await api.post('/api/v1/switches/swf/rebase').set('Cookie', alice);
+      expect(rebased.body).toMatchObject({ rebased: true, staged: ['/interface/swp1'] });
+      const applied = await api.post('/api/v1/switches/swf/apply').set('Cookie', alice);
+      expect(applied.status).toBe(200);
+      expect(nvueState.applied.id).not.toBe('rev_2_apply_1');
+      expect(await checkSwitch(CFG.credKey, 'wf-oob-a', 'swf')).toBeNull();
+      expect((await api.get('/api/v1/drift').set('Cookie', bob)).body).toEqual([]);
+    } finally {
+      nvueState.applied = null;
+      for (const u of ['wf-oob-a', 'wf-oob-b', 'wf-oob-out']) {
+        dropUserTokens(u);
+        await pool.query('DELETE FROM sessions WHERE user_sub = $1', [u]);
+        await pool.query('DELETE FROM user_roles WHERE user_sub = $1', [u]);
+        await pool.query('DELETE FROM edit_sessions WHERE user_sub = $1', [u]);
+        await pool.query('DELETE FROM audit_log WHERE user_sub = $1', [u]);
+      }
+      await pool.query(`DELETE FROM audit_log WHERE user_sub = 'system' AND switch_id = 'swf'`);
+      await pool.query(`DELETE FROM switch_revisions WHERE switch_id = 'swf'`);
+      await pool.query(`DELETE FROM drift_acks WHERE switch_id = 'swf'`);
+      await pool.query(`DELETE FROM role_groups WHERE role_id = 'wf-oob-scoped'`);
+      await pool.query(`DELETE FROM role_rules WHERE role_id = 'wf-oob-scoped'`);
+      await pool.query(`DELETE FROM roles WHERE id = 'wf-oob-scoped'`);
+      await pool.query(`DELETE FROM groups WHERE id = 'GO'`);
+      await app.close();
+    }
+  });
+
+  it('poller: due switches follow their group interval; app-admin sets it, others are refused', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const admin = await sessionCookie(pool, 'wf-poll-admin', { appRoles: ['app-admin'] });
+    const netAdmin = await sessionCookie(pool, 'wf-poll-net', { appRoles: ['net-admin'] });
+    await pool.query(`INSERT INTO groups (id, display_name) VALUES ('GQ', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(
+      `INSERT INTO switch_groups (switch_id, group_id) VALUES ('swf', 'GQ') ON CONFLICT DO NOTHING`,
+    );
+    await pool.query(`UPDATE switches SET trust_verified = true WHERE id = 'swf'`);
+    await pool.query(
+      `INSERT INTO switch_credentials (user_sub, switch_id, switch_username, password_enc)
+       VALUES ('wf-poll-admin', 'swf', 'cumulus', 'x') ON CONFLICT DO NOTHING`,
+    );
+    setSwitchToken('wf-poll-admin', 'swf', 'stub-jwt');
+    nvueState.applied = { id: 'rev_9_apply_1', user: 'cumulus', type: 'API' };
+    const api = request(app.server);
+    try {
+      expect(
+        (
+          await api
+            .patch('/api/v1/inventory/groups/GQ')
+            .set('Cookie', netAdmin)
+            .send({ poll_interval_sec: 5 })
+        ).status,
+      ).toBe(403);
+      expect(
+        (await api.patch('/api/v1/inventory/groups/GQ').set('Cookie', admin).send({ poll_interval_sec: 1 }))
+          .status,
+      ).toBe(400);
+      expect(
+        (
+          await api
+            .patch('/api/v1/inventory/groups/GQ')
+            .set('Cookie', admin)
+            .send({ poll_interval_sec: 3600 })
+        ).status,
+      ).toBe(200);
+      const groups = await api.get('/api/v1/inventory/groups').set('Cookie', admin);
+      expect(groups.body.find((g: { id: string }) => g.id === 'GQ').poll_interval_sec).toBe(3600);
+
+      // First tick checks (baseline); the next is not due for an hour, even after a move.
+      expect((await pollTick(CFG.credKey)).checked).toBeGreaterThanOrEqual(1);
+      nvueState.applied = { id: 'rev_10_apply_1', user: 'root', type: 'CLI' };
+      const quiet = await pollTick(CFG.credKey);
+      expect(quiet.drifted).not.toContain('swf');
+
+      // Shorter interval + an overdue check: the move surfaces as drift.
+      await api.patch('/api/v1/inventory/groups/GQ').set('Cookie', admin).send({ poll_interval_sec: 5 });
+      await pool.query(
+        `UPDATE switch_revisions SET checked_at = now() - interval '10 seconds' WHERE switch_id = 'swf'`,
+      );
+      expect((await pollTick(CFG.credKey)).drifted).toContain('swf');
+    } finally {
+      nvueState.applied = null;
+      dropUserTokens('wf-poll-admin');
+      for (const u of ['wf-poll-admin', 'wf-poll-net']) {
+        await pool.query('DELETE FROM sessions WHERE user_sub = $1', [u]);
+        await pool.query('DELETE FROM user_roles WHERE user_sub = $1', [u]);
+        await pool.query('DELETE FROM audit_log WHERE user_sub = $1', [u]);
+      }
+      await pool.query(`DELETE FROM switch_credentials WHERE user_sub = 'wf-poll-admin'`);
+      await pool.query(`UPDATE switches SET trust_verified = false WHERE id = 'swf'`);
+      await pool.query(`DELETE FROM audit_log WHERE user_sub = 'system' AND switch_id = 'swf'`);
+      await pool.query(`DELETE FROM switch_revisions WHERE switch_id = 'swf'`);
+      await pool.query(`DELETE FROM switch_groups WHERE group_id = 'GQ'`);
+      await pool.query(`DELETE FROM groups WHERE id = 'GQ'`);
       await app.close();
     }
   });

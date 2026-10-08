@@ -113,6 +113,36 @@ export async function getRevisionState(client: NvueClient, token: string, branch
   return typeof state === 'string' ? state : 'unknown';
 }
 
+/** The applied revision's identity: NVUE's last apply-id, plus who/how (CLI, API) when reported. */
+export interface AppliedRevision {
+  id: string;
+  user: string | null;
+  type: string | null;
+  date: string | null;
+}
+
+/**
+ * Parse GET /revision/applied. Hardware shape: `{"last-apply": {"apply-id":
+ * "rev_41_apply_1", "rev_id": "41", "user", "type", "date"}, …}`. Null when
+ * no apply-id/rev id is present.
+ */
+export function parseAppliedRevision(data: unknown): AppliedRevision | null {
+  const last = (data as { 'last-apply'?: unknown } | null)?.['last-apply'];
+  if (typeof last !== 'object' || last === null) return null;
+  const o = last as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === 'string' && v.length > 0 ? v : null);
+  const id = str(o['apply-id']) ?? str(o['rev_id']) ?? str(o['rev-id']);
+  return id ? { id, user: str(o.user), type: str(o.type), date: str(o.date) } : null;
+}
+
+/** Lightweight applied-revision check (one small GET, no config tree). */
+export async function getAppliedRevision(client: NvueClient, token: string): Promise<AppliedRevision> {
+  const { data } = await client.call({ path: '/revision/applied', method: 'GET', token });
+  const rev = parseAppliedRevision(data);
+  if (!rev) throw new Error('switch did not report an applied revision id');
+  return rev;
+}
+
 export interface ActionJob {
   id: string;
   state: string;

@@ -12,6 +12,7 @@ import { stageChange, type StageContext } from './stage.js';
 import { applySession, OverlapError, type Conflict } from './apply.js';
 import { runAction } from './actions.js';
 import { rebaseSession, type RebaseResult } from './rebase.js';
+import { DriftError, type Drift } from './drift.js';
 
 export interface FanoutResult {
   switchId: string;
@@ -24,6 +25,10 @@ export interface FanoutResult {
   conflict?: boolean;
   /** Apply-time overlap details (mine/landed/base + attribution) for the conflict screen. */
   conflicts?: Conflict[];
+  /** The switch changed outside the app since this user refreshed — refresh before editing. */
+  drift?: boolean;
+  /** Set when the draft predates an out-of-band change (the whole draft is under review). */
+  outOfBand?: Drift;
 }
 
 export interface FanoutTargets {
@@ -83,6 +88,7 @@ export async function fanoutStage(
         ok: false,
         error: (err as Error).message,
         ...(err instanceof BranchConflictError ? { conflict: true } : {}),
+        ...(err instanceof DriftError ? { drift: true } : {}),
       });
     }
   }
@@ -115,7 +121,13 @@ export async function fanoutApply(
         switchId: sw.id,
         ok: false,
         error: (err as Error).message,
-        ...(err instanceof OverlapError ? { conflict: true, conflicts: err.conflicts } : {}),
+        ...(err instanceof OverlapError
+          ? {
+              conflict: true,
+              conflicts: err.conflicts,
+              ...(err.outOfBand ? { outOfBand: err.outOfBand } : {}),
+            }
+          : {}),
       });
     }
   }
