@@ -205,6 +205,13 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       } else if (req.method === 'POST' && url.pathname === '/nvue_v1/interface/swp1/counters') {
         nvueState.jobs['JA'] = ['running', 'success'];
         json(res, 200, { job: 'JA' });
+      } else if (
+        req.method === 'POST' &&
+        (url.pathname === '/nvue_v1/bridge/domain/br_default/mac-table/dynamic' ||
+          url.pathname === '/nvue_v1/bridge/domain/br_default/mac-table/dynamic/mac')
+      ) {
+        nvueState.jobs['JM'] = ['running', 'success'];
+        json(res, 201, { job: 'JM' });
       } else if (req.method === 'GET' && url.pathname.startsWith('/nvue_v1/action/')) {
         const job = url.pathname.split('/').pop() ?? '';
         const queue = nvueState.jobs[job] ?? ['running'];
@@ -1036,6 +1043,66 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       dropUserTokens('wf-act-a');
       await pool.query(`DELETE FROM sessions WHERE user_sub IN ('wf-act', 'wf-act-v', 'wf-act-a')`);
       await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('wf-act', 'wf-act-v', 'wf-act-a')`);
+      await app.close();
+    }
+  });
+
+  it('action runner: MAC clear allow + deny, audited (3B.3)', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const api = request(app.server);
+    const op = await sessionCookie(pool, 'wf-mac-op', { appRoles: ['net-operator'] });
+    const noc = await sessionCookie(pool, 'wf-mac-noc', { appRoles: ['noc'] });
+    const viewer = await sessionCookie(pool, 'wf-mac-v', { appRoles: ['viewer'] });
+    const netAdmin = await sessionCookie(pool, 'wf-mac-a', { appRoles: ['net-admin'] });
+    for (const sub of ['wf-mac-op', 'wf-mac-noc', 'wf-mac-v', 'wf-mac-a']) {
+      setSwitchToken(sub, 'swf', 'stub-jwt');
+    }
+    const CLEAR_ALL = { '@clear': { state: 'start' } };
+    try {
+      // Allow: operator and NOC flush all dynamic MACs through ActionRunner.
+      for (const cookie of [op, noc]) {
+        const ran = await api
+          .post('/api/v1/switches/swf/action')
+          .set('Cookie', cookie)
+          .send({ path: '/bridge/domain/br_default/mac-table/dynamic', body: CLEAR_ALL });
+        expect(ran.status).toBe(200);
+        expect(ran.body.jobId).toBe('JM');
+        expect(ran.body.finalState).toBe('success');
+        expect(ran.body.dangerous).toBe(false);
+      }
+      // Allow: net-admin clears one dynamic MAC (body carries the MAC id).
+      const one = await api
+        .post('/api/v1/switches/swf/action')
+        .set('Cookie', netAdmin)
+        .send({
+          path: '/bridge/domain/br_default/mac-table/dynamic/mac',
+          body: { '@clear': { state: 'start', parameters: { 'mac-address-id': '00:11:22:33:44:55' } } },
+        });
+      expect(one.status).toBe(200);
+      expect(one.body.jobId).toBe('JM');
+
+      // Deny: viewers read MACs but never clear them.
+      for (const path of [
+        '/bridge/domain/br_default/mac-table/dynamic',
+        '/bridge/domain/br_default/mac-table/dynamic/mac',
+      ]) {
+        expect(
+          await api.post('/api/v1/switches/swf/action').set('Cookie', viewer).send({ path, body: CLEAR_ALL }),
+        ).toMatchObject({ status: 403 });
+      }
+
+      // Audited: the operator's clear-all left a POST row with the job id.
+      const { rows } = await pool.query<{ job_id: string | null }>(
+        `SELECT job_id FROM audit_log WHERE user_sub = 'wf-mac-op' AND method = 'POST'
+         AND path = '/bridge/domain/br_default/mac-table/dynamic' ORDER BY id DESC LIMIT 1`,
+      );
+      expect(rows[0]?.job_id).toBe('JM');
+    } finally {
+      for (const sub of ['wf-mac-op', 'wf-mac-noc', 'wf-mac-v', 'wf-mac-a']) dropUserTokens(sub);
+      await pool.query(`DELETE FROM sessions WHERE user_sub LIKE 'wf-mac-%'`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub LIKE 'wf-mac-%'`);
+      await pool.query(`DELETE FROM audit_log WHERE user_sub LIKE 'wf-mac-%'`);
       await app.close();
     }
   });

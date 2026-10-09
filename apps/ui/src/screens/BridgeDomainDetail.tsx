@@ -1,13 +1,15 @@
 /**
- * Bridge domain detail (3B.1–3B.2) for one switch or a group — Config ·
- * VLANs · Ports. Config is the interface section pattern (stage → dry-run
- * → apply, OCC) over `/bridge/domain/{id}`; VLANs lists the VLAN↔VNI map;
- * Ports are the interfaces (S1) whose config joins this domain, attached
- * and detached through VlanAttachment (R13). Presence comes from applied
- * config: a domain without member ports has no operational state.
+ * Bridge domain detail (3B.1–3B.3) for one switch or a group — Config ·
+ * VLANs · Ports · MACs. Config is the interface section pattern (stage →
+ * dry-run → apply, OCC) over `/bridge/domain/{id}`; VLANs lists the
+ * VLAN↔VNI map; Ports are the interfaces (S1) whose config joins this
+ * domain, attached and detached through VlanAttachment (R13); MACs is the
+ * live learned table with clear-dynamic actions via ActionRunner.
+ * Presence comes from applied config: a domain without member ports has no
+ * operational state.
  */
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Breadcrumb, Button, Spinner, Tabs } from '../components/ui.js';
 import { ReadError } from '../components/resource.js';
 import { MergedList, type MergedColumn } from '../components/MergedList.js';
@@ -20,9 +22,10 @@ import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 import { DOMAIN_SECTIONS } from './bridge/sections.js';
 import { domainPorts, domainVlans } from './bridge/members.js';
 import { DetachPorts, VlanAttachment } from './bridge/VlanAttachment.js';
+import { MacTab } from './bridge/MacTab.js';
 
 type Obj = Record<string, unknown>;
-type Tab = 'config' | 'vlans' | 'ports';
+type Tab = 'config' | 'vlans' | 'ports' | 'macs';
 
 const VLAN_COLUMNS: MergedColumn[] = [
   { key: 'vni', label: 'VNI', get: (o) => displayValue(getPath(o, 'vni')) },
@@ -43,7 +46,21 @@ export function BridgeDomainDetail() {
   const { switchId, groupId, domainId = '' } = useParams();
   const scope: Scope = groupId ? { kind: 'group', id: groupId } : { kind: 'switch', id: switchId ?? '' };
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('config');
+  // Deep links: interface pages open `?tab=macs&iface=swp1` ("MACs on this port").
+  const [params, setParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(params.get('tab') === 'macs' ? 'macs' : 'config');
+  const ifaceFilter = params.get('iface') ?? undefined;
+  function pickTab(id: Tab) {
+    setTab(id);
+    setParams(
+      id === 'macs' && ifaceFilter
+        ? { tab: 'macs', iface: ifaceFilter }
+        : id === 'macs'
+          ? { tab: 'macs' }
+          : {},
+      { replace: true },
+    );
+  }
   const path = `/bridge/domain/${domainId}`;
   const cfg = usePerSwitch(scope, path, { rev: 'applied' });
   const group = scope.kind === 'group';
@@ -100,9 +117,10 @@ export function BridgeDomainDetail() {
               { id: 'config', label: 'Config' },
               { id: 'vlans', label: 'VLANs' },
               { id: 'ports', label: 'Ports' },
+              { id: 'macs', label: 'MACs' },
             ]}
             active={tab}
-            onChange={(id) => setTab(id as Tab)}
+            onChange={(id) => pickTab(id as Tab)}
           />
           {tab === 'config' ? (
             <ConfigTab
@@ -125,6 +143,14 @@ export function BridgeDomainDetail() {
               refetch={cfg.refetch}
               columns={VLAN_COLUMNS}
               storageKey="cumulus.bridge-vlans.v1"
+            />
+          ) : tab === 'macs' ? (
+            <MacTab
+              scope={scope}
+              domainId={domainId}
+              present={present}
+              filterIface={ifaceFilter}
+              onClearFilter={() => setParams({ tab: 'macs' }, { replace: true })}
             />
           ) : (
             <PortsTab scope={scope} domainId={domainId} present={present} />
