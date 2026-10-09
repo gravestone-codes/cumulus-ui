@@ -114,7 +114,8 @@ export function VlanAttachment({
       ['VLANs', v],
       ['untagged', u],
     ] as const) {
-      if (m.kind === 'mixed') parts.push(`${label} ${m.groups.map((g) => `${g.value || '—'} ×${g.switches.length}`).join(', ')}`);
+      if (m.kind === 'mixed')
+        parts.push(`${label} ${m.groups.map((g) => `${g.value || '—'} ×${g.switches.length}`).join(', ')}`);
     }
     return parts.length > 0 ? parts.join(' · ') : null;
   }, [single, holders, ifaces, selected]);
@@ -295,7 +296,10 @@ export function DetachPorts({
       ),
     [members, ports, ifaces, domain],
   );
-  const planned = useMemo(() => planDetachCalls(domain, members, ports, attached), [domain, members, ports, attached]);
+  const planned = useMemo(
+    () => planDetachCalls(domain, members, ports, attached),
+    [domain, members, ports, attached],
+  );
   const title = `Detach ${ports.join(', ')} · ${domain}`;
   if (!planned.ok) {
     return (

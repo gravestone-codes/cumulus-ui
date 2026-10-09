@@ -54,14 +54,15 @@ async function detachIfAttached(page: Page) {
   await page.getByRole('tab', { name: 'Ports' }).click();
   if ((await portRow(page).count()) === 0) return;
   await portRow(page).getByRole('button', { name: 'Row actions' }).click();
-  await page.getByRole('menu').getByRole('button', { name: /^Detach/ }).click();
+  await page
+    .getByRole('menu')
+    .getByRole('button', { name: /^Detach/ })
+    .click();
   await applyAll(page);
   await expect(portRow(page)).toHaveCount(0, { timeout: 30_000 });
 }
 
-test('port attaches as access on every member, reads from both sides, then detaches', async ({
-  page,
-}) => {
+test('port attaches as access on every member, reads from both sides, then detaches', async ({ page }) => {
   await page.goto('/login');
   await page.locator('form input').nth(0).fill(env('HW_USER'));
   await page.locator('form input').nth(1).fill(env('HW_PASS'));

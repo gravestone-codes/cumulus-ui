@@ -107,10 +107,7 @@ export function attachBody(now: PortAttachment, input: AttachInput): Record<stri
         body,
         nest(
           'vlan',
-          Object.fromEntries([
-            ...setEntries(wantVlans).map((k) => [k, {}]),
-            ...remove.map((k) => [k, null]),
-          ]),
+          Object.fromEntries([...setEntries(wantVlans).map((k) => [k, {}]), ...remove.map((k) => [k, null])]),
         ),
       );
     }
@@ -122,8 +119,7 @@ export function attachBody(now: PortAttachment, input: AttachInput): Record<stri
 }
 
 export type AttachPlan =
-  | { ok: true; calls: Record<string, StageCall[]>; unchanged: string[] }
-  | { ok: false; error: string };
+  { ok: true; calls: Record<string, StageCall[]>; unchanged: string[] } | { ok: false; error: string };
 
 /**
  * Build every member's attach calls for `ports`. `current[sw][port]` is the

@@ -59,10 +59,7 @@ describe('attachBody', () => {
   it('a changed trunk set keeps members and nulls removals', () => {
     expect(attachBody({ access: '', vlans: '10, 20', untagged: '10' }, TRUNK)).toEqual({});
     expect(
-      attachBody(
-        { access: '', vlans: '10, 20', untagged: '' },
-        { ...TRUNK, vlans: '20, 30', untagged: '' },
-      ),
+      attachBody({ access: '', vlans: '10, 20', untagged: '' }, { ...TRUNK, vlans: '20, 30', untagged: '' }),
     ).toEqual({ vlan: { '20': {}, '30': {}, '10': null } });
   });
 });
@@ -76,7 +73,9 @@ describe('planAttachCalls', () => {
     const plan = planAttachCalls('br_default', ['a', 'b'], ['swp32'], ACCESS, current);
     expect(plan).toEqual({
       ok: true,
-      calls: { a: [{ path: '/interface/swp32/bridge/domain/br_default', method: 'PATCH', body: { access: 30 } }] },
+      calls: {
+        a: [{ path: '/interface/swp32/bridge/domain/br_default', method: 'PATCH', body: { access: 30 } }],
+      },
       unchanged: ['b'],
     });
   });

@@ -74,7 +74,9 @@ export function IfaceBridgeSection({
 
   function cell(dom: string, leaf: string, label: string) {
     const m = mergeValues(
-      Object.fromEntries(holdersOf(dom).map((sw) => [sw, displayValue(getPath(cfg[sw], `bridge/domain/${dom}/${leaf}`))])),
+      Object.fromEntries(
+        holdersOf(dom).map((sw) => [sw, displayValue(getPath(cfg[sw], `bridge/domain/${dom}/${leaf}`))]),
+      ),
     );
     if (m.kind === 'none') return '—';
     if (m.kind === 'same') return m.value || '—';
