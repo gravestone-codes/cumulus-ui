@@ -1,13 +1,14 @@
 /**
- * Bridge domain detail (3B.1) for one switch or a group — Config · VLANs ·
- * Ports. Config is the interface section pattern (stage → dry-run → apply,
- * OCC) over `/bridge/domain/{id}`; VLANs lists the VLAN↔VNI map; Ports are
- * the interfaces (S1) whose config joins this domain. Presence comes from
- * applied config: a domain without member ports has no operational state.
+ * Bridge domain detail (3B.1–3B.2) for one switch or a group — Config ·
+ * VLANs · Ports. Config is the interface section pattern (stage → dry-run
+ * → apply, OCC) over `/bridge/domain/{id}`; VLANs lists the VLAN↔VNI map;
+ * Ports are the interfaces (S1) whose config joins this domain, attached
+ * and detached through VlanAttachment (R13). Presence comes from applied
+ * config: a domain without member ports has no operational state.
  */
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Breadcrumb, Spinner, Tabs } from '../components/ui.js';
+import { Alert, Breadcrumb, Button, Spinner, Tabs } from '../components/ui.js';
 import { ReadError } from '../components/resource.js';
 import { MergedList, type MergedColumn } from '../components/MergedList.js';
 import { presence } from '../lib/merge.js';
@@ -18,6 +19,7 @@ import { PresenceBanner } from './iface/Presence.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 import { DOMAIN_SECTIONS } from './bridge/sections.js';
 import { domainPorts, domainVlans } from './bridge/members.js';
+import { DetachPorts, VlanAttachment } from './bridge/VlanAttachment.js';
 
 type Obj = Record<string, unknown>;
 type Tab = 'config' | 'vlans' | 'ports';
@@ -139,22 +141,80 @@ function PortsTab({ scope, domainId, present }: { scope: Scope; domainId: string
   const base = scopeBase(scope);
   const applied = usePerSwitch<Record<string, Obj>>(scope, '/interface', { rev: 'applied' });
   const oper = usePerSwitch<Record<string, Obj>>(scope, '/interface');
+  const [attaching, setAttaching] = useState(false);
+  const [editing, setEditing] = useState<{ port: string; members: string[] } | null>(null);
+  const [detaching, setDetaching] = useState<{ ports: string[]; members: string[] } | null>(null);
   return (
-    <MergedList
-      group={scope.kind === 'group'}
-      noun="member ports"
-      members={present}
-      objects={Object.fromEntries(
-        present.map((sw) => [sw, domainPorts(applied.objects[sw], oper.objects[sw], domainId)]),
+    <>
+      <MergedList
+        group={scope.kind === 'group'}
+        noun="member ports"
+        members={present}
+        objects={Object.fromEntries(
+          present.map((sw) => [sw, domainPorts(applied.objects[sw], oper.objects[sw], domainId)]),
+        )}
+        errors={applied.errors}
+        loading={applied.loading || oper.loading}
+        error={applied.error}
+        refetch={applied.refetch}
+        columns={PORT_COLUMNS}
+        storageKey="cumulus.bridge-ports.v1"
+        actions={
+          <Button auto variant="secondary" onClick={() => setAttaching(true)} disabled={applied.loading}>
+            Add ports
+          </Button>
+        }
+        onOpen={(name) => navigate(`${base}/interfaces/${enc(name)}`)}
+        onOpenSwitch={(sw, name) => navigate(`/switches/${enc(sw)}/interfaces/${enc(name)}`)}
+        rowActions={(row, holders) => [
+          {
+            label: 'Edit VLANs',
+            onClick: () => setEditing({ port: row.sw ?? row.name, members: row.sw ? [row.sw] : holders }),
+          },
+          {
+            label: `Detach${holders.length > 1 && !row.sw ? ` on ${holders.length} switches` : ''}`,
+            danger: true,
+            onClick: () =>
+              setDetaching({
+                ports: [row.sw ?? row.name],
+                members: row.sw ? [row.sw] : holders,
+              }),
+          },
+        ]}
+      />
+      {attaching && (
+        <VlanAttachment
+          scope={scope}
+          members={present}
+          domain={domainId}
+          ports={[]}
+          ifaces={applied.objects}
+          onClose={() => setAttaching(false)}
+          onApplied={applied.refetch}
+        />
       )}
-      errors={applied.errors}
-      loading={applied.loading || oper.loading}
-      error={applied.error}
-      refetch={applied.refetch}
-      columns={PORT_COLUMNS}
-      storageKey="cumulus.bridge-ports.v1"
-      onOpen={(name) => navigate(`${base}/interfaces/${enc(name)}`)}
-      onOpenSwitch={(sw, name) => navigate(`/switches/${enc(sw)}/interfaces/${enc(name)}`)}
-    />
+      {editing && (
+        <VlanAttachment
+          scope={scope}
+          members={editing.members}
+          domain={domainId}
+          ports={[editing.port]}
+          ifaces={applied.objects}
+          onClose={() => setEditing(null)}
+          onApplied={applied.refetch}
+        />
+      )}
+      {detaching && (
+        <DetachPorts
+          scope={scope}
+          domain={domainId}
+          ports={detaching.ports}
+          members={detaching.members}
+          ifaces={applied.objects}
+          onClose={() => setDetaching(null)}
+          onApplied={applied.refetch}
+        />
+      )}
+    </>
   );
 }

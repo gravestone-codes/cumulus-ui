@@ -14,6 +14,7 @@ import { InterfaceStats, InterfaceTraffic } from './iface/Traffic.js';
 import { GroupTraffic } from './iface/GroupTraffic.js';
 import { CountersCard, PhyCard, TransceiverCard } from './iface/StatsExtras.js';
 import { ConfigTab, displayValue } from './iface/ConfigTab.js';
+import { IfaceBridgeSection } from './bridge/IfaceBridgeSection.js';
 import { NeighborsTab } from './iface/NeighborsTab.js';
 import { InterfaceActions } from './iface/Actions.js';
 import { ScopeShell } from './iface/ScopeShell.js';
@@ -121,18 +122,29 @@ export function InterfaceDetail() {
             cfg.loading ? (
               <Spinner label="Loading configuration" />
             ) : (
-              <ConfigTab
-                scope={scope}
-                objectPath={path}
-                name={ifaceId}
-                sections={sectionsFor(cfgType)}
-                cfg={cfg.objects}
-                oper={oper.objects}
-                present={present}
-                onOpenSwitch={(sw) =>
-                  navigate(`/switches/${encodeURIComponent(sw)}/interfaces/${encodeURIComponent(ifaceId)}`)
-                }
-              />
+              <div style={{ display: 'grid', gap: 12 }}>
+                <ConfigTab
+                  scope={scope}
+                  objectPath={path}
+                  name={ifaceId}
+                  sections={sectionsFor(cfgType)}
+                  cfg={cfg.objects}
+                  oper={oper.objects}
+                  present={present}
+                  onOpenSwitch={(sw) =>
+                    navigate(`/switches/${encodeURIComponent(sw)}/interfaces/${encodeURIComponent(ifaceId)}`)
+                  }
+                />
+                <IfaceBridgeSection
+                  scope={scope}
+                  ifaceId={ifaceId}
+                  present={present}
+                  cfg={cfg.objects}
+                  onOpenSwitch={(sw) =>
+                    navigate(`/switches/${encodeURIComponent(sw)}/interfaces/${encodeURIComponent(ifaceId)}`)
+                  }
+                />
+              </div>
             )
           ) : (
             <NeighborsTab scope={scope} ifaceId={ifaceId} present={present} />
