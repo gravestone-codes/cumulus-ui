@@ -1,12 +1,15 @@
 /**
- * Interface detail (3A.2–3A.7) for one switch or a whole group — same page,
- * same tabs (design §2, §3, §8B). Statistics · Config · Neighbors; actions
- * in the kebab. A group reads every member; members lacking the interface
- * are named in the header and never touched by edits (design §5A).
+ * Interface detail (3A.2–3A.7, 3B.3) for one switch or a whole group — same
+ * page, same tabs (design §2, §3, §8B). Statistics · Config · Neighbors;
+ * actions in the kebab. Statistics links out to the MACs learned on this
+ * port (each attached domain's MAC tab, filtered). A group reads every
+ * member; members lacking the interface are named in the header and never
+ * touched by edits (design §5A).
  */
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Breadcrumb, Spinner, Tabs } from '../components/ui.js';
+import { Card } from '../components/cards.js';
 import { ReadError } from '../components/resource.js';
 import { presence } from '../lib/merge.js';
 import { getPath } from '../lib/format.js';
@@ -116,6 +119,7 @@ export function InterfaceDetail() {
               <CountersCard scope={scope} ifaceId={ifaceId} present={present} />
               {type === 'swp' && <TransceiverCard scope={scope} ifaceId={ifaceId} present={present} />}
               {scope.kind === 'switch' && type === 'swp' && <PhyCard switchId={scope.id} ifaceId={ifaceId} />}
+              {!cfg.loading && <LearnedMacs scope={scope} ifaceId={ifaceId} cfg={cfg.objects} />}
             </div>
           ) : tab === 'config' ? (
             cfg.loading ? (
@@ -142,3 +146,57 @@ export function InterfaceDetail() {
     </ScopeShell>
   );
 }
+
+/**
+ * "MACs learned on this port" (3B.3): every attached bridge domain links to
+ * its MAC tab filtered to this interface — the same table, not a copy.
+ * Hidden until the port joins a domain.
+ */
+function LearnedMacs({
+  scope,
+  ifaceId,
+  cfg,
+}: {
+  scope: Scope;
+  ifaceId: string;
+  cfg: Record<string, Record<string, unknown> | undefined>;
+}) {
+  const navigate = useNavigate();
+  const base = scopeBase(scope);
+  const domains = [
+    ...new Set(
+      Object.values(cfg).flatMap((o) =>
+        Object.keys((getPath(o, 'bridge/domain') as Record<string, unknown> | undefined) ?? {}),
+      ),
+    ),
+  ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  if (domains.length === 0) return null;
+  return (
+    <Card title="MACs learned on this port">
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        {domains.map((dom) => (
+          <button
+            key={dom}
+            type="button"
+            onClick={() => navigate(`${base}/bridge/${enc(dom)}?tab=macs&iface=${enc(ifaceId)}`)}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              font: 'inherit',
+              fontSize: 14,
+              color: 'var(--color-brand)',
+              textDecoration: 'underline',
+              textUnderlineOffset: 3,
+            }}
+          >
+            {dom}
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+const enc = encodeURIComponent;

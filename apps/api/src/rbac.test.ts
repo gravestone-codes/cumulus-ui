@@ -90,6 +90,26 @@ describe('gateCheck (pure, deny-by-default)', () => {
     expect(gateCheck([viewer], { method: 'GET', path: '/interface' })).toBe(true);
   });
 
+  it('MAC clear (3B.3): operators act, viewers never do', () => {
+    // Mirrors the shipped seeds: net-operator holds POST /bridge, noc gains
+    // it via 019_mac_clear.sql; viewer holds GET / only.
+    const netOp = role({ id: 'op', rules: [{ method: 'POST', path_prefix: '/bridge' }] });
+    const noc = role({ id: 'n', rules: [{ method: 'POST', path_prefix: '/bridge' }] });
+    expect(gateCheck([netOp], { method: 'POST', path: '/bridge/domain/br_default/mac-table/dynamic' })).toBe(
+      true,
+    );
+    expect(
+      gateCheck([netOp], { method: 'POST', path: '/bridge/domain/br_default/mac-table/dynamic/mac' }),
+    ).toBe(true);
+    expect(gateCheck([noc], { method: 'POST', path: '/bridge/domain/br_default/mac-table/dynamic' })).toBe(
+      true,
+    );
+    expect(gateCheck([viewer], { method: 'POST', path: '/bridge/domain/br_default/mac-table/dynamic' })).toBe(
+      false,
+    );
+    expect(gateCheck([viewer], { method: 'GET', path: '/bridge/domain/br_default/mac-table' })).toBe(true);
+  });
+
   it('capabilities flattens for UI hints', () => {
     const caps = capabilities([op]);
     expect(caps.roles).toEqual(['op']);
