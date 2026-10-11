@@ -294,4 +294,65 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
       await app.close();
     }
   });
+
+  it('forwards ?include/?omit and serves GET response schemas (2.1)', async () => {
+    const pool2: PoolType = new Pool({ connectionString: process.env.DATABASE_URL });
+    const fake = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (url.pathname === '/nvue_v1/interface') {
+        json(res, 200, { swp1: { type: 'swp' } });
+      } else {
+        json(res, 404, { message: 'nope' });
+      }
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES ('swi', 't', $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fake.baseUrl, fake.pin, fake.caPem],
+    );
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool2, 'qw-inc', { appRoles: ['net-operator'] });
+    setSwitchToken('qw-inc', 'swi', 'stub-jwt');
+    const api = request(app.server);
+    try {
+      const res = await api
+        .get('/api/v1/switches/swi/query')
+        .set('Cookie', cookie)
+        .query({ path: '/interface', include: ['/*/type', '/*/description'], omit: '/*/counters' });
+      expect(res.status).toBe(200);
+      const hit = fake.hits.find((h) => h.startsWith('GET /nvue_v1/interface?')) ?? '';
+      const params = new URL(`https://x/${hit.split(' ')[1]}`).searchParams;
+      expect(params.getAll('include')).toEqual(['/*/type', '/*/description']);
+      expect(params.getAll('omit')).toEqual(['/*/counters']);
+
+      // GET serves the 200-response schema (list columns); PATCH still serves the body.
+      const cols = await api
+        .get('/api/v1/spec/fields')
+        .set('Cookie', cookie)
+        .query({ path: '/interface', method: 'GET' });
+      expect(cols.status).toBe(200);
+      const branches = (cols.body.schema as { anyOf?: unknown[] }).anyOf ?? [];
+      expect(branches.some((b) => typeof b === 'object' && b !== null && 'additionalProperties' in b)).toBe(
+        true,
+      );
+      const form = await api
+        .get('/api/v1/spec/fields')
+        .set('Cookie', cookie)
+        .query({ path: '/interface/swp1', method: 'PATCH' });
+      expect(form.status).toBe(200);
+      expect(typeof form.body.schema).toBe('object');
+      expect(
+        await api.get('/api/v1/spec/fields').set('Cookie', cookie).query({ path: '/nope', method: 'GET' }),
+      ).toMatchObject({ status: 404 });
+    } finally {
+      dropUserTokens('qw-inc');
+      await pool2.query(`DELETE FROM sessions WHERE user_sub = 'qw-inc'`);
+      await pool2.query(`DELETE FROM user_roles WHERE user_sub = 'qw-inc'`);
+      await pool2.query('DELETE FROM switches WHERE id = $1', ['swi']);
+      await pool2.end();
+      await fake.close();
+      await app.close();
+    }
+  });
 });

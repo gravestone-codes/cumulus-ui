@@ -7,7 +7,7 @@ import { DataTable, type GridColumn } from '../../components/DataTable.js';
 import { Spinner } from '../../components/ui.js';
 import { firstDefined } from '../../lib/format.js';
 import { usePerSwitch, type Scope } from './scope.js';
-import { displayValue } from './ConfigTab.js';
+import { displayValue } from '../../lib/format.js';
 
 type Obj = Record<string, unknown>;
 type Row = { sw: string; id: string; o: Obj; family?: string };

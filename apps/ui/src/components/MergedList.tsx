@@ -11,6 +11,8 @@ import { ReadError } from './resource.js';
 import { DataTable, type GridColumn } from './DataTable.js';
 import { MixedValue } from './mixed.js';
 import { mergeValues } from '../lib/merge.js';
+import { displayValue, getPath } from '../lib/format.js';
+import type { SchemaLeaf } from '../lib/schema.js';
 
 type Obj = Record<string, unknown>;
 
@@ -22,6 +24,20 @@ export interface MergedColumn {
   key: string;
   label: string;
   get: (obj: Obj | undefined) => string;
+}
+
+/** Schema leaves as merged columns (roadmap 2.1/R7 group scope): mixed values merge as usual. */
+export function schemaMergedColumns(
+  leaves: SchemaLeaf[],
+  checked: string[],
+  labels?: Record<string, string>,
+): MergedColumn[] {
+  const byLeaf = new Map(leaves.map((l) => [l.path, l]));
+  return checked.map((leaf) => ({
+    key: leaf,
+    label: labels?.[leaf] ?? byLeaf.get(leaf)?.label ?? leaf,
+    get: (obj) => displayValue(obj === undefined ? undefined : getPath(obj, leaf)),
+  }));
 }
 
 /** Members holding the row's object (the one switch on a sub-row). */

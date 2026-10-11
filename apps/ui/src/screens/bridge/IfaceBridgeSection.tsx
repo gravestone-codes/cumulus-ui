@@ -13,7 +13,7 @@ import { ValueGrid } from '../../components/resource.js';
 import { MixedValue } from '../../components/mixed.js';
 import { getPath } from '../../lib/format.js';
 import { mergeValues } from '../../lib/merge.js';
-import { displayValue } from '../iface/ConfigTab.js';
+import { displayValue } from '../../lib/format.js';
 import { refreshInterfaces, usePerSwitch, type Scope } from '../iface/scope.js';
 import { DetachPorts, VlanAttachment } from './VlanAttachment.js';
 

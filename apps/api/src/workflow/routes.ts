@@ -541,11 +541,19 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
     return { results };
   });
 
-  const GroupQuery = z.object({
-    path: z.string().min(1),
-    rev: z.string().min(1).optional(),
-    view: z.string().min(1).optional(),
-  });
+  const GroupQuery = z
+    .object({
+      path: z.string().min(1),
+      rev: z.string().min(1).optional(),
+      view: z.string().min(1).optional(),
+      include: z.union([z.string().min(1).max(256), z.array(z.string().min(1).max(256)).max(64)]).optional(),
+      omit: z.union([z.string().min(1).max(256), z.array(z.string().min(1).max(256)).max(64)]).optional(),
+    })
+    .transform((q) => ({
+      ...q,
+      include: q.include === undefined ? undefined : Array.isArray(q.include) ? q.include : [q.include],
+      omit: q.omit === undefined ? undefined : Array.isArray(q.omit) ? q.omit : [q.omit],
+    }));
 
   // Fan-out read for group screens: each member gated on its own groups,
   // one row each (ok + data, or status + error); a failed member never fails the read.

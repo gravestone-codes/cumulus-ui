@@ -16,10 +16,17 @@ import { getSwitch } from '../inventory/store.js';
 import { withSwitchToken } from '../nvue/clients.js';
 import { GuardError } from '../nvue/guard.js';
 
+const FieldList = z
+  .union([z.string().min(1).max(256), z.array(z.string().min(1).max(256)).max(64)])
+  .optional()
+  .transform((v) => (v === undefined ? undefined : Array.isArray(v) ? v : [v]));
+
 const Query = z.object({
   path: z.string().min(1),
   rev: z.string().min(1).optional(),
   view: z.string().min(1).optional(),
+  include: FieldList,
+  omit: FieldList,
 });
 
 export async function queryRoutes(app: FastifyInstance, deps: { cfg: AuthConfig }): Promise<void> {
@@ -64,6 +71,8 @@ export async function queryRoutes(app: FastifyInstance, deps: { cfg: AuthConfig 
           method: 'GET',
           rev: parsed.data.rev,
           view: parsed.data.view,
+          include: parsed.data.include,
+          omit: parsed.data.omit,
           token,
         }),
       );

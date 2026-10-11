@@ -12,25 +12,13 @@ import { Card } from '../../components/cards.js';
 import { ValueGrid } from '../../components/resource.js';
 import { MixedValue, PerSwitchValue } from '../../components/mixed.js';
 import { mergeValues } from '../../lib/merge.js';
-import { getPath } from '../../lib/format.js';
+import { displayValue, getPath } from '../../lib/format.js';
 import { fieldPath, isConfigured, type SectionDef } from './sections.js';
 import { SectionEdit } from './SectionEdit.js';
 import { refreshInterfaces, type Scope } from './scope.js';
 import type { SharedDraft } from './plan.js';
 
 type Obj = Record<string, unknown> | undefined;
-
-const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
-
-/** Any NVUE value as display text: tag/set objects → their keys, scalars as-is. */
-export function displayValue(raw: unknown): string {
-  if (raw === undefined || raw === null || raw === '') return '';
-  if (typeof raw === 'object')
-    return Object.keys(raw as object)
-      .sort(natural)
-      .join(', ');
-  return String(raw);
-}
 
 export function ConfigTab({
   scope,

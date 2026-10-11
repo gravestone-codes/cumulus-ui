@@ -133,6 +133,18 @@ export interface SpecManifest {
 export interface FieldSchema {
   schema: unknown;
 }
+/** Query options shared by single-switch and group reads (rev/view/include/omit). */
+export interface QueryOpts {
+  rev?: string;
+  view?: string;
+  include?: string[];
+  omit?: string[];
+}
+
+/** Append one query param per value (the switch reads repeated ?include=). */
+function pushEach(qs: URLSearchParams, key: string, values?: string[]) {
+  for (const v of values ?? []) qs.append(key, v);
+}
 /** One member's answer in a group fan-out (read, stage, apply or action). */
 export interface MemberResult<T = unknown> {
   switchId: string;
@@ -363,16 +375,20 @@ export const api = {
   saveDashboard: (widgets: Array<{ id: string; config?: Record<string, unknown> }>) =>
     request<{ widgets: Array<{ id: string }> }>('/api/v1/me/dashboard', { method: 'PUT', json: { widgets } }),
 
-  query: <T = unknown>(switchId: string, path: string, opts?: { rev?: string; view?: string }) => {
+  query: <T = unknown>(switchId: string, path: string, opts?: QueryOpts) => {
     const qs = new URLSearchParams({ path });
     if (opts?.rev) qs.set('rev', opts.rev);
     if (opts?.view) qs.set('view', opts.view);
+    pushEach(qs, 'include', opts?.include);
+    pushEach(qs, 'omit', opts?.omit);
     return request<QueryResult<T>>(`/api/v1/switches/${encodeURIComponent(switchId)}/query?${qs}`);
   },
-  groupQuery: <T = unknown>(groupId: string, path: string, opts?: { rev?: string; view?: string }) => {
+  groupQuery: <T = unknown>(groupId: string, path: string, opts?: QueryOpts) => {
     const qs = new URLSearchParams({ path });
     if (opts?.rev) qs.set('rev', opts.rev);
     if (opts?.view) qs.set('view', opts.view);
+    pushEach(qs, 'include', opts?.include);
+    pushEach(qs, 'omit', opts?.omit);
     return request<{ results: MemberResult<T>[] }>(
       `/api/v1/groups/${encodeURIComponent(groupId)}/query?${qs}`,
     );

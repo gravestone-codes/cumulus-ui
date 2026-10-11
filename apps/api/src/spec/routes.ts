@@ -9,7 +9,7 @@ import { problem } from '../lib/problems.js';
 import { type AuthConfig } from '../auth/config.js';
 import { resolveCaller } from '../auth/caller.js';
 import { matchTemplate } from '../nvue/guard.js';
-import { requestBodySchema } from './fields.js';
+import { requestBodySchema, responseSchema } from './fields.js';
 import { z } from 'zod';
 
 export async function specRoutes(app: FastifyInstance, deps: { cfg: AuthConfig }): Promise<void> {
@@ -35,8 +35,12 @@ export async function specRoutes(app: FastifyInstance, deps: { cfg: AuthConfig }
     if (!matched || !matched.methods.includes(parsed.data.method.toLowerCase())) {
       return problem(reply, 404, 'Not Found', 'no such path+method in the spec', request.url);
     }
-    const found = requestBodySchema(matched.template, parsed.data.method);
-    if (!found) return problem(reply, 404, 'Not Found', 'no request body for this operation', request.url);
+    // GET reads the 200-response schema (list columns); writes read the request body (forms).
+    const found =
+      parsed.data.method.toLowerCase() === 'get'
+        ? responseSchema(matched.template)
+        : requestBodySchema(matched.template, parsed.data.method);
+    if (!found) return problem(reply, 404, 'Not Found', 'no schema for this operation', request.url);
     return found;
   });
 }

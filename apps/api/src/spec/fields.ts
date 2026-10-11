@@ -94,7 +94,16 @@ export function flattenComposites(schema: unknown): unknown {
         ),
       };
     }
-    return obj;
+    // Map collections (`{name: item}`) and arrays carry their item schema here;
+    // composites inside anyOf/oneOf branches need flattening too.
+    const out: Record<string, unknown> = { ...obj };
+    if (obj['additionalProperties'] !== undefined) {
+      out['additionalProperties'] = flattenComposites(obj['additionalProperties']);
+    }
+    if (obj['items'] !== undefined) out['items'] = flattenComposites(obj['items']);
+    if (Array.isArray(obj['anyOf'])) out['anyOf'] = obj['anyOf'].map(flattenComposites);
+    if (Array.isArray(obj['oneOf'])) out['oneOf'] = obj['oneOf'].map(flattenComposites);
+    return out;
   }
   const merged: Record<string, unknown> = { type: 'object', properties: {}, required: [] };
   for (const branch of allOf) {
@@ -128,6 +137,20 @@ export function requestBodySchema(
   const body = (op as { requestBody?: unknown }).requestBody;
   if (typeof body !== 'object' || body === null) return null;
   const resolved = dereference(body, doc) as { content?: Record<string, { schema?: unknown }> };
+  const schema = resolved.content?.['application/json']?.schema;
+  if (schema === undefined) return null;
+  return { schema: flattenComposites(schema) };
+}
+
+/** GET 200-response schema for a manifest path template (drives schema columns). Null when none. */
+export function responseSchema(pathTemplate: string, doc: Doc = specDoc()): FieldSchema | null {
+  const op = doc.paths?.[pathTemplate]?.['get'];
+  if (typeof op !== 'object' || op === null) return null;
+  const responses = (op as { responses?: unknown }).responses;
+  if (typeof responses !== 'object' || responses === null) return null;
+  const ok = (responses as Record<string, unknown>)['200'];
+  if (typeof ok !== 'object' || ok === null) return null;
+  const resolved = dereference(ok, doc) as { content?: Record<string, { schema?: unknown }> };
   const schema = resolved.content?.['application/json']?.schema;
   if (schema === undefined) return null;
   return { schema: flattenComposites(schema) };

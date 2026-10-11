@@ -1,15 +1,20 @@
 /**
  * Generic resource screens (Phase 2): ViewSwitcher, ResourceList.
- * Lists are dumb — collection path + injected columns in, rows out.
+ * Lists are dumb — collection path + injected columns in, rows out, or
+ * schema-driven (schemaPath): columns and the `?include` field set come
+ * from the response schema, with domain render overrides as adapters.
  * View names come from /api/v1/spec/manifest (decision 10), never constants.
  */
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
+import { displayValue, getPath } from '../lib/format.js';
+import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { Alert, Button, LineDropdown, ReconnectModal, Spinner } from './ui.js';
 import { DataTable } from './DataTable.js';
 import type { GridColumn } from './DataTable.js';
 import type { RowMenuItem } from './ui.js';
+import { FieldPicker } from './FieldPicker.js';
 
 /* ViewSwitcher: the manifest's view names for a path template, as a dropdown. */
 export function ViewSwitcher({
@@ -106,6 +111,10 @@ export function ResourceList<T extends object>({
   rowMenu,
   rev,
   actions,
+  schema,
+  defaultFields,
+  labels,
+  render,
 }: {
   switchId: string;
   path: string;
@@ -119,24 +128,58 @@ export function ResourceList<T extends object>({
   rev?: string;
   /** Header actions (e.g. New interface), right of the title. */
   actions?: ReactNode;
+  /**
+   * Schema-driven columns (roadmap 2.1/R7): the item template whose PATCH
+   * body enumerates the pickable leaves (e.g. `/interface/{interface-id}`).
+   * Columns and the `?include` set come from the schema; `columns` stay as
+   * the leading adapter extras (identity, computed badges).
+   */
+  schema?: boolean;
+  /** Default picked leaf paths (persisted per table once the picker is touched). */
+  defaultFields?: string[];
+  /** Presentation label overrides by leaf path. */
+  labels?: Record<string, string>;
+  /** Adapter render overrides by leaf path (e.g. state badges). */
+  render?: Record<string, (row: T) => ReactNode>;
 }) {
   const [view, setView] = useState<string | undefined>(undefined);
+  const { leaves, loading: schemaLoading } = useSchemaLeaves(schema ? pathTemplate : undefined);
+  const { checked, setChecked } = useSchemaFields(storageKey, schema ? leaves : [], defaultFields ?? []);
+  const include = schema && checked.length > 0 ? toIncludePatterns(path, checked) : undefined;
   const list = useQuery({
-    queryKey: ['resource', switchId, path, view, rev],
+    queryKey: ['resource', switchId, path, view, rev, include],
     queryFn: () =>
-      api.query<Record<string, T>>(switchId, path, { ...(view ? { view } : {}), ...(rev ? { rev } : {}) }),
+      api.query<Record<string, T>>(
+        switchId,
+        path,
+        { ...(view ? { view } : {}), ...(rev ? { rev } : {}), ...(include ? { include } : {}) },
+      ),
     // 4xx is terminal (auth, gate, unknown path) — only 5xx/network retries.
     retry: (count, err) => (err instanceof ApiError ? err.status >= 500 && count < 2 : count < 2),
     staleTime: 30_000,
     placeholderData: (prev) => prev,
   });
   const rows = list.data ? Object.entries(list.data.data).map(([id, row]) => ({ ...row, __id: id })) : [];
+  const byLeaf = new Map(leaves.map((l) => [l.path, l]));
+  const schemaCols: GridColumn<T>[] =
+    schema && checked.length > 0
+      ? checked.map((leaf) => ({
+          key: leaf,
+          label: labels?.[leaf] ?? byLeaf.get(leaf)?.label ?? leaf,
+          value: (row: T) => displayValue(getPath(row, leaf)) || '—',
+          ...(render?.[leaf] ? { render: render[leaf] } : {}),
+        }))
+      : [];
+  const cols = [...columns, ...schemaCols];
   return (
     <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 12 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{title}</h1>
         <span style={{ flex: 1 }} />
         {actions}
+        {schema && leaves.length > 0 && (
+          <FieldPicker leaves={leaves} checked={checked} defaults={defaultFields ?? []} onChange={setChecked} />
+        )}
         <span style={{ minWidth: 180 }}>
           <ViewSwitcher pathTemplate={pathTemplate} value={view} onChange={setView} />
         </span>
@@ -145,9 +188,9 @@ export function ResourceList<T extends object>({
         <ReadError switchId={switchId} message={list.error.message} onFixed={() => list.refetch()} />
       ) : (
         <DataTable
-          cols={columns}
+          cols={cols}
           rows={rows as T[]}
-          loading={list.isPending}
+          loading={list.isPending || (schema && schemaLoading)}
           storageKey={storageKey}
           onRowClick={onSelect ? (row) => onSelect(rowId(row)) : undefined}
           actions={rowMenu}

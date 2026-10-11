@@ -10,8 +10,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Badge, Breadcrumb, Button, type RowMenuItem } from '../components/ui.js';
 import { ResourceList } from '../components/resource.js';
 import { type GridColumn } from '../components/DataTable.js';
-import { holdersOf, MergedList, type MergedColumn, type MergedRow } from '../components/MergedList.js';
-import { firstDefined, ifaceState } from '../lib/format.js';
+import { holdersOf, MergedList, schemaMergedColumns, type MergedRow } from '../components/MergedList.js';
+import { FieldPicker } from '../components/FieldPicker.js';
+import { ifaceState } from '../lib/format.js';
+import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { CreateInterface, DeleteInterface } from './iface/CreateInterface.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
@@ -24,7 +26,8 @@ const DELETABLE = ['bond', 'sub'];
 
 const stateTone = (s: string | undefined) => (s === 'up' ? 'pass' : s === 'down' ? 'fail' : 'muted');
 
-const SWITCH_COLUMNS: GridColumn<IfaceRow>[] = [
+/** Identity + computed state stay injected adapters; the rest comes from the schema (2.1). */
+const SWITCH_ADAPTERS: GridColumn<IfaceRow>[] = [
   { key: '__id', label: 'Name', always: true, value: (r) => String(r.__id) },
   {
     key: 'state',
@@ -32,22 +35,35 @@ const SWITCH_COLUMNS: GridColumn<IfaceRow>[] = [
     value: (r) => ifaceState(r) ?? '—',
     render: (r) => <Badge tone={stateTone(ifaceState(r))}>{ifaceState(r) ?? 'unknown'}</Badge>,
   },
-  { key: 'type', label: 'Type', value: (r) => firstDefined(r, 'type') ?? '—' },
-  { key: 'speed', label: 'Speed', value: (r) => firstDefined(r, 'link/speed') ?? '—' },
-  { key: 'mtu', label: 'MTU', value: (r) => firstDefined(r, 'link/mtu') ?? '—' },
-  { key: 'description', label: 'Description', value: (r) => firstDefined(r, 'description') ?? '—' },
 ];
+
+const IFACE_FIELDS = ['type', 'link/speed', 'link/mtu', 'description'];
+const IFACE_LABELS: Record<string, string> = {
+  type: 'Type',
+  'link/speed': 'Speed',
+  'link/mtu': 'MTU',
+  description: 'Description',
+};
 
 export function Interfaces() {
   const { switchId, groupId } = useParams();
   const scope: Scope = groupId ? { kind: 'group', id: groupId } : { kind: 'switch', id: switchId ?? '' };
   const navigate = useNavigate();
   const base = scopeBase(scope);
-  const list = usePerSwitch<Record<string, Obj>>(scope, '/interface');
+  const fieldKey = scope.kind === 'group' ? 'cumulus.group-interfaces.v1' : 'cumulus.interfaces.v1';
+  const { leaves } = useSchemaLeaves('/interface/{interface-id}');
+  const { checked, setChecked } = useSchemaFields(fieldKey, leaves, IFACE_FIELDS);
+  const include = checked.length > 0 ? toIncludePatterns('/interface', checked) : undefined;
+  const list = usePerSwitch<Record<string, Obj>>(scope, '/interface', include ? { include } : {});
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<{ name: string; members: string[] } | null>(null);
 
   const existing = Object.fromEntries(list.members.map((sw) => [sw, Object.keys(list.objects[sw] ?? {})]));
+
+  const picker =
+    leaves.length > 0 ? (
+      <FieldPicker leaves={leaves} checked={checked} defaults={IFACE_FIELDS} onChange={setChecked} />
+    ) : null;
 
   const newButton = (
     <Button auto variant="secondary" onClick={() => setCreating(true)} disabled={list.loading}>
@@ -64,7 +80,10 @@ export function Interfaces() {
           path="/interface"
           pathTemplate="/interface/{interface-id}"
           title="Interfaces"
-          columns={SWITCH_COLUMNS}
+          columns={SWITCH_ADAPTERS}
+          schema
+          defaultFields={IFACE_FIELDS}
+          labels={IFACE_LABELS}
           rowId={(row) => row.__id}
           storageKey="cumulus.interfaces.v1"
           rev="operational"
@@ -89,10 +108,15 @@ export function Interfaces() {
           title="Interfaces"
           noun="interfaces"
           {...list}
-          columns={GROUP_COLUMNS}
+          columns={schemaMergedColumns(leaves, checked, IFACE_LABELS)}
           extra={[stateColumn(list.members)]}
           storageKey="cumulus.group-interfaces.v1"
-          actions={newButton}
+          actions={
+            <>
+              {picker}
+              {newButton}
+            </>
+          }
           onOpen={(name) => navigate(`${base}/interfaces/${name}`)}
           onOpenSwitch={(sw, name) => navigate(`/switches/${sw}/interfaces/${name}`)}
           rowActions={(r, holders): RowMenuItem[] => [
@@ -127,14 +151,6 @@ export function Interfaces() {
     </ScopeShell>
   );
 }
-
-/** Value columns merged across members (drift = any of them mixed, or absent somewhere). */
-const GROUP_COLUMNS: MergedColumn[] = [
-  { key: 'type', label: 'Type', get: (o) => firstDefined(o, 'type') ?? '' },
-  { key: 'speed', label: 'Speed', get: (o) => firstDefined(o, 'link/speed') ?? '' },
-  { key: 'mtu', label: 'MTU', get: (o) => firstDefined(o, 'link/mtu') ?? '' },
-  { key: 'description', label: 'Description', get: (o) => firstDefined(o, 'description') ?? '' },
-];
 
 /** State badges, counted per state across a group row's holders. */
 function stateColumn(members: string[]): GridColumn<MergedRow> {
