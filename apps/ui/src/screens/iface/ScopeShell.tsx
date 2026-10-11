@@ -1,13 +1,13 @@
 /**
  * App shell for interface screens in either scope: the switch rail or the
  * group rail, same pages inside. Keeps scope wiring out of every screen —
- * including the "changed outside the app" banner (roadmap 4.6).
+ * including the "changed outside the app" (4.6) and active-branch (1.2) banners.
  */
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type Drift } from '../../lib/api.js';
-import { Alert, AppShell, Button, NavRail, usePinnedRail } from '../../components/ui.js';
+import { api, ApiError, type DraftSummary, type Drift } from '../../lib/api.js';
+import { Alert, AppShell, Button, Confirm, NavRail, usePinnedRail, useToast } from '../../components/ui.js';
 import { groupNav, switchNav } from '../../lib/nav.js';
 import { scopeBase, type Scope } from './scope.js';
 
@@ -46,6 +46,7 @@ export function ScopeShell({
       }
     >
       <ChangedBanner scope={scope} />
+      <BranchBanner scope={scope} />
       {children}
     </AppShell>
   );
@@ -116,4 +117,100 @@ export function driftBy(d: Drift): string {
   if (!by) return '';
   const who = [by.type, by.user ? `by ${by.user}` : null].filter(Boolean).join(' ');
   return [who && ` · ${who}`, by.date && ` at ${by.date}`].filter(Boolean).join('');
+}
+
+/** How often the branch banner re-asks; branches change only through stage/apply/discard. */
+const DRAFT_REFETCH_MS = 15_000;
+
+/** "3h ago" from an ISO timestamp; "just now" under a minute. */
+export function draftAge(iso: string, now = Date.now()): string {
+  const ms = now - Date.parse(iso);
+  if (!Number.isFinite(ms) || ms < 0) return '';
+  const min = Math.floor(ms / 60_000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+/** Active staging branch(es) in scope (roadmap 1.2): visible on every screen, discard with confirm. */
+export function BranchBanner({ scope }: { scope: Scope }) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [pending, setPending] = useState<DraftSummary | null>(null);
+  const [busy, setBusy] = useState(false);
+  const drafts = useQuery({
+    queryKey: ['drafts'],
+    queryFn: () => api.myDrafts(),
+    refetchInterval: DRAFT_REFETCH_MS,
+  });
+  const group = scope.kind === 'group';
+  const switches = useQuery({
+    queryKey: ['switches'],
+    queryFn: () => api.switches(),
+    retry: false,
+    enabled: group,
+  });
+  if (drafts.isPending || drafts.isError) return null;
+  if (group && switches.isPending) return null;
+  const members = group ? new Set((switches.data ?? []).filter((s) => s.groups.includes(scope.id)).map((s) => s.id)) : null;
+  const hits = (drafts.data ?? []).filter((d) =>
+    scope.kind === 'switch' ? d.switchId === scope.id : members?.has(d.switchId),
+  );
+  if (hits.length === 0) return null;
+
+  async function onDiscard() {
+    if (!pending) return;
+    setBusy(true);
+    try {
+      await api.discardBranch(pending.switchId);
+      await queryClient.invalidateQueries({ queryKey: ['drafts'] });
+      toast('warn', `Discarded staged changes on ${pending.switchId}.`);
+      setPending(null);
+    } catch (err) {
+      toast('fail', err instanceof ApiError || err instanceof Error ? err.message : 'Discard failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <Alert tone="note">
+        {hits.map((d) => (
+          <div key={d.switchId} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <strong>{d.switchId}</strong> · staging on branch <span className="mono">{d.branch}</span>
+              {' · '}
+              {d.stagedCount === 0
+                ? 'open, nothing staged yet'
+                : `${d.stagedCount} change${d.stagedCount === 1 ? '' : 's'} staged`}
+              {draftAge(d.basedAt) && ` · based ${draftAge(d.basedAt)}`}
+            </div>
+            <Button auto variant="secondary" onClick={() => setPending(d)}>
+              Discard
+            </Button>
+          </div>
+        ))}
+        <div style={{ color: 'var(--color-muted)', fontSize: 13, marginTop: 4 }}>
+          Unapplied work survives logout. Discarding is explicit and immediate.
+        </div>
+      </Alert>
+      <Confirm
+        open={pending !== null}
+        title={`Discard staged changes on ${pending?.switchId ?? ''}?`}
+        body={
+          pending && pending.stagedCount > 0
+            ? `${pending.stagedCount} staged change${pending.stagedCount === 1 ? '' : 's'} on branch ${pending.branch} will be dropped. This cannot be undone.`
+            : `Open branch ${pending?.branch ?? ''} will be dropped. This cannot be undone.`
+        }
+        confirmLabel="Discard"
+        onConfirm={() => void onDiscard()}
+        onCancel={() => (busy ? undefined : setPending(null))}
+        busy={busy}
+      />
+    </div>
+  );
 }

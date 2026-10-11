@@ -281,6 +281,56 @@ describe.skipIf(!LIVE)('branches + staging', () => {
     }
   });
 
+  it('drafts: my branches listed with staged counts, scoped to my switches', async () => {
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const cookie = await sessionCookie(pool, 'wf-drafts', { appRoles: ['net-operator'] });
+    setSwitchToken('wf-drafts', 'swf', 'stub-jwt');
+    await pool.query(`INSERT INTO groups (id, display_name) VALUES ('GPD', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(`INSERT INTO roles (id, display_name) VALUES ('wf-drafts-scoped', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(
+      `INSERT INTO role_rules (role_id, method, path_prefix) VALUES ('wf-drafts-scoped', 'GET', '/') ON CONFLICT DO NOTHING`,
+    );
+    await pool.query(
+      `INSERT INTO role_groups (role_id, group_id) VALUES ('wf-drafts-scoped', 'GPD') ON CONFLICT DO NOTHING`,
+    );
+    const outsider = await sessionCookie(pool, 'wf-drafts-out', { appRoles: ['wf-drafts-scoped'] });
+    const api = request(app.server);
+    try {
+      expect((await api.get('/api/v1/drafts')).status).toBe(401);
+      expect(await api.get('/api/v1/drafts').set('Cookie', cookie)).toMatchObject({ status: 200, body: [] });
+
+      expect((await api.post('/api/v1/switches/swf/branch').set('Cookie', cookie)).status).toBe(200);
+      expect(
+        (
+          await api
+            .post('/api/v1/switches/swf/stage')
+            .set('Cookie', cookie)
+            .send({ path: '/interface/swp1', method: 'PATCH', body: { description: 'drafted' } })
+        ).status,
+      ).toBe(200);
+
+      const mine = await api.get('/api/v1/drafts').set('Cookie', cookie);
+      expect(mine.status).toBe(200);
+      expect(mine.body).toHaveLength(1);
+      expect(mine.body[0]).toMatchObject({ switchId: 'swf', stagedCount: 1 });
+      expect(typeof mine.body[0].branch).toBe('string');
+      expect(typeof mine.body[0].basedAt).toBe('string');
+
+      // Scoped elsewhere: swf is not in GPD, so the list is empty (not a 403).
+      const theirs = await api.get('/api/v1/drafts').set('Cookie', outsider);
+      expect(theirs.status).toBe(200);
+      expect(theirs.body).toEqual([]);
+    } finally {
+      await api.delete('/api/v1/switches/swf/branch').set('Cookie', cookie);
+      dropUserTokens('wf-drafts');
+      await pool.query(`DELETE FROM sessions WHERE user_sub IN ('wf-drafts', 'wf-drafts-out')`);
+      await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('wf-drafts', 'wf-drafts-out')`);
+      await pool.query(`DELETE FROM roles WHERE id = 'wf-drafts-scoped'`);
+      await app.close();
+    }
+  });
+
   it('staging without rights or branch is refused', async () => {
     const app = await buildApp({ auth: { cfg: CFG } });
     await app.ready();

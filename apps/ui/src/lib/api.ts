@@ -181,6 +181,15 @@ export interface PresenceEntry {
   staged: number;
   updatedAt: string | null;
 }
+/** My unapplied staging branch on one switch (banner + discard). */
+export interface DraftSummary {
+  switchId: string;
+  branch: string;
+  baseRev: string | null;
+  stagedCount: number;
+  basedAt: string;
+  updatedAt: string;
+}
 /** One staged path as a dry-run row (before → intent). */
 export interface StagedDiff {
   path: string;
@@ -252,6 +261,11 @@ export const api = {
 
   openBranch: (switchId: string) =>
     post<{ branch: string; baseRev: string }>(`/api/v1/switches/${encodeURIComponent(switchId)}/branch`, {}),
+  getBranch: (switchId: string) =>
+    request<{ branch: string | null; baseRev?: string | null }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/branch`,
+    ),
+  myDrafts: () => request<DraftSummary[]>('/api/v1/drafts'),
   discardBranch: (switchId: string) =>
     request<{ switchDiscarded: boolean }>(`/api/v1/switches/${encodeURIComponent(switchId)}/branch`, {
       method: 'DELETE',
