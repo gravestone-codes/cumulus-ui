@@ -1,7 +1,4 @@
-/**
- * MergedList stories (CSF3). Storybook itself lands with roadmap 2.0;
- * until then this file stays dependency-free and only typechecks.
- */
+/** MergedList stories (CSF3): agreement, drift, and unreadable members. */
 import type { ComponentProps } from 'react';
 import { MergedList, type MergedColumn } from './MergedList.js';
 

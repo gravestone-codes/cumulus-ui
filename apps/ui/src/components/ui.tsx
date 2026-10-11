@@ -1365,6 +1365,18 @@ export function Breadcrumb({
   );
 }
 
+/* ScrollArea: bounded scroll region (stone thumb comes from the global
+   stylesheet). Tall panels scroll inside instead of pushing the page. */
+export function ScrollArea({
+  maxHeight = 320,
+  children,
+}: {
+  maxHeight?: number;
+  children: ReactNode;
+}) {
+  return <div style={{ maxHeight, overflowY: 'auto' }}>{children}</div>;
+}
+
 /* Spinner: centered ring for loads, both axes. Motion-safe: static ring when
    the user prefers reduced motion. */
 export function Spinner({ label = 'Loading' }: { label?: string }) {

@@ -1,7 +1,4 @@
-/**
- * InterfacePicker stories (CSF3). Storybook itself lands with roadmap 2.0;
- * until then this file stays dependency-free and only typechecks.
- */
+/** InterfacePicker stories (CSF3): single and multi-switch member picking. */
 import { useState, type ComponentProps } from 'react';
 import { InterfacePicker } from './InterfacePicker.js';
 import type { PickerOption } from '../lib/interfacePicker.js';
