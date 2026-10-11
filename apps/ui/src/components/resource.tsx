@@ -10,11 +10,12 @@ import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
 import { displayValue, getPath } from '../lib/format.js';
 import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
-import { Alert, Button, LineDropdown, ReconnectModal, Spinner } from './ui.js';
+import { Alert, Button, LineDropdown, ReconnectModal, Spinner, Tabs } from './ui.js';
 import { DataTable } from './DataTable.js';
 import type { GridColumn } from './DataTable.js';
 import type { RowMenuItem } from './ui.js';
 import { FieldPicker } from './FieldPicker.js';
+import { PresenceBanner } from './presence.js';
 
 /* ViewSwitcher: the manifest's view names for a path template, as a dropdown. */
 export function ViewSwitcher({
@@ -39,30 +40,130 @@ export function ViewSwitcher({
   );
 }
 
-/* ResourceDetail: one object's live fields as a definition list. Field
-   choice is presentation (per-slice, from the API reference leaf schemas);
-   every value comes from the query proxy. */
-export function ResourceDetail({
-  switchId,
-  path,
-  fields,
-}: {
-  switchId: string;
-  path: string;
-  fields: Array<{ label: string; value: (obj: Record<string, unknown>) => string }>;
-}) {
-  const detail = useQuery({
-    queryKey: ['resource-obj', switchId, path],
-    queryFn: () => api.query<Record<string, unknown>>(switchId, path),
-    retry: (count, err) => (err instanceof ApiError ? err.status >= 500 && count < 2 : count < 2),
-    staleTime: 30_000,
-  });
-  if (detail.isPending) return <Spinner label="Loading details" />;
-  if (detail.isError) {
-    return <ReadError switchId={switchId} message={detail.error.message} onFixed={() => detail.refetch()} />;
+/** Canonical store kinds (§2 identity): one object, one store; paths are lenses. */
+export type DetailKind = 'interface' | 'bridge' | 'vrf' | 'generic';
+
+/** Resolve an identity to its NVUE object path (explicit path wins — arbitrary lenses stay possible). */
+export function detailPath(kind: DetailKind, id: string, explicit?: string): string {
+  if (explicit) return explicit;
+  switch (kind) {
+    case 'interface':
+      return `/interface/${id}`;
+    case 'bridge':
+      return `/bridge/domain/${id}`;
+    case 'vrf':
+      return `/vrf/${id}`;
+    case 'generic':
+      return id;
   }
-  const obj = detail.data?.data ?? {};
-  return <ValueGrid items={fields.map((f) => ({ label: f.label, value: f.value(obj) }))} />;
+}
+
+/** Human noun per kind for loading/absent copy. */
+const KIND_NOUN: Record<DetailKind, string> = {
+  interface: 'interface',
+  bridge: 'bridge domain',
+  vrf: 'VRF',
+  generic: 'object',
+};
+
+export interface DetailTab {
+  id: string;
+  label: string;
+  content: ReactNode;
+}
+
+export interface DetailRead {
+  members: string[];
+  loading: boolean;
+  error: Error | null;
+  errors: Record<string, string>;
+  refetch: () => void;
+}
+
+/* ResourceDetail: one object's frame — header (title, group presence,
+   actions) + tab slots for widgets. Data reads stay in screens (passed as
+   `read`); identity (scope, kind, id) derives path, presence and copy. */
+export function ResourceDetail({
+  scope,
+  kind,
+  id,
+  path,
+  tabs,
+  activeTab,
+  onTabChange,
+  actions,
+  read,
+  present,
+}: {
+  scope: { kind: 'switch' | 'group'; id: string };
+  kind: DetailKind;
+  /** Object name within its store (interface name, domain id, ...). */
+  id: string;
+  /** Explicit object path (default: derived from kind). */
+  path?: string;
+  tabs: DetailTab[];
+  activeTab?: string;
+  onTabChange?: (id: string) => void;
+  /** Header actions (e.g. row kebab). */
+  actions?: ReactNode;
+  /** Primary read driving loading/error/absent states. */
+  read: DetailRead;
+  /** Members holding the object (subset of read.members). */
+  present: string[];
+}) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const objectPath = detailPath(kind, id, path);
+  const group = scope.kind === 'group';
+  const failed = Object.keys(read.errors);
+  const absent = read.members.filter((sw) => !present.includes(sw) && !failed.includes(sw));
+  const active = activeTab ?? picked ?? tabs[0]?.id ?? '';
+  function select(tabId: string) {
+    if (onTabChange) onTabChange(tabId);
+    else setPicked(tabId);
+  }
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{id}</h1>
+        {group && !read.loading && (
+          <span
+            style={{
+              fontSize: 13,
+              color: absent.length > 0 ? 'var(--color-warn)' : 'var(--color-muted)',
+            }}
+          >
+            on {present.length} of {read.members.length} switch{read.members.length === 1 ? '' : 'es'}
+            {absent.length > 0 && ` · absent on ${absent.join(', ')}`}
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+        {present.length > 0 && actions}
+      </div>
+      {read.error ? (
+        <ReadError switchId={group ? '' : scope.id} message={read.error.message} onFixed={read.refetch} />
+      ) : read.loading ? (
+        <Spinner label={`Loading ${KIND_NOUN[kind]}`} />
+      ) : present.length === 0 ? (
+        <Alert tone="warn">
+          {id} does not exist on {group ? `any switch in ${scope.id}` : scope.id}.
+        </Alert>
+      ) : (
+        <>
+          <PresenceBanner members={present} path={objectPath} label={id} group={group} />
+          {failed.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <Alert tone="warn">
+                Could not read {failed.map((sw) => `${sw} (${read.errors[sw]})`).join(', ')} — shown without
+                {failed.length === 1 ? ' it' : ' them'}.
+              </Alert>
+            </div>
+          )}
+          <Tabs tabs={tabs.map((t) => ({ id: t.id, label: t.label }))} active={active} onChange={select} />
+          {tabs.find((t) => t.id === active)?.content}
+        </>
+      )}
+    </>
+  );
 }
 
 /* ValueGrid: labelled values as an airy tile grid — the one config layout

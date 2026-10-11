@@ -22,7 +22,7 @@ import { getPath } from '../../lib/format.js';
 import { fieldPath, type SectionDef } from './sections.js';
 import { planCalls, type PerSwitchDraft, type PlanField, type SharedDraft } from './plan.js';
 import { ChangeFlow } from './ChangeFlow.js';
-import { useHeartbeat } from './Presence.js';
+import { useHeartbeat } from '../../components/presence.js';
 import { usePerSwitch, type Scope } from './scope.js';
 
 const KEEP = '\u0000keep';

@@ -10,15 +10,14 @@
  */
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Alert, Breadcrumb, Button, Spinner, Tabs } from '../components/ui.js';
-import { ReadError } from '../components/resource.js';
+import { Breadcrumb, Button } from '../components/ui.js';
+import { ResourceDetail } from '../components/resource.js';
 import { MergedList, type MergedColumn } from '../components/MergedList.js';
 import { presence } from '../lib/merge.js';
 import { getPath } from '../lib/format.js';
 import { ConfigTab } from './iface/ConfigTab.js';
 import { displayValue } from '../lib/format.js';
 import { ScopeShell } from './iface/ScopeShell.js';
-import { PresenceBanner } from './iface/Presence.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 import { DOMAIN_SECTIONS } from './bridge/sections.js';
 import { domainPorts, domainVlans } from './bridge/members.js';
@@ -64,11 +63,8 @@ export function BridgeDomainDetail() {
   }
   const path = `/bridge/domain/${domainId}`;
   const cfg = usePerSwitch(scope, path, { rev: 'applied' });
-  const group = scope.kind === 'group';
   const base = scopeBase(scope);
-  const { present, absent } = presence(cfg.members, cfg.objects);
-  const failed = Object.keys(cfg.errors);
-  const absentOnly = absent.filter((sw) => !failed.includes(sw));
+  const { present } = presence(cfg.members, cfg.objects);
 
   return (
     <ScopeShell scope={scope} active="/bridge">
@@ -80,84 +76,67 @@ export function BridgeDomainDetail() {
         ]}
         onNav={navigate}
       />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{domainId}</h1>
-        {group && !cfg.loading && (
-          <span
-            style={{
-              fontSize: 13,
-              color: absentOnly.length > 0 ? 'var(--color-warn)' : 'var(--color-muted)',
-            }}
-          >
-            on {present.length} of {cfg.members.length} switch{cfg.members.length === 1 ? '' : 'es'}
-            {absentOnly.length > 0 && ` · absent on ${absentOnly.join(', ')}`}
-          </span>
-        )}
-      </div>
-      {cfg.error ? (
-        <ReadError switchId={group ? '' : scope.id} message={cfg.error.message} onFixed={cfg.refetch} />
-      ) : cfg.loading ? (
-        <Spinner label="Loading bridge domain" />
-      ) : present.length === 0 ? (
-        <Alert tone="warn">
-          {domainId} does not exist on {group ? 'any switch in this group' : scope.id}.
-        </Alert>
-      ) : (
-        <>
-          <PresenceBanner members={present} path={path} label={domainId} group={group} />
-          {failed.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <Alert tone="warn">
-                Could not read {failed.map((sw) => `${sw} (${cfg.errors[sw]})`).join(', ')} — shown without
-                {failed.length === 1 ? ' it' : ' them'}.
-              </Alert>
-            </div>
-          )}
-          <Tabs
-            tabs={[
-              { id: 'config', label: 'Config' },
-              { id: 'vlans', label: 'VLANs' },
-              { id: 'ports', label: 'Ports' },
-              { id: 'macs', label: 'MACs' },
-            ]}
-            active={tab}
-            onChange={(id) => pickTab(id as Tab)}
-          />
-          {tab === 'config' ? (
-            <ConfigTab
-              scope={scope}
-              objectPath={path}
-              name={domainId}
-              sections={DOMAIN_SECTIONS}
-              cfg={cfg.objects}
-              oper={{}}
-              present={present}
-              onOpenSwitch={(sw) => navigate(`/switches/${enc(sw)}/bridge/${enc(domainId)}`)}
-            />
-          ) : tab === 'vlans' ? (
-            <MergedList
-              group={group}
-              noun="VLANs"
-              members={present}
-              objects={Object.fromEntries(present.map((sw) => [sw, domainVlans(cfg.objects[sw])]))}
-              loading={false}
-              refetch={cfg.refetch}
-              columns={VLAN_COLUMNS}
-              storageKey="cumulus.bridge-vlans.v1"
-            />
-          ) : tab === 'macs' ? (
-            <MacTab
-              scope={scope}
-              domainId={domainId}
-              present={present}
-              filterIface={ifaceFilter}
-              onClearFilter={() => setParams({ tab: 'macs' }, { replace: true })}
-            />
-          ) : (
-            <PortsTab scope={scope} domainId={domainId} present={present} />
-          )}
-        </>
-      )}
+      <ResourceDetail
+        scope={scope}
+        kind="bridge"
+        id={domainId}
+        tabs={[
+          {
+            id: 'config',
+            label: 'Config',
+            content: (
+              <ConfigTab
+                scope={scope}
+                objectPath={path}
+                name={domainId}
+                sections={DOMAIN_SECTIONS}
+                cfg={cfg.objects}
+                oper={{}}
+                present={present}
+                onOpenSwitch={(sw) => navigate(`/switches/${enc(sw)}/bridge/${enc(domainId)}`)}
+              />
+            ),
+          },
+          {
+            id: 'vlans',
+            label: 'VLANs',
+            content: (
+              <MergedList
+                group={scope.kind === 'group'}
+                noun="VLANs"
+                members={present}
+                objects={Object.fromEntries(present.map((sw) => [sw, domainVlans(cfg.objects[sw])]))}
+                loading={false}
+                refetch={cfg.refetch}
+                columns={VLAN_COLUMNS}
+                storageKey="cumulus.bridge-vlans.v1"
+              />
+            ),
+          },
+          {
+            id: 'ports',
+            label: 'Ports',
+            content: <PortsTab scope={scope} domainId={domainId} present={present} />,
+          },
+          {
+            id: 'macs',
+            label: 'MACs',
+            content: (
+              <MacTab
+                scope={scope}
+                domainId={domainId}
+                present={present}
+                filterIface={ifaceFilter}
+                onClearFilter={() => setParams({ tab: 'macs' }, { replace: true })}
+              />
+            ),
+          },
+        ]}
+        activeTab={tab}
+        onTabChange={(id) => pickTab(id as Tab)}
+        read={cfg}
+        present={present}
+      />
     </ScopeShell>
   );
 }

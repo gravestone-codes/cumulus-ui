@@ -18,6 +18,7 @@ import {
   type StagedDiff,
 } from '../../lib/api.js';
 import { Alert, Button, Spinner, Tabs } from '../../components/ui.js';
+import { DiffList } from '../../components/diff.js';
 import { stageRounds } from './plan.js';
 import { driftBy, useRefreshSwitches } from './ScopeShell.js';
 import type { Scope } from './scope.js';
@@ -535,37 +536,6 @@ export function ChangeFlow({
         </Button>
       </div>
     </>
-  );
-}
-
-/** Staged paths as before → after rows (own dry-run and others' staged work share it). */
-export function DiffList({ rows }: { rows: StagedDiff[] }) {
-  return (
-    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
-      {rows.map((d, i) => (
-        <li
-          key={`${d.path}-${i}`}
-          style={{
-            background: 'var(--color-surface-2)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 8,
-            padding: '10px 12px',
-            fontSize: 13,
-            overflowWrap: 'anywhere',
-          }}
-        >
-          <span className="mono">
-            {d.method === 'DELETE' ? 'remove ' : ''}
-            {decodeURIComponent(d.path)}
-          </span>
-          <br />
-          <span style={{ color: 'var(--color-muted)' }}>{shortVal(d.before)} → </span>
-          <span style={{ color: 'var(--color-text)', fontWeight: 700 }}>
-            {d.method === 'DELETE' ? 'removed' : shortVal(d.mine)}
-          </span>
-        </li>
-      ))}
-    </ul>
   );
 }
 

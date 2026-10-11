@@ -21,7 +21,7 @@ import { InterfacePicker } from '../../components/InterfacePicker.js';
 import { boundsOf, choicesOf, leafSchema } from '../../lib/fieldSchema.js';
 import { bondedPorts, pickerOptions } from '../../lib/interfacePicker.js';
 import { ChangeFlow } from './ChangeFlow.js';
-import { useHeartbeat } from './Presence.js';
+import { useHeartbeat } from '../../components/presence.js';
 import { refreshInterfaces, type Scope } from './scope.js';
 
 /** Linux interface names: ≤15 chars, no spaces or slashes. */
