@@ -19,7 +19,7 @@ import {
 } from '../../lib/api.js';
 import { Alert, Button, Spinner, Tabs } from '../../components/ui.js';
 import { DiffList } from '../../components/diff.js';
-import { stageRounds } from './plan.js';
+import { stageRounds } from '../../lib/plan.js';
 import { driftBy, useRefreshSwitches } from './ScopeShell.js';
 import type { Scope } from './scope.js';
 

@@ -15,8 +15,9 @@ import { mergeValues } from '../../lib/merge.js';
 import { displayValue, getPath } from '../../lib/format.js';
 import { fieldPath, isConfigured, type SectionDef } from './sections.js';
 import { SectionEdit } from './SectionEdit.js';
+import { ResourceForm } from './ResourceForm.js';
 import { refreshInterfaces, type Scope } from './scope.js';
-import type { SharedDraft } from './plan.js';
+import type { SharedDraft } from '../../lib/plan.js';
 
 type Obj = Record<string, unknown> | undefined;
 
@@ -140,19 +141,38 @@ export function ConfigTab({
           );
         })}
       </div>
-      {editing && (
-        <SectionEdit
+      {editing && editing.section.id === 'general' ? (
+        // TODO promote: route every section through ResourceForm (merge-back: M2).
+        // General (one description field) proves the schema-enumerated path end to end.
+        <ResourceForm
           scope={scope}
           objectPath={objectPath}
           name={name}
-          section={editing.section}
+          title={editing.section.title}
+          only={['description']}
           cfg={cfg}
           present={present}
           preset={editing.preset}
           onClose={() => setEditing(null)}
           onApplied={() => refreshInterfaces(queryClient)}
           notify={toast}
+          doneText={`${editing.section.title} on ${name}`}
         />
+      ) : (
+        editing && (
+          <SectionEdit
+            scope={scope}
+            objectPath={objectPath}
+            name={name}
+            section={editing.section}
+            cfg={cfg}
+            present={present}
+            preset={editing.preset}
+            onClose={() => setEditing(null)}
+            onApplied={() => refreshInterfaces(queryClient)}
+            notify={toast}
+          />
+        )
       )}
     </div>
   );

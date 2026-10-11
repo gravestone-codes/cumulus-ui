@@ -8,6 +8,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api } from './api.js';
+import { choicesOf, invalidReason, kindOf, leafSchema } from './fieldSchema.js';
+import type { FormField } from './plan.js';
 
 type Schema = Record<string, unknown>;
 
@@ -58,7 +60,6 @@ export function itemSchema(schema: unknown): Schema | null {
 }
 
 const SCALAR = new Set(['string', 'number', 'integer', 'boolean']);
-
 /** Last segment as a label (`link/admin-status` → `Admin status`). */
 export function leafLabel(path: string, schema?: Schema): string {
   const titled = typeof schema?.['title'] === 'string' && schema['title'];
@@ -151,4 +152,32 @@ export function useSchemaFields(
     }
   }
   return { checked, setChecked };
+}
+
+/**
+ * PATCH-body leaves as planned form fields (roadmap 2.3/R9): kinds, choices
+ * and validation from the schema, labels overridden for presentation.
+ * `only` carves a thin slice (e.g. one field); unknown leaves are dropped.
+ */
+export function planFieldsFromSchema(
+  schema: unknown,
+  opts: { only?: string[]; labels?: Record<string, string> } = {},
+): FormField[] {
+  const out: FormField[] = [];
+  const items = opts.only ?? scalarLeaves((itemSchema(schema) ?? schema) as Schema).map((l) => l.path);
+  for (const leaf of items) {
+    const s = leafSchema(schema, leaf);
+    if (s === undefined && opts.only === undefined) continue;
+    const kind = kindOf(s);
+    out.push({
+      path: leaf,
+      label: opts.labels?.[leaf] ?? leafLabel(leaf, s),
+      kind,
+      choices: choicesOf(s),
+      perSwitch: false,
+      invalid: (t: string) => invalidReason(kind, t, s),
+      schema: s,
+    });
+  }
+  return out;
 }
