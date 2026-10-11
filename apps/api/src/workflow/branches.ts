@@ -132,6 +132,45 @@ export async function discardBranch(
   }
 }
 
+/** One user's unapplied staging branch, summarized for banners (no staged bodies). */
+export interface DraftSummary {
+  switchId: string;
+  branch: string;
+  baseRev: string | null;
+  stagedCount: number;
+  /** When the branch was cut off applied (drift after this makes the draft stale). */
+  basedAt: string;
+  updatedAt: string;
+}
+
+interface DraftRow {
+  switch_id: string;
+  branch: string;
+  base_rev: string | null;
+  staged_count: number;
+  based_at: Date;
+  updated_at: Date;
+}
+
+/** Every unapplied branch this user holds, ordered by switch. */
+export async function listDrafts(userSub: string): Promise<DraftSummary[]> {
+  const { rows } = await db().query<DraftRow>(
+    `SELECT switch_id, branch, base_rev,
+       COALESCE(jsonb_array_length(staged_paths), 0) AS staged_count,
+       based_at, updated_at
+     FROM edit_sessions WHERE user_sub = $1 ORDER BY switch_id`,
+    [userSub],
+  );
+  return rows.map((r) => ({
+    switchId: r.switch_id,
+    branch: r.branch,
+    baseRev: r.base_rev,
+    stagedCount: Number(r.staged_count) || 0,
+    basedAt: r.based_at.toISOString(),
+    updatedAt: r.updated_at.toISOString(),
+  }));
+}
+
 /** Delete sessions older than maxAgeDays. Returns count (switch-side orphans left for NVUE GC). */
 export async function purgeEditSessions(maxAgeDays = 7): Promise<number> {
   const { rowCount } = await db().query(

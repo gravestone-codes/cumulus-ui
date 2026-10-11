@@ -152,7 +152,7 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 ## Phase 1 — Workflow engine (the NVUE-specific risk; prototype early, on hardware)
 
 - [x] 1.1 `RevisionManager` (R4): per-user branches + base-ID recording. Hygiene (recommended): branch TTL 7 days + nightly orphan GC; logout **keeps** drafts (listed as "my drafts" next login); explicit discard with confirm; stale-base routes to `ConflictScreen`, never silent drop.
-- [ ] 1.2 Branch banner UI: visible active branch per editing session + discard path
+- [x] 1.2 Branch banner UI: visible active branch per editing session + discard path
 - [x] 1.3 `ApplyPipeline` (R5): queue → overlap check → `DiffPreview` → danger-class confirm modal (§6.6) → `POST /config` → poll `GET /action`. Pre-apply snapshot: record base applied-ID + fetch full applied state as the rollback reference for every apply.
 - [x] 1.4 `ActionRunner` (R6): generic driver for the 169 POSTs; confirm style follows danger class; prove with `clear interface counters`
 - [x] 1.5 `Presence` (R19) + `ConflictScreen` (R20): per §4
@@ -190,7 +190,7 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 ### 3B — Bridge / VLAN (first consumer of interfaces + bonds)
 
 - [x] 3B.1 List/detail: `GET /bridge/domain…` via generics → `S4`
-- [ ] 3B.2 `VlanAttachment` (R13): attach interface/bond (via `InterfacePicker` → `S1`, bonds via `BondBuilder` — **import, don't rebuild**)
+- [x] 3B.2 `VlanAttachment` (R13): attach interface/bond (via `InterfacePicker` → `S1`, bonds via `BondBuilder` — **import, don't rebuild**)
 - [x] 3B.3 MAC-table view + clear-dynamic-MAC via `ActionRunner` (POST)
 - [ ] 3B.4 STP tab (read + edit via `ResourceForm`)
 - [ ] ✅ **Identity check:** zero bond state in bridge; all bonds resolve to `S1`

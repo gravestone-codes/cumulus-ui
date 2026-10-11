@@ -12,7 +12,7 @@ import { gateCheck, getUserRoles, mayAccessSwitch, type Role } from '../rbac/sto
 import { audit, redact } from '../audit/store.js';
 import { withSwitchToken } from '../nvue/clients.js';
 import { getSwitch, markSeen } from '../inventory/store.js';
-import { BranchConflictError, discardBranch, getEditSession, openBranch } from './branches.js';
+import { BranchConflictError, discardBranch, getEditSession, listDrafts, openBranch } from './branches.js';
 import { heartbeat, overlaps, presentOthers } from './presence.js';
 import { applySession, OverlapError, collectDiffs } from './apply.js';
 import { getAction } from '../nvue/revisions.js';
@@ -229,6 +229,19 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
 
   // Out-of-band changes (roadmap 4.6) the caller has not refreshed past, on switches their roles cover.
   // Screens show a banner from this; new edit sessions are refused until the user refreshes (ack).
+  app.get('/api/v1/drafts', async (request, reply) => {
+    const who = await resolveCaller(request, cfg);
+    if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    const roles = await getUserRoles(who.sub);
+    const drafts = await listDrafts(who.sub);
+    const visible = [];
+    for (const d of drafts) {
+      const sw = await getSwitch(d.switchId);
+      if (sw && mayAccessSwitch(roles, sw.groups)) visible.push(d);
+    }
+    return visible;
+  });
+
   app.get('/api/v1/drift', async (request, reply) => {
     const who = await resolveCaller(request, cfg);
     if (!who) return problem(reply, 401, 'Unauthorized', 'no active session', request.url);
