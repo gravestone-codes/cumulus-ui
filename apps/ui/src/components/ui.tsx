@@ -148,7 +148,9 @@ export function Modal({
   );
 }
 
-/* Confirm: the one destructive/affirmative dialog. Max two actions by §7. */
+/* Confirm: the one destructive/affirmative dialog. Max two actions by §7.
+   `ackLabel` adds an explicit acknowledgement checkbox (service-affecting);
+   `requireText` turns it into a typed confirmation (dangerous, §6.6). */
 export function Confirm({
   open,
   title,
@@ -156,6 +158,8 @@ export function Confirm({
   confirmLabel = 'Confirm',
   danger = false,
   busy = false,
+  ackLabel,
+  requireText,
   onConfirm,
   onCancel,
 }: {
@@ -165,17 +169,43 @@ export function Confirm({
   confirmLabel?: string;
   danger?: boolean;
   busy?: boolean;
+  /** Checkbox text; confirm stays disabled until checked. */
+  ackLabel?: string;
+  /** Exact text the user must type; confirm stays disabled until it matches. */
+  requireText?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const [acked, setAcked] = useState(false);
+  const [typed, setTyped] = useState('');
+  useEffect(() => {
+    if (open) {
+      setAcked(false);
+      setTyped('');
+    }
+  }, [open ]);
+  const ready = (!ackLabel || acked) && (!requireText || typed === requireText);
   return (
     <Modal open={open} onClose={onCancel} title={title}>
       <p style={{ fontSize: 15, color: 'var(--color-muted)', margin: '0 0 20px' }}>{body}</p>
+      {ackLabel && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, marginBottom: 12 }}>
+          <input type="checkbox" checked={acked} onChange={(e) => setAcked(e.target.checked)} />
+          {ackLabel}
+        </label>
+      )}
+      {requireText && (
+        <LineField
+          label={`Type ${requireText} to confirm`}
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+        />
+      )}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <Button auto variant="secondary" onClick={onCancel} disabled={busy}>
           Cancel
         </Button>
-        <Button auto variant={danger ? 'danger' : 'primary'} onClick={onConfirm} disabled={busy}>
+        <Button auto variant={danger ? 'danger' : 'primary'} onClick={onConfirm} disabled={busy || !ready}>
           {busy ? 'Working…' : confirmLabel}
         </Button>
       </div>

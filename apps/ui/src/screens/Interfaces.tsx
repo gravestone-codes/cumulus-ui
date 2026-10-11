@@ -15,7 +15,8 @@ import { FieldPicker } from '../components/FieldPicker.js';
 import { ifaceState } from '../lib/format.js';
 import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { ScopeShell } from './iface/ScopeShell.js';
-import { CreateInterface, DeleteInterface } from './iface/CreateInterface.js';
+import { CreateInterface } from './iface/CreateInterface.js';
+import { DeleteFlow } from './iface/DeleteFlow.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
 type Obj = Record<string, unknown>;
@@ -154,10 +155,11 @@ export function Interfaces() {
         />
       )}
       {deleting && (
-        <DeleteInterface
+        <DeleteFlow
           scope={scope}
-          ifname={deleting.name}
-          members={deleting.members}
+          name={deleting.name}
+          paths={Object.fromEntries(deleting.members.map((sw) => [sw, `/interface/${deleting.name}`]))}
+          warning={`Deleting ${deleting.name} removes it and its configuration; traffic on it stops.`}
           onClose={() => setDeleting(null)}
         />
       )}

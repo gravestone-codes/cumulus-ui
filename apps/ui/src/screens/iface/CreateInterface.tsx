@@ -196,37 +196,3 @@ export function CreateInterface({
     </Modal>
   );
 }
-
-/** Delete one interface on the members that have it; the dry-run is the confirmation. */
-export function DeleteInterface({
-  scope,
-  ifname,
-  members,
-  onClose,
-}: {
-  scope: Scope;
-  ifname: string;
-  members: string[];
-  onClose: () => void;
-}) {
-  const toast = useToast();
-  const queryClient = useQueryClient();
-  const calls = Object.fromEntries(
-    members.map((sw) => [sw, [{ path: `/interface/${ifname}`, method: 'DELETE' as const }]]),
-  );
-  useHeartbeat(members, `/interface/${ifname}`);
-  return (
-    <Modal open onClose={onClose} title={`Delete ${ifname}`} width={scope.kind === 'group' ? 600 : 460}>
-      <ChangeFlow
-        scope={scope}
-        calls={calls}
-        warning={`Deleting ${ifname} removes it and its configuration; traffic on it stops.`}
-        onBack={onClose}
-        onClose={onClose}
-        onApplied={() => refreshInterfaces(queryClient)}
-        notify={toast}
-        doneText={`Delete ${ifname}`}
-      />
-    </Modal>
-  );
-}
