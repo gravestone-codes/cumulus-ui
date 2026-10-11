@@ -17,18 +17,19 @@ import type { RowMenuItem } from './ui.js';
 import { FieldPicker } from './FieldPicker.js';
 import { PresenceBanner } from './presence.js';
 
-/* ViewSwitcher: the manifest's view names for a path template, as a dropdown. */
+/* ViewSwitcher: the manifest's view names for a collection path, as a dropdown. */
 export function ViewSwitcher({
-  pathTemplate,
+  path,
   value,
   onChange,
 }: {
-  pathTemplate: string;
+  /** Collection path being read (views live on collections, e.g. `/interface`). */
+  path: string;
   value?: string;
   onChange: (view?: string) => void;
 }) {
   const manifest = useQuery({ queryKey: ['manifest'], queryFn: () => api.manifest(), staleTime: 300_000 });
-  const views = manifest.data?.views[pathTemplate] ?? [];
+  const views = manifest.data?.views[path] ?? [];
   if (views.length === 0) return null;
   return (
     <LineDropdown
@@ -282,7 +283,7 @@ export function ResourceList<T extends object>({
           <FieldPicker leaves={leaves} checked={checked} defaults={defaultFields ?? []} onChange={setChecked} />
         )}
         <span style={{ minWidth: 180 }}>
-          <ViewSwitcher pathTemplate={pathTemplate} value={view} onChange={setView} />
+          <ViewSwitcher path={path} value={view} onChange={setView} />
         </span>
       </div>
       {list.isError ? (

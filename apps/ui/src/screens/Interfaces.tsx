@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Badge, Breadcrumb, Button, type RowMenuItem } from '../components/ui.js';
-import { ResourceList } from '../components/resource.js';
+import { ResourceList, ViewSwitcher } from '../components/resource.js';
 import { type GridColumn } from '../components/DataTable.js';
 import { holdersOf, MergedList, schemaMergedColumns, type MergedRow } from '../components/MergedList.js';
 import { FieldPicker } from '../components/FieldPicker.js';
@@ -53,8 +53,13 @@ export function Interfaces() {
   const fieldKey = scope.kind === 'group' ? 'cumulus.group-interfaces.v1' : 'cumulus.interfaces.v1';
   const { leaves } = useSchemaLeaves('/interface/{interface-id}');
   const { checked, setChecked } = useSchemaFields(fieldKey, leaves, IFACE_FIELDS);
+  const [view, setView] = useState<string | undefined>(undefined);
   const include = checked.length > 0 ? toIncludePatterns('/interface', checked) : undefined;
-  const list = usePerSwitch<Record<string, Obj>>(scope, '/interface', include ? { include } : {});
+  const list = usePerSwitch<Record<string, Obj>>(
+    scope,
+    '/interface',
+    include || view ? { ...(include ? { include } : {}), ...(view ? { view } : {}) } : {},
+  );
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<{ name: string; members: string[] } | null>(null);
 
@@ -63,6 +68,13 @@ export function Interfaces() {
   const picker =
     leaves.length > 0 ? (
       <FieldPicker leaves={leaves} checked={checked} defaults={IFACE_FIELDS} onChange={setChecked} />
+    ) : null;
+
+  const viewPicker =
+    scope.kind === 'group' ? (
+      <span style={{ minWidth: 180 }}>
+        <ViewSwitcher path="/interface" value={view} onChange={setView} />
+      </span>
     ) : null;
 
   const newButton = (
@@ -114,6 +126,7 @@ export function Interfaces() {
           actions={
             <>
               {picker}
+              {viewPicker}
               {newButton}
             </>
           }

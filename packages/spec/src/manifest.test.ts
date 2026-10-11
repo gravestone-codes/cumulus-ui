@@ -22,7 +22,23 @@ describe('buildManifest', () => {
         '/interface': { get: { parameters: [{ name: 'view', schema: { enum: ['status', 'counters'] } }] } },
       },
     });
-    expect(m.views).toEqual({ '/interface': ['status', 'counters'] });
+    expect(m.views).toEqual({ '/interface': ['counters', 'status'] });
+  });
+
+  it('extracts views from view:* response links (this spec’s shape)', () => {
+    const m = buildManifest({
+      'x-defs': {
+        show: {
+          content: {},
+          links: { 'view:status': { operationId: 'getInterfaces' }, 'view:rates': {}, other: {} },
+        },
+      },
+      paths: {
+        '/interface': { get: { responses: { 200: { $ref: '#/x-defs/show' } } } },
+        '/plain': { get: { responses: { 200: { content: {} } } } },
+      },
+    });
+    expect(m.views).toEqual({ '/interface': ['rates', 'status'] });
   });
 
   it('maps routes to allowed methods', () => {

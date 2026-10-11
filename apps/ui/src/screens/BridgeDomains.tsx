@@ -4,9 +4,10 @@
  * operational state yet). Group: MergedList — one row per domain, n/m
  * presence, mixed values. Both read `/bridge/domain` → S4.
  */
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Breadcrumb } from '../components/ui.js';
-import { ResourceList } from '../components/resource.js';
+import { ResourceList, ViewSwitcher } from '../components/resource.js';
 import { type GridColumn } from '../components/DataTable.js';
 import { MergedList, schemaMergedColumns } from '../components/MergedList.js';
 import { FieldPicker } from '../components/FieldPicker.js';
@@ -39,10 +40,12 @@ export function BridgeDomains() {
   const fieldKey = scope.kind === 'group' ? 'cumulus.group-bridge-domains.v1' : 'cumulus.bridge-domains.v1';
   const { leaves } = useSchemaLeaves(BRIDGE_SCHEMA);
   const { checked, setChecked } = useSchemaFields(fieldKey, leaves, BRIDGE_FIELDS);
+  const [view, setView] = useState<string | undefined>(undefined);
   const include = checked.length > 0 ? toIncludePatterns('/bridge/domain', checked) : undefined;
   const list = usePerSwitch<Record<string, Obj>>(scope, '/bridge/domain', {
     rev: 'applied',
     ...(include ? { include } : {}),
+    ...(view ? { view } : {}),
     enabled: scope.kind === 'group',
   });
   const picker =
@@ -76,7 +79,14 @@ export function BridgeDomains() {
           {...list}
           columns={schemaMergedColumns(leaves, checked, BRIDGE_LABELS)}
           storageKey="cumulus.group-bridge-domains.v1"
-          actions={picker}
+          actions={
+            <>
+              {picker}
+              <span style={{ minWidth: 180 }}>
+                <ViewSwitcher path="/bridge/domain" value={view} onChange={setView} />
+              </span>
+            </>
+          }
           onOpen={(name) => navigate(`${base}/bridge/${encodeURIComponent(name)}`)}
           onOpenSwitch={(sw, name) =>
             navigate(`/switches/${encodeURIComponent(sw)}/bridge/${encodeURIComponent(name)}`)
