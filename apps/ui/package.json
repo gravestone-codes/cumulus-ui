@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:hw": "playwright test -c playwright.hw.config.ts",
-    "lint": "eslint src"
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "lint": "eslint src .storybook"
   },
   "dependencies": {
     "@tanstack/react-query": "5.103.1",
@@ -28,12 +30,15 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@cumulus/spec": "workspace:*",
     "@playwright/test": "1.63.0",
+    "@storybook/react-vite": "^10.6.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "26.6.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.1",
+    "storybook": "^10.6.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
     "vite": "8.3.0",

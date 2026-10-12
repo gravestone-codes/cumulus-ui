@@ -12,25 +12,14 @@ import { Card } from '../../components/cards.js';
 import { ValueGrid } from '../../components/resource.js';
 import { MixedValue, PerSwitchValue } from '../../components/mixed.js';
 import { mergeValues } from '../../lib/merge.js';
-import { getPath } from '../../lib/format.js';
+import { displayValue, getPath } from '../../lib/format.js';
 import { fieldPath, isConfigured, type SectionDef } from './sections.js';
 import { SectionEdit } from './SectionEdit.js';
+import { ResourceForm } from './ResourceForm.js';
 import { refreshInterfaces, type Scope } from './scope.js';
-import type { SharedDraft } from './plan.js';
+import type { SharedDraft } from '../../lib/plan.js';
 
 type Obj = Record<string, unknown> | undefined;
-
-const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
-
-/** Any NVUE value as display text: tag/set objects → their keys, scalars as-is. */
-export function displayValue(raw: unknown): string {
-  if (raw === undefined || raw === null || raw === '') return '';
-  if (typeof raw === 'object')
-    return Object.keys(raw as object)
-      .sort(natural)
-      .join(', ');
-  return String(raw);
-}
 
 export function ConfigTab({
   scope,
@@ -152,19 +141,38 @@ export function ConfigTab({
           );
         })}
       </div>
-      {editing && (
-        <SectionEdit
+      {editing && editing.section.id === 'general' ? (
+        // TODO promote: route every section through ResourceForm (merge-back: M2).
+        // General (one description field) proves the schema-enumerated path end to end.
+        <ResourceForm
           scope={scope}
           objectPath={objectPath}
           name={name}
-          section={editing.section}
+          title={editing.section.title}
+          only={['description']}
           cfg={cfg}
           present={present}
           preset={editing.preset}
           onClose={() => setEditing(null)}
           onApplied={() => refreshInterfaces(queryClient)}
           notify={toast}
+          doneText={`${editing.section.title} on ${name}`}
         />
+      ) : (
+        editing && (
+          <SectionEdit
+            scope={scope}
+            objectPath={objectPath}
+            name={name}
+            section={editing.section}
+            cfg={cfg}
+            present={present}
+            preset={editing.preset}
+            onClose={() => setEditing(null)}
+            onApplied={() => refreshInterfaces(queryClient)}
+            notify={toast}
+          />
+        )
       )}
     </div>
   );

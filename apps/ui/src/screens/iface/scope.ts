@@ -41,17 +41,25 @@ function fromMembers<T>(results: MemberResult<T>[]): Pick<PerSwitch<T>, 'members
 export function usePerSwitch<T = Record<string, unknown>>(
   scope: Scope,
   path: string,
-  opts: { rev?: string; refetchMs?: number; enabled?: boolean } = {},
+  opts: {
+    rev?: string;
+    view?: string;
+    include?: string[];
+    omit?: string[];
+    refetchMs?: number;
+    enabled?: boolean;
+  } = {},
 ): PerSwitch<T> {
+  const { refetchMs, enabled, ...query } = opts;
   const q = useQuery({
-    queryKey: ['scope-read', scope.kind, scope.id, path, opts.rev ?? 'operational'],
+    queryKey: ['scope-read', scope.kind, scope.id, path, query],
     queryFn: async () => {
       if (scope.kind === 'group') {
-        const res = await api.groupQuery<T>(scope.id, path, opts.rev ? { rev: opts.rev } : undefined);
+        const res = await api.groupQuery<T>(scope.id, path, query);
         return fromMembers(res.results);
       }
       try {
-        const res = await api.query<T>(scope.id, path, opts.rev ? { rev: opts.rev } : undefined);
+        const res = await api.query<T>(scope.id, path, query);
         return { members: [scope.id], objects: { [scope.id]: res.data }, errors: {} };
       } catch (err) {
         // Absence is an answer for one switch too (interface gone, subtree unset).
@@ -63,8 +71,8 @@ export function usePerSwitch<T = Record<string, unknown>>(
     },
     retry: (count, err) => (err instanceof ApiError ? err.status >= 500 && count < 2 : count < 2),
     staleTime: 30_000,
-    refetchInterval: opts.refetchMs,
-    enabled: opts.enabled ?? true,
+    refetchInterval: refetchMs,
+    enabled: enabled ?? true,
   });
   return {
     members: q.data?.members ?? (scope.kind === 'switch' ? [scope.id] : []),

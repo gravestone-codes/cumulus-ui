@@ -3,15 +3,8 @@
  * fan-out rounds. A switch whose values already match gets no call at all,
  * so applies only touch switches with a real diff (design §4A).
  */
-import type { StageCall } from '../../lib/api.js';
-import {
-  encodeValue,
-  mergeBodies,
-  nest,
-  setDelta,
-  setEntries,
-  type FieldKind,
-} from '../../lib/fieldSchema.js';
+import type { StageCall } from './api.js';
+import { encodeValue, mergeBodies, nest, setDelta, setEntries, type FieldKind } from './fieldSchema.js';
 
 export interface PlanField {
   /** Leaf path from the interface root (`link/mtu`). */
@@ -22,6 +15,11 @@ export interface PlanField {
   perSwitch: boolean;
   /** Validation for a target value; null = fine. */
   invalid: (text: string) => string | null;
+}
+
+/** A planned field plus its spec node (bounds/placeholder source). */
+export interface FormField extends PlanField {
+  schema: Record<string, unknown> | undefined;
 }
 
 /** Shared draft: path → value; absent = keep each switch's own value. */

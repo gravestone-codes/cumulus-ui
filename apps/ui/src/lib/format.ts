@@ -32,6 +32,16 @@ export function firstDefined(row: unknown, ...paths: string[]): string | undefin
   return undefined;
 }
 
+/** Any NVUE value as display text: tag/set objects → their keys, scalars as-is. */
+export function displayValue(raw: unknown): string {
+  if (raw === undefined || raw === null || raw === '') return '';
+  if (typeof raw === 'object')
+    return Object.keys(raw as object)
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .join(', ');
+  return String(raw);
+}
+
 /**
  * Interface state: operational link state, falling back to oper-status.
  * `unknown` stays visible (honest) — except loopback, which is up by

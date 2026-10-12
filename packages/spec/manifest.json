@@ -28,7 +28,235 @@
     "service": 99,
     "nve": 11
   },
-  "views": {},
+  "views": {
+    "/platform/transceiver": [
+      "brief",
+      "detail"
+    ],
+    "/interface/{interface-id}/link/phy-detail": [
+      "hardware"
+    ],
+    "/interface/{interface-id}/acl": [
+      "brief"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}": [
+      "brief"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/statistics": [
+      "brief"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/statistics/{rule-id}": [
+      "brief"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/inbound": [
+      "brief"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/inbound/control-plane": [
+      "brief"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/outbound": [
+      "brief"
+    ],
+    "/interface/{interface-id}/acl/{acl-id}/outbound/control-plane": [
+      "brief"
+    ],
+    "/system/health/history": [
+      "brief"
+    ],
+    "/system/health/history/files/{file-name}": [
+      "brief"
+    ],
+    "/system/documentation": [
+      "brief"
+    ],
+    "/system/documentation/files": [
+      "brief"
+    ],
+    "/system/log/file": [
+      "brief",
+      "follow",
+      "list"
+    ],
+    "/system/log/file/{file-name}": [
+      "brief"
+    ],
+    "/system/log/component/{component-name}/file": [
+      "brief",
+      "follow",
+      "list"
+    ],
+    "/system/log/component/{component-name}/file/{file-name}": [
+      "brief"
+    ],
+    "/system/reboot": [
+      "brief"
+    ],
+    "/system/reboot/required": [
+      "brief"
+    ],
+    "/system/config/files/{config-file-id}": [
+      "brief"
+    ],
+    "/system/aaa/user": [
+      "all",
+      "brief",
+      "regular"
+    ],
+    "/router/nexthop/rib": [
+      "brief",
+      "detail"
+    ],
+    "/bridge": [
+      "port",
+      "port-vlan",
+      "vlan"
+    ],
+    "/bridge/domain": [
+      "brief"
+    ],
+    "/bridge/domain/{domain-id}": [
+      "brief"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop": [
+      "trust-ports"
+    ],
+    "/bridge/domain/{domain-id}/dhcp-snoop6": [
+      "trust-ports"
+    ],
+    "/bridge/domain/{domain-id}/port": [
+      "brief",
+      "vlan"
+    ],
+    "/bridge/domain/{domain-id}/stp": [
+      "blocked-ports",
+      "root"
+    ],
+    "/bridge/domain/{domain-id}/stp/port": [
+      "brief"
+    ],
+    "/bridge/domain/{domain-id}/stp/port/{interface-id}": [
+      "brief"
+    ],
+    "/bridge/domain/{domain-id}/mac-table": [
+      "brief"
+    ],
+    "/interface": [
+      "acl-statistics",
+      "bond-members",
+      "bonds",
+      "brief",
+      "carrier-stats",
+      "counters",
+      "description",
+      "dot1x-counters",
+      "dot1x-summary",
+      "down",
+      "lldp",
+      "lldp-detail",
+      "mac",
+      "mlag-cc",
+      "neighbor",
+      "physical",
+      "port-security",
+      "qos-congestion-control",
+      "qos-profile",
+      "qos-roce-counters",
+      "qos-roce-status",
+      "qos-roce-status-pool-map",
+      "rates",
+      "small",
+      "status",
+      "svi",
+      "synce-counters",
+      "up",
+      "vrf"
+    ],
+    "/interface/{interface-id}/port-security": [
+      "brief"
+    ],
+    "/interface/{interface-id}/lldp/neighbor": [
+      "brief"
+    ],
+    "/interface/{interface-id}/qos": [
+      "profile"
+    ],
+    "/interface/{interface-id}/qos/buffer": [
+      "brief"
+    ],
+    "/system": [
+      "brief"
+    ],
+    "/system/time": [
+      "unix"
+    ],
+    "/system/control-plane/policer": [
+      "brief"
+    ],
+    "/system/control-plane/acl": [
+      "brief"
+    ],
+    "/system/control-plane/acl/{acl-id}": [
+      "brief"
+    ],
+    "/system/control-plane/acl/{acl-id}/statistics": [
+      "brief"
+    ],
+    "/system/control-plane/acl/{acl-id}/statistics/{rule-id}": [
+      "brief"
+    ],
+    "/router/segment-routing/srv6/stats": [
+      "native"
+    ],
+    "/router/segment-routing/srv6/stats/sid/{sid}": [
+      "native"
+    ],
+    "/router/segment-routing/srv6/stats/no-sid-drops": [
+      "native"
+    ],
+    "/interface/{interface-id}/dot1x/authenticated-sessions": [
+      "brief"
+    ],
+    "/system/telemetry/hft": [
+      "brief"
+    ],
+    "/system/telemetry/hft/job": [
+      "brief"
+    ],
+    "/vrf": [
+      "brief",
+      "evpn"
+    ],
+    "/vrf/{vrf-id}/router/rib/{afi}/route": [
+      "brief"
+    ],
+    "/vrf/{vrf-id}/router/bgp/nexthop/{afi}/ip-address/{ip-address-id}": [
+      "brief"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv4-unicast/route": [
+      "brief"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/l2vpn-evpn/route": [
+      "brief"
+    ],
+    "/vrf/{vrf-id}/router/bgp/address-family/ipv6-unicast/route": [
+      "brief"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor": [
+      "brief"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/advertised-routes": [
+      "brief"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast/received-routes": [
+      "brief"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/received-routes": [
+      "brief"
+    ],
+    "/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv6-unicast/advertised-routes": [
+      "brief"
+    ]
+  },
   "routes": {
     "/": [
       "delete",

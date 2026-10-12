@@ -15,6 +15,8 @@ import { Interfaces } from './screens/Interfaces.js';
 import { InterfaceDetail } from './screens/InterfaceDetail.js';
 import { BridgeDomains } from './screens/BridgeDomains.js';
 import { BridgeDomainDetail } from './screens/BridgeDomainDetail.js';
+import { Domains } from './screens/Domains.js';
+import { DomainDetail } from './screens/DomainDetail.js';
 import { AuditLog } from './screens/AuditLog.js';
 import { SwitchHome } from './screens/SwitchHome.js';
 import { FleetDashboard } from './screens/FleetDashboard.js';
@@ -116,6 +118,22 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/groups/:groupId/:domainKey',
+    element: (
+      <RequireAuth>
+        <Domains />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/groups/:groupId/:domainKey/:name',
+    element: (
+      <RequireAuth>
+        <DomainDetail />
+      </RequireAuth>
+    ),
+  },
+  {
     path: '/groups/:groupId',
     element: (
       <RequireAuth>
@@ -176,6 +194,22 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <BridgeDomainDetail />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId/:domainKey',
+    element: (
+      <RequireAuth>
+        <Domains />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId/:domainKey/:name',
+    element: (
+      <RequireAuth>
+        <DomainDetail />
       </RequireAuth>
     ),
   },

@@ -6,9 +6,9 @@
  */
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api, type PresenceEntry } from '../../lib/api.js';
-import { Alert, Modal, Spinner, Tabs } from '../../components/ui.js';
-import { DiffList } from './ChangeFlow.js';
+import { api, type PresenceEntry } from '../lib/api.js';
+import { Alert, Modal, Spinner, Tabs } from './ui.js';
+import { DiffList } from './diff.js';
 
 /** Under the backend's 90s staleness window, with room for one missed beat. */
 const HEARTBEAT_MS = 30_000;

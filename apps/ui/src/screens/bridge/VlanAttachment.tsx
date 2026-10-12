@@ -16,7 +16,7 @@ import { boundsOf, leafSchema } from '../../lib/fieldSchema.js';
 import { bondedPorts, pickerOptions } from '../../lib/interfacePicker.js';
 import { mergeValues } from '../../lib/merge.js';
 import { ChangeFlow } from '../iface/ChangeFlow.js';
-import { useHeartbeat } from '../iface/Presence.js';
+import { useHeartbeat } from '../../components/presence.js';
 import { refreshInterfaces, type Scope } from '../iface/scope.js';
 import {
   invalidAttach,

@@ -8,7 +8,7 @@
 import type { StageCall } from '../../lib/api.js';
 import { mergeBodies, nest, setDelta, setEntries } from '../../lib/fieldSchema.js';
 import { getPath } from '../../lib/format.js';
-import { displayValue } from '../iface/ConfigTab.js';
+import { displayValue } from '../../lib/format.js';
 
 export type AttachMode = 'access' | 'trunk';
 

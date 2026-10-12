@@ -3,7 +3,7 @@
  * interface (S1) config — `/interface/{id}/bridge/domain/{domain}` — so the
  * Ports tab reads the interface collection, never a second port fetcher.
  */
-import { displayValue } from '../iface/ConfigTab.js';
+import { displayValue } from '../../lib/format.js';
 import { getPath, ifaceState } from '../../lib/format.js';
 
 type Obj = Record<string, unknown>;

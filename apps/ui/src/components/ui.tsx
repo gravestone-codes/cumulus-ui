@@ -148,7 +148,9 @@ export function Modal({
   );
 }
 
-/* Confirm: the one destructive/affirmative dialog. Max two actions by §7. */
+/* Confirm: the one destructive/affirmative dialog. Max two actions by §7.
+   `ackLabel` adds an explicit acknowledgement checkbox (service-affecting);
+   `requireText` turns it into a typed confirmation (dangerous, §6.6). */
 export function Confirm({
   open,
   title,
@@ -156,6 +158,8 @@ export function Confirm({
   confirmLabel = 'Confirm',
   danger = false,
   busy = false,
+  ackLabel,
+  requireText,
   onConfirm,
   onCancel,
 }: {
@@ -165,17 +169,43 @@ export function Confirm({
   confirmLabel?: string;
   danger?: boolean;
   busy?: boolean;
+  /** Checkbox text; confirm stays disabled until checked. */
+  ackLabel?: string;
+  /** Exact text the user must type; confirm stays disabled until it matches. */
+  requireText?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const [acked, setAcked] = useState(false);
+  const [typed, setTyped] = useState('');
+  useEffect(() => {
+    if (open) {
+      setAcked(false);
+      setTyped('');
+    }
+  }, [open]);
+  const ready = (!ackLabel || acked) && (!requireText || typed === requireText);
   return (
     <Modal open={open} onClose={onCancel} title={title}>
       <p style={{ fontSize: 15, color: 'var(--color-muted)', margin: '0 0 20px' }}>{body}</p>
+      {ackLabel && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, marginBottom: 12 }}>
+          <input type="checkbox" checked={acked} onChange={(e) => setAcked(e.target.checked)} />
+          {ackLabel}
+        </label>
+      )}
+      {requireText && (
+        <LineField
+          label={`Type ${requireText} to confirm`}
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+        />
+      )}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <Button auto variant="secondary" onClick={onCancel} disabled={busy}>
           Cancel
         </Button>
-        <Button auto variant={danger ? 'danger' : 'primary'} onClick={onConfirm} disabled={busy}>
+        <Button auto variant={danger ? 'danger' : 'primary'} onClick={onConfirm} disabled={busy || !ready}>
           {busy ? 'Working…' : confirmLabel}
         </Button>
       </div>
@@ -322,7 +352,7 @@ export interface NavItem {
 }
 
 export type NavIcon =
-  'dashboard' | 'interfaces' | 'bridge' | 'vrfs' | 'bgp' | 'audit' | 'switches' | 'software';
+  'dashboard' | 'interfaces' | 'bridge' | 'vrfs' | 'bgp' | 'audit' | 'switches' | 'software' | 'object';
 
 /* Hand-drawn stroke icon set (final.html §9). One set, keyed by item. */
 const NAV_ICONS: Record<NavIcon, ReactNode> = {
@@ -426,6 +456,20 @@ const NAV_ICONS: Record<NavIcon, ReactNode> = {
     >
       <path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z" />
       <path d="M12 11l8-4.5M12 11v9M12 11L4 6.5" />
+    </svg>
+  ),
+  object: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M4 9.3h16M9.3 9.3V20" />
     </svg>
   ),
 };
@@ -1333,6 +1377,12 @@ export function Breadcrumb({
       })}
     </nav>
   );
+}
+
+/* ScrollArea: bounded scroll region (stone thumb comes from the global
+   stylesheet). Tall panels scroll inside instead of pushing the page. */
+export function ScrollArea({ maxHeight = 320, children }: { maxHeight?: number; children: ReactNode }) {
+  return <div style={{ maxHeight, overflowY: 'auto' }}>{children}</div>;
 }
 
 /* Spinner: centered ring for loads, both axes. Motion-safe: static ring when

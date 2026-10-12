@@ -218,7 +218,7 @@ export interface FanoutReadResult {
 export async function fanoutQuery(
   ctx: { sub: string; roles: Role[]; credKey: string },
   groupId: string,
-  call: { path: string; rev?: string; view?: string },
+  call: { path: string; rev?: string; view?: string; include?: string[]; omit?: string[] },
 ): Promise<{ results: FanoutReadResult[]; denied: string[] }> {
   const switches = await getSwitchesByGroup(groupId);
   const denied: string[] = [];
@@ -233,7 +233,15 @@ export async function fanoutQuery(
       }
       try {
         const res = await withSwitchToken(ctx.sub, sw.id, { credKey: ctx.credKey }, (client, token) =>
-          client.call({ path: call.path, method: 'GET', rev: call.rev, view: call.view, token }),
+          client.call({
+            path: call.path,
+            method: 'GET',
+            rev: call.rev,
+            view: call.view,
+            include: call.include,
+            omit: call.omit,
+            token,
+          }),
         );
         return { switchId: sw.id, ok: true, data: res.data };
       } catch (err) {

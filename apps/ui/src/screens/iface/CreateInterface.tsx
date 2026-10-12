@@ -21,7 +21,7 @@ import { InterfacePicker } from '../../components/InterfacePicker.js';
 import { boundsOf, choicesOf, leafSchema } from '../../lib/fieldSchema.js';
 import { bondedPorts, pickerOptions } from '../../lib/interfacePicker.js';
 import { ChangeFlow } from './ChangeFlow.js';
-import { useHeartbeat } from './Presence.js';
+import { useHeartbeat } from '../../components/presence.js';
 import { refreshInterfaces, type Scope } from './scope.js';
 
 /** Linux interface names: ≤15 chars, no spaces or slashes. */
@@ -193,40 +193,6 @@ export function CreateInterface({
           </div>
         </>
       )}
-    </Modal>
-  );
-}
-
-/** Delete one interface on the members that have it; the dry-run is the confirmation. */
-export function DeleteInterface({
-  scope,
-  ifname,
-  members,
-  onClose,
-}: {
-  scope: Scope;
-  ifname: string;
-  members: string[];
-  onClose: () => void;
-}) {
-  const toast = useToast();
-  const queryClient = useQueryClient();
-  const calls = Object.fromEntries(
-    members.map((sw) => [sw, [{ path: `/interface/${ifname}`, method: 'DELETE' as const }]]),
-  );
-  useHeartbeat(members, `/interface/${ifname}`);
-  return (
-    <Modal open onClose={onClose} title={`Delete ${ifname}`} width={scope.kind === 'group' ? 600 : 460}>
-      <ChangeFlow
-        scope={scope}
-        calls={calls}
-        warning={`Deleting ${ifname} removes it and its configuration; traffic on it stops.`}
-        onBack={onClose}
-        onClose={onClose}
-        onApplied={() => refreshInterfaces(queryClient)}
-        notify={toast}
-        doneText={`Delete ${ifname}`}
-      />
     </Modal>
   );
 }

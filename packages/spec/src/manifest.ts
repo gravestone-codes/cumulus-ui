@@ -13,14 +13,47 @@ export interface NvueManifest {
 
 interface MinimalOperation {
   parameters?: Array<{ name?: string; schema?: { enum?: unknown } }>;
+  responses?: Record<string, unknown>;
 }
 
 interface MinimalDoc {
   info?: { title?: string; version?: string };
   paths?: Record<string, Record<string, MinimalOperation>>;
+  [key: string]: unknown;
 }
 
 const VERBS = new Set(['get', 'put', 'post', 'patch', 'delete', 'head', 'options']);
+
+/** Resolve a local `#/...` ref inside the document (depth-capped, cycle-safe). */
+function resolveRef(doc: MinimalDoc, ref: string, seen: string[] = [], depth = 0): unknown {
+  if (!ref.startsWith('#/') || seen.includes(ref) || depth > 10) return undefined;
+  let node: unknown = doc;
+  for (const seg of ref.slice(2).split('/')) {
+    node = typeof node === 'object' && node !== null ? (node as Record<string, unknown>)[seg] : undefined;
+  }
+  if (typeof node === 'object' && node !== null && !Array.isArray(node)) {
+    const obj = node as Record<string, unknown>;
+    if (typeof obj['$ref'] === 'string') return resolveRef(doc, obj['$ref'], [...seen, ref], depth + 1);
+  }
+  return node;
+}
+
+/** `view:*` link names of an operation's 200 response (this spec's ?view= enum). */
+function viewLinks(doc: MinimalDoc, op: MinimalOperation): string[] {
+  const responses = op.responses;
+  if (typeof responses !== 'object' || responses === null) return [];
+  let ok = (responses as Record<string, unknown>)['200'];
+  if (typeof ok === 'object' && ok !== null && typeof (ok as Record<string, unknown>)['$ref'] === 'string') {
+    ok = resolveRef(doc, (ok as Record<string, unknown>)['$ref'] as string);
+  }
+  const links =
+    typeof ok === 'object' && ok !== null ? ((ok as Record<string, unknown>)['links'] as unknown) : undefined;
+  if (typeof links !== 'object' || links === null || Array.isArray(links)) return [];
+  return Object.keys(links as Record<string, unknown>)
+    .filter((k) => k.startsWith('view:'))
+    .map((k) => k.slice('view:'.length))
+    .sort();
+}
 
 /** Build the manifest. Never throws on unknown shapes — counts what it recognizes. */
 export function buildManifest(doc: MinimalDoc): NvueManifest {
@@ -39,10 +72,14 @@ export function buildManifest(doc: MinimalDoc): NvueManifest {
       methods.push(method);
       const params = op.parameters ?? [];
       const view = params.find((p) => p?.name === 'view');
-      const values = Array.isArray(view?.schema?.enum)
-        ? view.schema.enum.filter((v): v is string => typeof v === 'string')
-        : [];
-      if (values.length > 0) views[path] = values;
+      const values = new Set(
+        Array.isArray(view?.schema?.enum)
+          ? view.schema.enum.filter((v): v is string => typeof v === 'string')
+          : [],
+      );
+      // This spec carries views as response links, not a query-param enum.
+      for (const v of viewLinks(doc, op)) values.add(v);
+      if (values.size > 0) views[path] = [...values].sort();
     }
     if (methods.length > 0) routes[path] = methods.sort();
   }

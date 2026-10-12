@@ -10,7 +10,7 @@ import { MixedValue } from '../../components/mixed.js';
 import { mergeValues } from '../../lib/merge.js';
 import { packets } from '../../components/cards.js';
 import { usePerSwitch, type Scope } from './scope.js';
-import { displayValue } from './ConfigTab.js';
+import { displayValue } from '../../lib/format.js';
 
 type Obj = Record<string, unknown>;
 

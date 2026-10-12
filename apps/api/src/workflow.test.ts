@@ -287,7 +287,9 @@ describe.skipIf(!LIVE)('branches + staging', () => {
     const cookie = await sessionCookie(pool, 'wf-drafts', { appRoles: ['net-operator'] });
     setSwitchToken('wf-drafts', 'swf', 'stub-jwt');
     await pool.query(`INSERT INTO groups (id, display_name) VALUES ('GPD', 't') ON CONFLICT DO NOTHING`);
-    await pool.query(`INSERT INTO roles (id, display_name) VALUES ('wf-drafts-scoped', 't') ON CONFLICT DO NOTHING`);
+    await pool.query(
+      `INSERT INTO roles (id, display_name) VALUES ('wf-drafts-scoped', 't') ON CONFLICT DO NOTHING`,
+    );
     await pool.query(
       `INSERT INTO role_rules (role_id, method, path_prefix) VALUES ('wf-drafts-scoped', 'GET', '/') ON CONFLICT DO NOTHING`,
     );

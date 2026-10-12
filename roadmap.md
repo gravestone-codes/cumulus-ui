@@ -164,15 +164,15 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 
 ## Phase 2 — Generic bricks (build once, configure forever)
 
-- [ ] 2.0 Component catalog (Storybook): one story per §7 element; visual contract + visual-regression CI later
+- [x] 2.0 Component catalog (Storybook): one story per §7 element; visual contract + visual-regression CI later
 
-- [ ] 2.1 `ResourceList` (R7): columns from schema, search, `?include` field picker; prove on `GET /interface`; group-aware (aggregate across in-scope switches)
-- [ ] 2.2 `ResourceDetail` (R8): header + empty tab slots for widgets; resolves path → store identity (§2)
-- [ ] 2.3 `ResourceForm` (R9): schema-driven PATCH form (enums→selects, refs→subforms); prove on one interface field
-- [ ] 2.4 `ViewSwitcher` (R10): `?view=` dropdown from spec enum; prove on interface `status/counters/lldp/rates`
+- [x] 2.1 `ResourceList` (R7): columns from schema, search, `?include` field picker; prove on `GET /interface`; group-aware (aggregate across in-scope switches)
+- [x] 2.2 `ResourceDetail` (R8): header + empty tab slots for widgets; resolves path → store identity (§2)
+- [x] 2.3 `ResourceForm` (R9): schema-driven PATCH form (enums→selects, refs→subforms); prove on one interface field
+- [x] 2.4 `ViewSwitcher` (R10): `?view=` dropdown from spec enum; prove on interface `status/counters/lldp/rates`
 - [x] 2.5 `InterfacePicker` (R11): searchable selector resolving to `S1` identity (foundation for every later domain)
-- [ ] 2.6 Delete-with-confirm (generic DELETE, path echo; danger class decides confirm style)
-- [ ] ✅ **Milestone M2:** any collection path in the manifest renders as list→detail→edit with zero hand-written forms
+- [x] 2.6 Delete-with-confirm (generic DELETE, path echo; danger class decides confirm style)
+- [x] ✅ **Milestone M2:** any collection path in the manifest renders as list→detail→edit with zero hand-written forms
 
 ## Phase 3 — Domain thin slices (in dependency order; shallow before deep)
 
@@ -197,7 +197,7 @@ Modelled on Dynamics 365 F&O: optimistic concurrency is mandatory for interactiv
 
 ### 3C — VRF (attaches everything above)
 
-- [ ] 3C.1 List/detail: `GET /vrf…` via generics → `S2`
+- [x] 3C.1 List/detail: `GET /vrf…` via generics → `S2`
 - [ ] 3C.2 `VrfAttachment` (R14): attach interface/bridge/loopback to VRF
 - [ ] 3C.3 Per-VRF IP/loopback edit via `ResourceForm`
 - [ ] 3C.4 Route-table read view
