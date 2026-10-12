@@ -79,7 +79,9 @@ export function scalarLeaves(item: Schema, prefix = '', depth = 0, maxDepth = 3)
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) continue;
     const sub = raw as Schema;
     const path = prefix ? `${prefix}/${key}` : key;
-    if (Array.isArray(sub['enum']) && sub['enum'].every((e) => typeof e === 'string')) {
+    // Nullable on/off leaves arrive as `type: object` + `enum: [on, off, null]`.
+    const values = Array.isArray(sub['enum']) ? sub['enum'].filter((e) => e !== null) : [];
+    if (values.length > 0 && values.every((e) => typeof e === 'string')) {
       out.push({ path, label: leafLabel(path, sub), kind: 'enum' });
       continue;
     }

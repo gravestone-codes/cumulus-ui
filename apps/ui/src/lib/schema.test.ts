@@ -66,6 +66,24 @@ describe('scalarLeaves', () => {
     expect(scalarLeaves(deep, '', 0, 2).map((l) => l.path)).toEqual(['a/b']);
     expect(scalarLeaves(deep).map((l) => l.path)).toEqual(['a/b', 'a/c/d']);
   });
+
+  it('keeps nullable on/off leaves typed as objects (NVUE `enable`)', () => {
+    const nve = {
+      properties: {
+        vxlan: {
+          type: 'object',
+          properties: {
+            enable: { type: 'object', nullable: true, enum: ['on', 'off', null], properties: {} },
+            port: { type: 'integer' },
+          },
+        },
+      },
+    };
+    expect(scalarLeaves(nve)).toEqual([
+      expect.objectContaining({ path: 'vxlan/enable', kind: 'enum' }),
+      expect.objectContaining({ path: 'vxlan/port', kind: 'integer' }),
+    ]);
+  });
 });
 
 describe('leafLabel', () => {
