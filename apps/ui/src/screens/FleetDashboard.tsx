@@ -43,32 +43,29 @@ const TOOLTIP_STYLE = {
   cursor: { fill: 'var(--color-muted)', fillOpacity: 0.07 },
 };
 
-function FleetStats({ switches }: { switches: SwitchRow[] }) {
+function FleetStatsCard({ switches }: { switches: SwitchRow[] }) {
   const sample = switches.length === 0;
   const n = sample ? 12 : switches.length;
   const reachable = sample ? 11 : switches.filter((x) => x.last_check_ok).length;
   const failing = sample ? 1 : switches.filter((x) => x.last_check_ok === false).length;
   const untrusted = sample ? 2 : switches.filter((x) => !x.trust_verified).length;
-  return {
-    sample,
-    node: (
-      <StatRow columns={2}>
-        <Stat label="Switches" value={String(n)} sub={`${reachable} reachable`} />
-        <Stat
-          label="Failing"
-          value={String(failing)}
-          sub="Last check failed"
-          tone={failing > 0 ? 'var(--color-fail)' : undefined}
-        />
-        <Stat
-          label="Untrusted"
-          value={String(untrusted)}
-          sub="Awaiting TOFU decision"
-          tone={untrusted > 0 ? 'var(--color-warn)' : undefined}
-        />
-      </StatRow>
-    ),
-  };
+  return (
+    <StatRow columns={2}>
+      <Stat label="Switches" value={String(n)} sub={`${reachable} reachable`} />
+      <Stat
+        label="Failing"
+        value={String(failing)}
+        sub="Last check failed"
+        tone={failing > 0 ? 'var(--color-fail)' : undefined}
+      />
+      <Stat
+        label="Untrusted"
+        value={String(untrusted)}
+        sub="Awaiting TOFU decision"
+        tone={untrusted > 0 ? 'var(--color-warn)' : undefined}
+      />
+    </StatRow>
+  );
 }
 
 const REACH_HEX: Record<string, string> = {
@@ -77,7 +74,7 @@ const REACH_HEX: Record<string, string> = {
   Unknown: 'var(--color-muted)',
 };
 
-function Reachability({ switches }: { switches: SwitchRow[] }) {
+function ReachabilityCard({ switches }: { switches: SwitchRow[] }) {
   const sample = switches.length === 0;
   const data = sample
     ? [
@@ -92,31 +89,21 @@ function Reachability({ switches }: { switches: SwitchRow[] }) {
       })
         .filter(([, value]) => value > 0)
         .map(([name, value]) => ({ name, value }));
-  return {
-    sample,
-    node: (
-      <div style={{ height: 208 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              innerRadius={64}
-              outerRadius={80}
-              paddingAngle={3}
-            >
-              {data.map((s) => (
-                <Cell key={s.name} fill={REACH_HEX[s.name]} />
-              ))}
-            </Pie>
-            <Tooltip {...TOOLTIP_STYLE} />
-            <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    ),
-  };
+  return (
+    <div style={{ height: 208 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={data} dataKey="value" nameKey="name" innerRadius={64} outerRadius={80} paddingAngle={3}>
+            {data.map((s) => (
+              <Cell key={s.name} fill={REACH_HEX[s.name]} />
+            ))}
+          </Pie>
+          <Tooltip {...TOOLTIP_STYLE} />
+          <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 const SAMPLE_TRAFFIC = [
@@ -136,40 +123,37 @@ const SAMPLE_TRAFFIC = [
   { day: 'Sep 20', label: 'Sep 20', packets: 4_020_000_000 },
 ];
 
-function Traffic() {
-  return {
-    sample: true,
-    node: (
-      <div style={{ height: 256 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={SAMPLE_TRAFFIC} margin={{ left: 8, right: 8 }}>
-            <defs>
-              <linearGradient id="trafficFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-pass)" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="var(--color-pass)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} interval={2} />
-            <YAxis
-              tickFormatter={(v) => packets(Number(v))}
-              tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
-              width={56}
-            />
-            <Tooltip {...TOOLTIP_STYLE} formatter={(v) => packets(typeof v === 'number' ? v : Number(v))} />
-            <Area
-              type="monotone"
-              dataKey="packets"
-              name="Packets"
-              stroke="var(--color-pass)"
-              strokeWidth={2}
-              fill="url(#trafficFill)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    ),
-  };
+function TrafficCard() {
+  return (
+    <div style={{ height: 256 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={SAMPLE_TRAFFIC} margin={{ left: 8, right: 8 }}>
+          <defs>
+            <linearGradient id="trafficFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-pass)" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="var(--color-pass)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} interval={2} />
+          <YAxis
+            tickFormatter={(v) => packets(Number(v))}
+            tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+            width={56}
+          />
+          <Tooltip {...TOOLTIP_STYLE} formatter={(v) => packets(typeof v === 'number' ? v : Number(v))} />
+          <Area
+            type="monotone"
+            dataKey="packets"
+            name="Packets"
+            stroke="var(--color-pass)"
+            strokeWidth={2}
+            fill="url(#trafficFill)"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 const SAMPLE_DEVICES = [
@@ -182,87 +166,90 @@ const SAMPLE_DEVICES = [
   { name: 'mgmt01', packets: 210_000_000 },
 ];
 
-function InterfacesByDevice() {
-  return {
-    sample: true,
-    node: (
-      <div style={{ height: 256 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={SAMPLE_DEVICES} layout="vertical" margin={{ left: 8 }}>
-            <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" horizontal={false} />
-            <XAxis
-              type="number"
-              tickFormatter={(v) => packets(Number(v))}
-              tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
-              width={70}
-            />
-            <Tooltip {...TOOLTIP_STYLE} formatter={(v) => packets(typeof v === 'number' ? v : Number(v))} />
-            <Bar
-              dataKey="packets"
-              name="Packets"
-              fill="var(--color-pass)"
-              radius={[0, 4, 4, 0]}
-              maxBarSize={14}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    ),
-  };
+function InterfacesByDeviceCard() {
+  return (
+    <div style={{ height: 256 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={SAMPLE_DEVICES} layout="vertical" margin={{ left: 8 }}>
+          <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" horizontal={false} />
+          <XAxis
+            type="number"
+            tickFormatter={(v) => packets(Number(v))}
+            tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+          />
+          <YAxis
+            type="category"
+            dataKey="name"
+            tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+            width={70}
+          />
+          <Tooltip {...TOOLTIP_STYLE} formatter={(v) => packets(typeof v === 'number' ? v : Number(v))} />
+          <Bar
+            dataKey="packets"
+            name="Packets"
+            fill="var(--color-pass)"
+            radius={[0, 4, 4, 0]}
+            maxBarSize={14}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
-function RecentActivity() {
+function RecentActivityCard() {
   const navigate = useNavigate();
   const activity = useQuery({ queryKey: ['audit-recent'], queryFn: () => api.audit(8), retry: false });
-  if (activity.isError) return { sample: false, node: null };
+  if (activity.isError) return null;
   if (activity.isPending) {
-    return {
-      sample: false,
-      node: <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>,
-    };
+    return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>;
   }
-  return {
-    sample: false,
-    node: (
-      <ActivityList
-        rows={activity.data}
-        onOpen={(row) => row.switch_id && navigate(`/switches/${row.switch_id}/audit`)}
-      />
-    ),
-  };
+  return (
+    <ActivityList
+      rows={activity.data}
+      onOpen={(row) => row.switch_id && navigate(`/switches/${row.switch_id}/audit`)}
+    />
+  );
 }
 
-/** Client mirror of the server WIDGET_CATALOG. Blurbs feed the picker. */
-type WidgetRender = (s: SwitchRow[]) => { sample: boolean; node: React.ReactNode };
-const REGISTRY: Record<string, { title: string; blurb: string; render: WidgetRender }> = {
+/**
+ * Client mirror of the server WIDGET_CATALOG. Blurbs feed the picker.
+ * Widgets are components (never invoked as functions): their hooks must run
+ * unconditionally, independent of which widgets are active (React #310).
+ */
+type WidgetComponent = (props: { switches: SwitchRow[] }) => React.ReactNode;
+const REGISTRY: Record<
+  string,
+  { title: string; blurb: string; sample: (s: SwitchRow[]) => boolean; Component: WidgetComponent }
+> = {
   'fleet-stats': {
     title: 'Fleet at a glance',
     blurb: 'Switch, reachability and trust counts.',
-    render: (s) => ({ ...FleetStats({ switches: s }) }),
+    sample: (s) => s.length === 0,
+    Component: FleetStatsCard,
   },
   reachability: {
     title: 'Switches by reachability',
     blurb: 'Reachable / unreachable / unknown pie.',
-    render: (s) => ({ ...Reachability({ switches: s }) }),
+    sample: (s) => s.length === 0,
+    Component: ReachabilityCard,
   },
   traffic: {
     title: 'Packets over time',
     blurb: 'Traffic trend across the fleet.',
-    render: () => ({ ...Traffic() }),
+    sample: () => true,
+    Component: TrafficCard,
   },
   'interfaces-by-device': {
     title: 'Interfaces by device',
     blurb: 'Per-device interface stats, sortable.',
-    render: () => ({ ...InterfacesByDevice() }),
+    sample: () => true,
+    Component: InterfacesByDeviceCard,
   },
   'recent-activity': {
     title: 'Recent activity',
     blurb: 'Audit trail tail.',
-    render: () => ({ ...RecentActivity() }),
+    sample: () => false,
+    Component: RecentActivityCard,
   },
 };
 
@@ -310,18 +297,18 @@ export function FleetDashboard() {
         <div
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}
         >
-          {active.map(({ id, title, render }) => {
-            const r = render(switches.data ?? []);
+          {active.map(({ id, title, sample, Component }) => {
+            const data = switches.data ?? [];
             return (
               <Card
                 key={id}
                 title={title}
-                sample={r.sample}
+                sample={sample(data)}
                 onRemove={
                   customizing && active.length > 1 ? () => setIds(ids.filter((x) => x !== id)) : undefined
                 }
               >
-                {r.node}
+                <Component switches={data} />
               </Card>
             );
           })}
