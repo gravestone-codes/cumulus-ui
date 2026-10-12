@@ -55,7 +55,7 @@ export function BridgeDomains() {
     ) : null;
   const [creating, setCreating] = useState(false);
   const newButton = (
-    <Button auto variant="secondary" onClick={() => setCreating(true)} disabled={list.loading}>
+    <Button auto variant="secondary" onClick={() => setCreating(true)}>
       New bridge domain
     </Button>
   );
