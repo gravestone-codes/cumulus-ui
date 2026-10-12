@@ -30,6 +30,19 @@ describe('domain registry', () => {
     }
   });
 
+  it('singletons are detail objects, collections are tables', () => {
+    // NVUE singletons (`/evpn`, `/mlag`, …) are one object per switch:
+    // collection === item, never created per-row, so screens render detail
+    // tabs — never a one-row table.
+    for (const d of DOMAINS.filter((x) => x.singleton)) {
+      expect(d.collection, d.key).toBe(d.item);
+      expect(d.creatable ?? false, d.key).toBe(false);
+    }
+    for (const d of DOMAINS.filter((x) => !x.singleton)) {
+      expect(d.item, d.key).toContain('{');
+    }
+  });
+
   it('resolves by key', () => {
     expect(domainOf('vrf')?.collection).toBe('/vrf');
     expect(domainOf('nope')).toBeUndefined();

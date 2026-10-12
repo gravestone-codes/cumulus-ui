@@ -3,10 +3,12 @@
  * Overview reads the checked schema leaves into a ValueGrid (mixed values
  * merge per member, falling back to top-level live keys when the schema is
  * bare); Edit is the schema-enumerated ResourceForm (R9); Delete the generic
- * flow (2.6). Singletons read the collection object itself.
+ * flow (2.6). Singletons never land here — their canonical URL is the domain
+ * root (`/switches/:id/evpn`), which renders `SingletonDomain`; a stale
+ * `/evpn/evpn` link redirects there so one object keeps one URL.
  */
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Breadcrumb, Button, useToast } from '../components/ui.js';
 import { ResourceDetail, ValueGrid } from '../components/resource.js';
@@ -34,9 +36,9 @@ export function DomainDetail() {
   const base = scopeBase(scope);
   const group = scope.kind === 'group';
   const objectPath = def ? `${def.collection}/${encodeURIComponent(name)}` : name;
-  const read = usePerSwitch(scope, def?.singleton ? (def?.collection ?? '/') : objectPath, {
+  const read = usePerSwitch(scope, def ? objectPath : '/', {
     ...(def?.rev ? { rev: def.rev } : {}),
-    enabled: !!def,
+    enabled: !!def && !def.singleton,
   });
 
   const { leaves } = useSchemaLeaves(def?.item, def && !def.editable ? 'GET' : 'PATCH');
@@ -47,6 +49,9 @@ export function DomainDetail() {
   );
   const byLeaf = new Map(leaves.map((l) => [l.path, l]));
   const { present } = presence(read.members, read.objects);
+  if (def?.singleton) {
+    return <Navigate to={`${base}/${def.key}`} replace />;
+  }
   if (!def) {
     return (
       <ScopeShell scope={scope} active="">
@@ -95,7 +100,7 @@ export function DomainDetail() {
         <ResourceForm
           modal={false}
           scope={scope}
-          objectPath={def.singleton ? def.collection : objectPath}
+          objectPath={objectPath}
           name={name}
           title={singularOf(def)}
           only={checked}
@@ -125,12 +130,12 @@ export function DomainDetail() {
         scope={scope}
         kind="generic"
         id={name}
-        path={def.singleton ? def.collection : objectPath}
+        path={objectPath}
         tabs={tabs}
         activeTab={tab}
         onTabChange={(id) => setTab(id as Tab)}
         actions={
-          editable && !def.singleton ? (
+          editable ? (
             <Button auto variant="secondary" onClick={() => setDeleting(true)}>
               Delete
             </Button>

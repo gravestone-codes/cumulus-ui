@@ -44,11 +44,10 @@ const TOOLTIP_STYLE = {
 };
 
 function FleetStatsCard({ switches }: { switches: SwitchRow[] }) {
-  const sample = switches.length === 0;
-  const n = sample ? 12 : switches.length;
-  const reachable = sample ? 11 : switches.filter((x) => x.last_check_ok).length;
-  const failing = sample ? 1 : switches.filter((x) => x.last_check_ok === false).length;
-  const untrusted = sample ? 2 : switches.filter((x) => !x.trust_verified).length;
+  const n = switches.length;
+  const reachable = switches.filter((x) => x.last_check_ok).length;
+  const failing = switches.filter((x) => x.last_check_ok === false).length;
+  const untrusted = switches.filter((x) => !x.trust_verified).length;
   return (
     <StatRow columns={2}>
       <Stat label="Switches" value={String(n)} sub={`${reachable} reachable`} />
@@ -75,20 +74,16 @@ const REACH_HEX: Record<string, string> = {
 };
 
 function ReachabilityCard({ switches }: { switches: SwitchRow[] }) {
-  const sample = switches.length === 0;
-  const data = sample
-    ? [
-        { name: 'Reachable', value: 9 },
-        { name: 'Unreachable', value: 2 },
-        { name: 'Unknown', value: 1 },
-      ]
-    : Object.entries({
-        Reachable: switches.filter((x) => x.last_check_ok === true).length,
-        Unreachable: switches.filter((x) => x.last_check_ok === false).length,
-        Unknown: switches.filter((x) => x.last_check_ok !== true && x.last_check_ok !== false).length,
-      })
-        .filter(([, value]) => value > 0)
-        .map(([name, value]) => ({ name, value }));
+  const data = Object.entries({
+    Reachable: switches.filter((x) => x.last_check_ok === true).length,
+    Unreachable: switches.filter((x) => x.last_check_ok === false).length,
+    Unknown: switches.filter((x) => x.last_check_ok !== true && x.last_check_ok !== false).length,
+  })
+    .filter(([, value]) => value > 0)
+    .map(([name, value]) => ({ name, value }));
+  if (data.length === 0) {
+    return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>No switches yet.</p>;
+  }
   return (
     <div style={{ height: 208 }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -106,28 +101,62 @@ function ReachabilityCard({ switches }: { switches: SwitchRow[] }) {
   );
 }
 
-const SAMPLE_TRAFFIC = [
-  { day: 'Sep 7', label: 'Sep 7', packets: 1_240_000_000 },
-  { day: 'Sep 8', label: 'Sep 8', packets: 1_890_000_000 },
-  { day: 'Sep 9', label: 'Sep 9', packets: 1_520_000_000 },
-  { day: 'Sep 10', label: 'Sep 10', packets: 2_310_000_000 },
-  { day: 'Sep 11', label: 'Sep 11', packets: 2_870_000_000 },
-  { day: 'Sep 12', label: 'Sep 12', packets: 2_120_000_000 },
-  { day: 'Sep 13', label: 'Sep 13', packets: 3_340_000_000 },
-  { day: 'Sep 14', label: 'Sep 14', packets: 2_960_000_000 },
-  { day: 'Sep 15', label: 'Sep 15', packets: 3_810_000_000 },
-  { day: 'Sep 16', label: 'Sep 16', packets: 3_220_000_000 },
-  { day: 'Sep 17', label: 'Sep 17', packets: 4_150_000_000 },
-  { day: 'Sep 18', label: 'Sep 18', packets: 3_730_000_000 },
-  { day: 'Sep 19', label: 'Sep 19', packets: 4_480_000_000 },
-  { day: 'Sep 20', label: 'Sep 20', packets: 4_020_000_000 },
-];
-
-function TrafficCard() {
+/**
+ * Fleet traffic: every member's switch-wide sampler series summed per tick
+ * (bytes → bits). Real endpoints only — no fabricated series. Empty when the
+ * sampler has nothing yet.
+ */
+function TrafficCard({ switches }: { switches: SwitchRow[] }) {
+  const traffic = useQuery({
+    queryKey: [
+      'fleet-traffic',
+      switches
+        .map((s) => s.id)
+        .sort()
+        .join(','),
+    ],
+    queryFn: async () => {
+      const per = await Promise.all(
+        switches.map((s) => api.switchTraffic(s.id, { range: '24h', metric: 'bytes' }).catch(() => null)),
+      );
+      const byTick = new Map<string, { t: string; in: number; out: number }>();
+      for (const r of per) {
+        for (const p of r?.points ?? []) {
+          const cur = byTick.get(p.t) ?? { t: p.t, in: 0, out: 0 };
+          cur.in += p.in;
+          cur.out += p.out;
+          byTick.set(p.t, cur);
+        }
+      }
+      return [...byTick.values()].sort((a, b) => (a.t < b.t ? -1 : 1));
+    },
+    enabled: switches.length > 0,
+    staleTime: 60_000,
+    retry: false,
+  });
+  if (switches.length === 0) {
+    return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>No switches yet.</p>;
+  }
+  if (traffic.isPending) {
+    return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>;
+  }
+  const points = (traffic.data ?? []).map((p) => ({
+    label: new Date(p.t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
+    In: p.in * 8,
+    Out: p.out * 8,
+  }));
+  if (points.length === 0) {
+    return (
+      <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+        No samples in this range yet — the sampler backfills from here.
+      </p>
+    );
+  }
+  const bps = (v: number) => `${packets(v)}bps`;
   return (
     <div style={{ height: 256 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={SAMPLE_TRAFFIC} margin={{ left: 8, right: 8 }}>
+        <AreaChart data={points} margin={{ left: 8, right: 8 }}>
           <defs>
             <linearGradient id="trafficFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--color-pass)" stopOpacity={0.35} />
@@ -135,58 +164,96 @@ function TrafficCard() {
             </linearGradient>
           </defs>
           <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} interval={2} />
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} minTickGap={40} />
           <YAxis
-            tickFormatter={(v) => packets(Number(v))}
+            tickFormatter={(v) => bps(Number(v))}
             tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
-            width={56}
+            width={64}
           />
-          <Tooltip {...TOOLTIP_STYLE} formatter={(v) => packets(typeof v === 'number' ? v : Number(v))} />
+          <Tooltip {...TOOLTIP_STYLE} formatter={(v) => bps(typeof v === 'number' ? v : Number(v))} />
           <Area
             type="monotone"
-            dataKey="packets"
-            name="Packets"
+            dataKey="In"
+            name="In"
             stroke="var(--color-pass)"
             strokeWidth={2}
             fill="url(#trafficFill)"
           />
+          <Area
+            type="monotone"
+            dataKey="Out"
+            name="Out"
+            stroke="var(--color-brand)"
+            strokeWidth={2}
+            fill="transparent"
+          />
+          <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
   );
 }
 
-const SAMPLE_DEVICES = [
-  { name: 'spine01', packets: 8_410_000_000 },
-  { name: 'spine02', packets: 7_930_000_000 },
-  { name: 'leaf03', packets: 4_220_000_000 },
-  { name: 'leaf01', packets: 3_870_000_000 },
-  { name: 'leaf02', packets: 3_120_000_000 },
-  { name: 'leaf04', packets: 1_940_000_000 },
-  { name: 'mgmt01', packets: 210_000_000 },
-];
-
-function InterfacesByDeviceCard() {
+/**
+ * Interfaces by device: real per-switch interface counts via the `small`
+ * view (keys only — no per-interface payload). Bars sort descending.
+ */
+function InterfacesByDeviceCard({ switches }: { switches: SwitchRow[] }) {
+  const counts = useQuery({
+    queryKey: [
+      'fleet-iface-counts',
+      switches
+        .map((s) => s.id)
+        .sort()
+        .join(','),
+    ],
+    queryFn: async () => {
+      const per = await Promise.all(
+        switches.map(async (s) => {
+          try {
+            const res = await api.query<Record<string, unknown>>(s.id, '/interface', { view: 'small' });
+            return { name: s.display_name || s.id, interfaces: Object.keys(res.data).length };
+          } catch {
+            return { name: s.display_name || s.id, interfaces: 0 };
+          }
+        }),
+      );
+      return per.sort((a, b) => b.interfaces - a.interfaces).slice(0, 12);
+    },
+    enabled: switches.length > 0,
+    staleTime: 60_000,
+    retry: false,
+  });
+  if (switches.length === 0) {
+    return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>No switches yet.</p>;
+  }
+  if (counts.isPending) {
+    return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>;
+  }
+  const data = counts.data ?? [];
+  if (data.every((d) => d.interfaces === 0)) {
+    return (
+      <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+        No interface data — check switch reachability.
+      </p>
+    );
+  }
   return (
     <div style={{ height: 256 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={SAMPLE_DEVICES} layout="vertical" margin={{ left: 8 }}>
+        <BarChart data={data} layout="vertical" margin={{ left: 8 }}>
           <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" horizontal={false} />
-          <XAxis
-            type="number"
-            tickFormatter={(v) => packets(Number(v))}
-            tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
-          />
+          <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} />
           <YAxis
             type="category"
             dataKey="name"
             tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
-            width={70}
+            width={90}
           />
-          <Tooltip {...TOOLTIP_STYLE} formatter={(v) => packets(typeof v === 'number' ? v : Number(v))} />
+          <Tooltip {...TOOLTIP_STYLE} />
           <Bar
-            dataKey="packets"
-            name="Packets"
+            dataKey="interfaces"
+            name="Interfaces"
             fill="var(--color-pass)"
             radius={[0, 4, 4, 0]}
             maxBarSize={14}
@@ -215,6 +282,7 @@ function RecentActivityCard() {
  * Client mirror of the server WIDGET_CATALOG. Blurbs feed the picker.
  * Widgets are components (never invoked as functions): their hooks must run
  * unconditionally, independent of which widgets are active (React #310).
+ * Every widget reads live endpoints — nothing renders fabricated series.
  */
 type WidgetComponent = (props: { switches: SwitchRow[] }) => React.ReactNode;
 const REGISTRY: Record<
@@ -224,25 +292,25 @@ const REGISTRY: Record<
   'fleet-stats': {
     title: 'Fleet at a glance',
     blurb: 'Switch, reachability and trust counts.',
-    sample: (s) => s.length === 0,
+    sample: () => false,
     Component: FleetStatsCard,
   },
   reachability: {
     title: 'Switches by reachability',
     blurb: 'Reachable / unreachable / unknown pie.',
-    sample: (s) => s.length === 0,
+    sample: () => false,
     Component: ReachabilityCard,
   },
   traffic: {
-    title: 'Packets over time',
-    blurb: 'Traffic trend across the fleet.',
-    sample: () => true,
+    title: 'Bits over time (24h)',
+    blurb: 'Summed switch-wide sampler series across the fleet.',
+    sample: () => false,
     Component: TrafficCard,
   },
   'interfaces-by-device': {
     title: 'Interfaces by device',
-    blurb: 'Per-device interface stats, sortable.',
-    sample: () => true,
+    blurb: 'Live interface counts per switch.',
+    sample: () => false,
     Component: InterfacesByDeviceCard,
   },
   'recent-activity': {

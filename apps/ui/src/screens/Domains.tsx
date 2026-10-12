@@ -1,8 +1,10 @@
 /**
- * Generic domain list: any registry namespace renders from the same two
- * components — schema columns + picker + `?include` (R7), manifest views
- * (R10), generic create (name + initial values) and delete. No per-domain
- * list code exists; a namespace is one registry row.
+ * Generic domain list: any registry collection namespace renders from the
+ * same two components — schema columns + picker + `?include` (R7), manifest
+ * views (R10), generic create (name + initial values) and delete. No
+ * per-domain list code exists; a namespace is one registry row. Singletons
+ * (`/evpn`, `/mlag`, …) are never tables — they render `SingletonDomain`
+ * (one object, detail tabs) straight from this route.
  */
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -15,6 +17,7 @@ import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/sche
 import { CreateFlow } from './iface/CreateFlow.js';
 import { DeleteFlow } from './iface/DeleteFlow.js';
 import { ScopeShell } from './iface/ScopeShell.js';
+import { SingletonDomain } from './SingletonDomain.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
 type Obj = Record<string, unknown>;
@@ -47,16 +50,11 @@ export function Domains() {
       </ScopeShell>
     );
   }
+  if (def.singleton) {
+    return <SingletonDomain def={def} scope={scope} />;
+  }
 
-  // Singletons read as one object: present them as a one-row map.
-  const objects = def.singleton
-    ? Object.fromEntries(
-        list.members.map((sw) => [
-          sw,
-          list.objects[sw] == null ? undefined : { [def.name ?? def.key]: list.objects[sw] },
-        ]),
-      )
-    : list.objects;
+  const objects = list.objects;
 
   const picker =
     leaves.length > 0 ? (
@@ -96,7 +94,7 @@ export function Domains() {
           onSelect={openDetail}
           rowMenu={(row): RowMenuItem[] => [
             { label: 'Open', onClick: () => openDetail(row.__id) },
-            ...(def.singleton || def.editable === false
+            ...(def.editable === false
               ? []
               : [
                   {
@@ -132,7 +130,7 @@ export function Domains() {
           onOpenSwitch={(sw, name) => navigate(`/switches/${sw}/${def.key}/${encodeURIComponent(name)}`)}
           rowActions={(r, holders): RowMenuItem[] => [
             { label: 'Open', onClick: () => openDetail(r.name) },
-            ...(def.singleton || def.editable === false
+            ...(def.editable === false
               ? []
               : [
                   {
