@@ -16,7 +16,7 @@ import {
   type TableSort,
 } from '../lib/table.js';
 import ColumnsButton from './ColumnsButton.js';
-import { RowMenu, SelectMenu, Spinner, type RowMenuItem } from './ui.js';
+import { RowMenu, SelectMenu, Spinner, EmptyState, type NavIcon, type RowMenuItem } from './ui.js';
 
 export interface GridColumn<T> {
   key: string;
@@ -49,6 +49,7 @@ export function DataTable<T extends object>({
   rows,
   loading = false,
   empty,
+  emptyIcon,
   storageKey,
   onRowClick,
   actions,
@@ -60,6 +61,8 @@ export function DataTable<T extends object>({
   rows: T[];
   loading?: boolean;
   empty?: React.ReactNode;
+  /** Centered empty-state icon (icon + text, centered both axes). */
+  emptyIcon?: NavIcon;
   storageKey: string;
   onRowClick?: (row: T) => void;
   actions?: (row: T) => RowMenuItem[];
@@ -111,7 +114,24 @@ export function DataTable<T extends object>({
 
   if (loading) return <Spinner label="Loading table" />;
   if (rows.length === 0) {
-    return <>{empty ?? <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>Nothing here yet.</p>}</>;
+    if (empty) {
+      return (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '40vh',
+            padding: 16,
+            textAlign: 'center',
+          }}
+        >
+          {empty}
+        </div>
+      );
+    }
+    return <EmptyState icon={emptyIcon} text="Nothing here yet." />;
   }
 
   return (

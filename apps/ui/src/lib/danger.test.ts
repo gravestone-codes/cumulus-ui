@@ -7,6 +7,7 @@ describe('dangerOfDelete', () => {
     expect(dangerOfDelete('/bridge/domain/br_default')).toBe('service');
     expect(dangerOfDelete('/vrf/blue')).toBe('service');
     expect(dangerOfDelete('/router/bgp')).toBe('service');
+    expect(dangerOfDelete('/maintenance/unit/a')).toBe('service');
   });
 
   it('calls AAA and image deletes dangerous', () => {

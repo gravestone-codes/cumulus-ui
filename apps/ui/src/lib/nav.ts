@@ -1,8 +1,8 @@
 /**
  * Shared navigation: the rail from final.html §9 — Dashboard, Interfaces,
  * Bridge, VRFs, BGP, Audit Log. One definition used by every switch-scoped screen.
- * Unsliced domains render disabled until their slice lands (roadmap order);
- * a slice deletes its `disabled` flag and adds its route — one line.
+ * Generic domains (registry) render enabled with the shared object icon;
+ * a deep slice swaps in its bespoke screen and icon — one line.
  */
 import type { NavItem } from '../components/ui.js';
 
@@ -13,8 +13,17 @@ export function switchNav(switchId: string): Array<NavItem & { to: string }> {
     { to: base, label: 'Dashboard', icon: 'dashboard' },
     { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
     { to: `${base}/bridge`, label: 'Bridge', icon: 'bridge' },
-    { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs' },
-    { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
+    { to: `${base}/vrf`, label: 'VRFs', icon: 'vrfs' },
+    { to: `${base}/evpn`, label: 'EVPN', icon: 'object' },
+    { to: `${base}/mlag`, label: 'MLAG', icon: 'object' },
+    { to: `${base}/bgp`, label: 'BGP', icon: 'bgp' },
+    { to: `${base}/acl`, label: 'ACL', icon: 'object' },
+    { to: `${base}/qos`, label: 'QoS', icon: 'object' },
+    { to: `${base}/dhcp`, label: 'DHCP', icon: 'object' },
+    { to: `${base}/syslog`, label: 'Syslog', icon: 'object' },
+    { to: `${base}/platform`, label: 'Platform', icon: 'object' },
+    { to: `${base}/nve`, label: 'NVE', icon: 'object' },
+    { to: `${base}/maintenance`, label: 'Maintenance', icon: 'object' },
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit' },
   ];
 }
@@ -37,8 +46,8 @@ export function globalNav(): Array<NavItem & { to: string }> {
 
 /**
  * Group rail: the same domain items as a switch, applied to every member.
- * Interfaces and Bridge read and write through FanOut; the rest stay
- * disabled until their slices land.
+ * Interfaces and Bridge read and write through FanOut; generic domains ride
+ * the same fan-out through the registry screens.
  */
 export function groupNav(groupId: string): Array<NavItem & { to: string }> {
   const base = `/groups/${groupId}`;
@@ -46,8 +55,17 @@ export function groupNav(groupId: string): Array<NavItem & { to: string }> {
     { to: base, label: 'Overview', icon: 'dashboard' },
     { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
     { to: `${base}/bridge`, label: 'Bridge', icon: 'bridge' },
-    { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs' },
-    { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
+    { to: `${base}/vrf`, label: 'VRFs', icon: 'vrfs' },
+    { to: `${base}/evpn`, label: 'EVPN', icon: 'object' },
+    { to: `${base}/mlag`, label: 'MLAG', icon: 'object' },
+    { to: `${base}/bgp`, label: 'BGP', icon: 'bgp' },
+    { to: `${base}/acl`, label: 'ACL', icon: 'object' },
+    { to: `${base}/qos`, label: 'QoS', icon: 'object' },
+    { to: `${base}/dhcp`, label: 'DHCP', icon: 'object' },
+    { to: `${base}/syslog`, label: 'Syslog', icon: 'object' },
+    { to: `${base}/platform`, label: 'Platform', icon: 'object' },
+    { to: `${base}/nve`, label: 'NVE', icon: 'object' },
+    { to: `${base}/maintenance`, label: 'Maintenance', icon: 'object' },
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit', disabled: true },
   ];
 }

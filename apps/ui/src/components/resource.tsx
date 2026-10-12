@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api.js';
 import { displayValue, getPath } from '../lib/format.js';
 import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
-import { Alert, Button, LineDropdown, ReconnectModal, Spinner, Tabs } from './ui.js';
+import { Alert, Button, LineDropdown, ReconnectModal, Spinner, Tabs, type NavIcon } from './ui.js';
 import { DataTable } from './DataTable.js';
 import type { GridColumn } from './DataTable.js';
 import type { RowMenuItem } from './ui.js';
@@ -213,10 +213,12 @@ export function ResourceList<T extends object>({
   rowMenu,
   rev,
   actions,
+  emptyIcon,
   schema,
   defaultFields,
   labels,
   render,
+  schemaMethod,
 }: {
   switchId: string;
   path: string;
@@ -230,6 +232,8 @@ export function ResourceList<T extends object>({
   rev?: string;
   /** Header actions (e.g. New interface), right of the title. */
   actions?: ReactNode;
+  /** Centered empty-state icon (icon + text, centered both axes). */
+  emptyIcon?: NavIcon;
   /**
    * Schema-driven columns (roadmap 2.1/R7): the item template whose PATCH
    * body enumerates the pickable leaves (e.g. `/interface/{interface-id}`).
@@ -243,9 +247,11 @@ export function ResourceList<T extends object>({
   labels?: Record<string, string>;
   /** Adapter render overrides by leaf path (e.g. state badges). */
   render?: Record<string, (row: T) => ReactNode>;
+  /** Schema operation for the field catalog (default PATCH; GET for read-only collections). */
+  schemaMethod?: string;
 }) {
   const [view, setView] = useState<string | undefined>(undefined);
-  const { leaves, loading: schemaLoading } = useSchemaLeaves(schema ? pathTemplate : undefined);
+  const { leaves, loading: schemaLoading } = useSchemaLeaves(schema ? pathTemplate : undefined, schemaMethod);
   const { checked, setChecked } = useSchemaFields(storageKey, schema ? leaves : [], defaultFields ?? []);
   const include = schema && checked.length > 0 ? toIncludePatterns(path, checked) : undefined;
   const list = useQuery({
@@ -275,7 +281,7 @@ export function ResourceList<T extends object>({
   const cols = [...columns, ...schemaCols];
   return (
     <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{title}</h1>
         <span style={{ flex: 1 }} />
         {actions}
@@ -298,6 +304,7 @@ export function ResourceList<T extends object>({
           cols={cols}
           rows={rows as T[]}
           loading={list.isPending || (schema && schemaLoading)}
+          emptyIcon={emptyIcon}
           storageKey={storageKey}
           onRowClick={onSelect ? (row) => onSelect(rowId(row)) : undefined}
           actions={rowMenu}

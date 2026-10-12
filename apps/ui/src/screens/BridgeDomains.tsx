@@ -6,12 +6,13 @@
  */
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Breadcrumb } from '../components/ui.js';
+import { Breadcrumb, Button } from '../components/ui.js';
 import { ResourceList, ViewSwitcher } from '../components/resource.js';
 import { type GridColumn } from '../components/DataTable.js';
 import { MergedList, schemaMergedColumns } from '../components/MergedList.js';
 import { FieldPicker } from '../components/FieldPicker.js';
 import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
+import { CreateFlow } from './iface/CreateFlow.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
@@ -52,6 +53,12 @@ export function BridgeDomains() {
     leaves.length > 0 ? (
       <FieldPicker leaves={leaves} checked={checked} defaults={BRIDGE_FIELDS} onChange={setChecked} />
     ) : null;
+  const [creating, setCreating] = useState(false);
+  const newButton = (
+    <Button auto variant="secondary" onClick={() => setCreating(true)} disabled={list.loading}>
+      New bridge domain
+    </Button>
+  );
 
   return (
     <ScopeShell scope={scope} active="/bridge">
@@ -68,7 +75,9 @@ export function BridgeDomains() {
           labels={BRIDGE_LABELS}
           rowId={(row) => row.__id}
           storageKey="cumulus.bridge-domains.v1"
+          emptyIcon="bridge"
           rev="applied"
+          actions={newButton}
           onSelect={(id) => navigate(`${base}/bridge/${encodeURIComponent(id)}`)}
         />
       ) : (
@@ -79,18 +88,31 @@ export function BridgeDomains() {
           {...list}
           columns={schemaMergedColumns(leaves, checked, BRIDGE_LABELS)}
           storageKey="cumulus.group-bridge-domains.v1"
+          emptyIcon="bridge"
           actions={
             <>
               {picker}
               <span style={{ minWidth: 180 }}>
                 <ViewSwitcher path="/bridge/domain" value={view} onChange={setView} />
               </span>
+              {newButton}
             </>
           }
           onOpen={(name) => navigate(`${base}/bridge/${encodeURIComponent(name)}`)}
           onOpenSwitch={(sw, name) =>
             navigate(`/switches/${encodeURIComponent(sw)}/bridge/${encodeURIComponent(name)}`)
           }
+        />
+      )}
+      {creating && (
+        <CreateFlow
+          scope={scope}
+          title="New bridge domain"
+          nameLabel="Bridge domain"
+          collection="/bridge/domain"
+          fields={['type', 'vlan', 'untagged']}
+          labels={BRIDGE_LABELS}
+          onClose={() => setCreating(false)}
         />
       )}
     </ScopeShell>

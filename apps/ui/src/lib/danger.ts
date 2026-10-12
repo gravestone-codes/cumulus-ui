@@ -30,6 +30,7 @@ const SERVICE_PREFIXES = [
   '/acl',
   '/qos',
   '/service',
+  '/maintenance',
 ];
 
 /** Danger class of deleting an NVUE object path. */

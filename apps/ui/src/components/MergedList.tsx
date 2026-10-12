@@ -6,7 +6,7 @@
  * any value column mixed.
  */
 import { useState, type ReactNode } from 'react';
-import { Button, ReconnectModal, Spinner, type RowMenuItem } from './ui.js';
+import { Button, EmptyState, ReconnectModal, Spinner, type NavIcon, type RowMenuItem } from './ui.js';
 import { ReadError } from './resource.js';
 import { DataTable, type GridColumn } from './DataTable.js';
 import { MixedValue } from './mixed.js';
@@ -75,6 +75,7 @@ export function MergedList({
   onOpen,
   onOpenSwitch,
   rowActions,
+  emptyIcon,
 }: {
   /** Group scope: presence column, per-switch sub-rows, drift filter. */
   group: boolean;
@@ -99,6 +100,8 @@ export function MergedList({
   onOpen?: (name: string) => void;
   onOpenSwitch?: (sw: string, name: string) => void;
   rowActions?: (row: MergedRow, holders: string[]) => RowMenuItem[];
+  /** Centered empty-state icon (icon + text, centered both axes). */
+  emptyIcon?: NavIcon;
 }) {
   const [driftOnly, setDriftOnly] = useState(false);
   const [reconnect, setReconnect] = useState<string | null>(null);
@@ -198,7 +201,7 @@ export function MergedList({
               ? (r) => (r.sw && onOpenSwitch ? onOpenSwitch(r.sw, r.name) : onOpen?.(r.name))
               : undefined
           }
-          empty={<p style={{ color: 'var(--color-muted)', fontSize: 14 }}>No {noun}.</p>}
+          empty={<EmptyState icon={emptyIcon} text={`No ${noun}.`} />}
           actions={rowActions ? (r) => rowActions(r, holders(r)) : undefined}
         />
       )}

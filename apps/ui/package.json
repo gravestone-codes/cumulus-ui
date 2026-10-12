@@ -30,6 +30,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@cumulus/spec": "workspace:*",
     "@playwright/test": "1.63.0",
     "@storybook/react-vite": "^10.6.1",
     "@tailwindcss/vite": "4.3.3",

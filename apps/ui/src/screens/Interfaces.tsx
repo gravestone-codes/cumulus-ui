@@ -99,6 +99,7 @@ export function Interfaces() {
           labels={IFACE_LABELS}
           rowId={(row) => row.__id}
           storageKey="cumulus.interfaces.v1"
+          emptyIcon="interfaces"
           rev="operational"
           actions={newButton}
           onSelect={(id) => navigate(`${base}/interfaces/${id}`)}
@@ -124,6 +125,7 @@ export function Interfaces() {
           columns={schemaMergedColumns(leaves, checked, IFACE_LABELS)}
           extra={[stateColumn(list.members)]}
           storageKey="cumulus.group-interfaces.v1"
+          emptyIcon="interfaces"
           actions={
             <>
               {picker}

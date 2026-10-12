@@ -31,5 +31,5 @@ export const Paginated = {
   args: { cols: COLS, rows: ROWS, storageKey: 'story.data-table' },
 };
 export const Empty = {
-  args: { cols: COLS, rows: [], storageKey: 'story.data-table-empty', empty: 'No interfaces.' },
+  args: { cols: COLS, rows: [], storageKey: 'story.data-table-empty', emptyIcon: 'interfaces' },
 };

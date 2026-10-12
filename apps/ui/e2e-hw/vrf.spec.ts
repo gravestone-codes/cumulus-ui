@@ -21,7 +21,7 @@ test('vrf list, detail and generic edit dry-run with no hand-written forms', asy
   await page.waitForURL((u) => !u.pathname.startsWith('/login'));
 
   // List renders from the schema (columns + picker, no hand-written table).
-  await page.goto(`/switches/${sw}/vrfs`);
+  await page.goto(`/switches/${sw}/vrf`);
   await expect(page.getByRole('heading', { name: 'VRFs' })).toBeVisible();
   await page
     .getByRole('row', { name: new RegExp(vrf) })
