@@ -13,7 +13,7 @@ export function switchNav(switchId: string): Array<NavItem & { to: string }> {
     { to: base, label: 'Dashboard', icon: 'dashboard' },
     { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
     { to: `${base}/bridge`, label: 'Bridge', icon: 'bridge' },
-    { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs', disabled: true },
+    { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs' },
     { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit' },
   ];
@@ -46,7 +46,7 @@ export function groupNav(groupId: string): Array<NavItem & { to: string }> {
     { to: base, label: 'Overview', icon: 'dashboard' },
     { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
     { to: `${base}/bridge`, label: 'Bridge', icon: 'bridge' },
-    { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs', disabled: true },
+    { to: `${base}/vrfs`, label: 'VRFs', icon: 'vrfs' },
     { to: `${base}/bgp`, label: 'BGP', icon: 'bgp', disabled: true },
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit', disabled: true },
   ];

@@ -15,6 +15,8 @@ import { Interfaces } from './screens/Interfaces.js';
 import { InterfaceDetail } from './screens/InterfaceDetail.js';
 import { BridgeDomains } from './screens/BridgeDomains.js';
 import { BridgeDomainDetail } from './screens/BridgeDomainDetail.js';
+import { Vrfs } from './screens/Vrfs.js';
+import { VrfDetail } from './screens/VrfDetail.js';
 import { AuditLog } from './screens/AuditLog.js';
 import { SwitchHome } from './screens/SwitchHome.js';
 import { FleetDashboard } from './screens/FleetDashboard.js';
@@ -116,6 +118,22 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/groups/:groupId/vrfs',
+    element: (
+      <RequireAuth>
+        <Vrfs />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/groups/:groupId/vrfs/:vrfId',
+    element: (
+      <RequireAuth>
+        <VrfDetail />
+      </RequireAuth>
+    ),
+  },
+  {
     path: '/groups/:groupId',
     element: (
       <RequireAuth>
@@ -176,6 +194,22 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <BridgeDomainDetail />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId/vrfs',
+    element: (
+      <RequireAuth>
+        <Vrfs />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId/vrfs/:vrfId',
+    element: (
+      <RequireAuth>
+        <VrfDetail />
       </RequireAuth>
     ),
   },

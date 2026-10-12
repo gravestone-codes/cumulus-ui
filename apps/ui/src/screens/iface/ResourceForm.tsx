@@ -37,6 +37,7 @@ export function ResourceForm({
   preset = {},
   warning,
   pending,
+  modal,
   doneText,
   onClose,
   onApplied,
@@ -64,6 +65,8 @@ export function ResourceForm({
   warning?: (shared: SharedDraft) => ReactNode;
   /** Adapter fields still resolving (shows the loading state). */
   pending?: boolean;
+  /** Render inline instead of in a modal (detail-tab embedding). */
+  modal?: boolean;
   /** Toast text after apply. */
   doneText: string;
   onClose: () => void;
@@ -223,38 +226,49 @@ export function ResourceForm({
 
   const loading = (fields === undefined && schema.isPending) || !!pending;
 
+  const body = loading ? (
+    <Spinner label="Loading current values" />
+  ) : plan ? (
+    <ChangeFlow
+      scope={scope}
+      calls={plan.calls}
+      unchanged={plan.unchanged}
+      onBack={() => setPlan(null)}
+      onClose={onClose}
+      onApplied={onApplied}
+      notify={notify}
+      doneText={doneText}
+    />
+  ) : (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20 }}>
+        {resolved.map(renderField)}
+      </div>
+      {warning?.(shared)}
+      {error && <Alert tone="fail">{error}</Alert>}
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          justifyContent: modal === false ? 'flex-start' : 'flex-end',
+          marginTop: 16,
+        }}
+      >
+        {modal !== false && (
+          <Button auto variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+        )}
+        <Button auto onClick={review}>
+          Review change
+        </Button>
+      </div>
+    </>
+  );
+  if (modal === false) return <>{body}</>;
   return (
     <Modal open onClose={onClose} title={modalTitle} width={wide || (group && plan) ? 600 : 460}>
-      {loading ? (
-        <Spinner label="Loading current values" />
-      ) : plan ? (
-        <ChangeFlow
-          scope={scope}
-          calls={plan.calls}
-          unchanged={plan.unchanged}
-          onBack={() => setPlan(null)}
-          onClose={onClose}
-          onApplied={onApplied}
-          notify={notify}
-          doneText={doneText}
-        />
-      ) : (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20 }}>
-            {resolved.map(renderField)}
-          </div>
-          {warning?.(shared)}
-          {error && <Alert tone="fail">{error}</Alert>}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-            <Button auto variant="secondary" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button auto onClick={review}>
-              Review change
-            </Button>
-          </div>
-        </>
-      )}
+      {body}
     </Modal>
   );
 }
