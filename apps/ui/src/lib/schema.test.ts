@@ -91,6 +91,25 @@ describe('scalarLeaves', () => {
       expect.objectContaining({ path: 'vxlan/port', kind: 'integer' }),
     ]);
   });
+
+  it('keeps value-or-keyword unions, skips unions with object branches', () => {
+    const vrf = {
+      properties: {
+        table: {
+          anyOf: [
+            { type: 'integer', nullable: true },
+            { type: 'string', nullable: true, enum: ['auto', null] },
+          ],
+        },
+        mode: { anyOf: [{ enum: ['a'] }, { enum: ['b'] }] },
+        tree: { anyOf: [{ type: 'object', properties: { x: { type: 'string' } } }, { type: 'string' }] },
+      },
+    };
+    expect(scalarLeaves(vrf)).toEqual([
+      expect.objectContaining({ path: 'table', kind: 'integer' }),
+      expect.objectContaining({ path: 'mode', kind: 'enum' }),
+    ]);
+  });
 });
 
 describe('leafLabel', () => {

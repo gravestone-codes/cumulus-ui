@@ -69,6 +69,26 @@ export function leafLabel(path: string, schema?: Schema): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+/** Kind of an anyOf/oneOf whose branches are all scalars (first non-enum type wins), else null. */
+function scalarUnion(sub: Schema): string | null {
+  const branches = [
+    ...(Array.isArray(sub['anyOf']) ? sub['anyOf'] : []),
+    ...(Array.isArray(sub['oneOf']) ? sub['oneOf'] : []),
+  ];
+  if (branches.length === 0) return null;
+  let kind: string | null = null;
+  for (const b of branches) {
+    if (typeof b !== 'object' || b === null || Array.isArray(b)) return null;
+    const branch = b as Schema;
+    if ('properties' in branch || 'additionalProperties' in branch || 'items' in branch) return null;
+    const t = branch['type'];
+    const isEnum = Array.isArray(branch['enum']);
+    if (!isEnum && !(typeof t === 'string' && SCALAR.has(t))) return null;
+    if (!isEnum && kind === null) kind = t as string;
+  }
+  return kind ?? 'enum';
+}
+
 /** Scalar leaves of an item schema, depth-capped (counters stay reachable, trees do not). */
 export function scalarLeaves(item: Schema, prefix = '', depth = 0, maxDepth = 3): SchemaLeaf[] {
   if (depth >= maxDepth) return [];
@@ -88,6 +108,12 @@ export function scalarLeaves(item: Schema, prefix = '', depth = 0, maxDepth = 3)
     const type = sub['type'];
     if (typeof type === 'string' && SCALAR.has(type)) {
       out.push({ path, label: leafLabel(path, sub), kind: type });
+      continue;
+    }
+    // Value-or-keyword leaves (`table`: integer | "auto", AS: integer | "none").
+    const union = scalarUnion(sub);
+    if (union) {
+      out.push({ path, label: leafLabel(path, sub), kind: union });
       continue;
     }
     if (type === 'object' || typeof sub['properties'] === 'object') {
