@@ -23,7 +23,13 @@ import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 type Obj = Record<string, unknown>;
 type Row = Obj & { __id: string };
 
+/** Remounts per scope + domain: picker, column and sort state are read once per storage key. */
 export function Domains() {
+  const { switchId, groupId, domainKey = '' } = useParams();
+  return <DomainList key={`${groupId ?? switchId}/${domainKey}`} />;
+}
+
+function DomainList() {
   const { switchId, groupId, domainKey = '' } = useParams();
   const def = domainOf(domainKey);
   const scope: Scope = groupId ? { kind: 'group', id: groupId } : { kind: 'switch', id: switchId ?? '' };
@@ -60,11 +66,7 @@ export function Domains() {
     leaves.length > 0 ? (
       <FieldPicker leaves={leaves} checked={checked} defaults={def.fields} onChange={setChecked} />
     ) : null;
-  const viewPicker = (
-    <span style={{ minWidth: 180 }}>
-      <ViewSwitcher path={def.collection} value={view} onChange={setView} />
-    </span>
-  );
+  const viewPicker = <ViewSwitcher path={def.collection} value={view} onChange={setView} />;
   const newButton = def.creatable ? (
     <Button auto variant="secondary" onClick={() => setCreating(true)} disabled={list.loading}>
       New {singularOf(def)}

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { itemSchema, leafLabel, planFieldsFromSchema, scalarLeaves, toIncludePatterns } from './schema.js';
+import {
+  enableGates,
+  itemSchema,
+  leafLabel,
+  planFieldsFromSchema,
+  scalarLeaves,
+  toIncludePatterns,
+} from './schema.js';
 
 const ifaceItem = {
   type: 'object',
@@ -99,6 +106,13 @@ describe('toIncludePatterns', () => {
     expect(toIncludePatterns('/interface', ['type', 'link/speed'])).toEqual(['/*/type', '/*/link/speed']);
     expect(toIncludePatterns('/interface/{interface-id}', ['type'])).toEqual(['/type']);
   });
+
+  it('drops duplicates (picked fields + always-fetched adapter leaves)', () => {
+    expect(toIncludePatterns('/interface', ['type', 'link/state', 'type'])).toEqual([
+      '/*/type',
+      '/*/link/state',
+    ]);
+  });
 });
 
 const patchBody = {
@@ -130,5 +144,22 @@ describe('planFieldsFromSchema', () => {
     const fields = planFieldsFromSchema(patchBody, { labels: { 'link/mtu': 'MTU' } });
     expect(fields.map((f) => f.path).sort()).toEqual(['description', 'link/mtu', 'type']);
     expect(fields.find((f) => f.path === 'link/mtu')?.label).toBe('MTU');
+  });
+});
+
+describe('enableGates', () => {
+  it('gates siblings under each toggle, outermost first', () => {
+    const gates = enableGates(['enable', 'dad/enable', 'dad/max-moves', 'vxlan/port', 'enable-x']);
+    expect(gates.get('dad/enable')).toEqual(['enable']);
+    expect(gates.get('dad/max-moves')).toEqual(['enable', 'dad/enable']);
+    expect(gates.get('vxlan/port')).toEqual(['enable']);
+    expect(gates.has('enable')).toBe(false);
+  });
+
+  it('leaves paths outside a nested toggle ungated', () => {
+    const gates = enableGates(['vxlan/enable', 'vxlan/port', 'vxlan/mtu', 'mac-address']);
+    expect(gates.get('vxlan/port')).toEqual(['vxlan/enable']);
+    expect(gates.get('vxlan/mtu')).toEqual(['vxlan/enable']);
+    expect(gates.has('mac-address')).toBe(false);
   });
 });

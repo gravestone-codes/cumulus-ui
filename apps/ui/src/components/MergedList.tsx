@@ -155,7 +155,7 @@ export function MergedList({
   const failed = Object.entries(errors);
   return (
     <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      <div className="list-head" style={{ gap: 12 }}>
         {title && <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{title}</h1>}
         {!loading && (
           <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>

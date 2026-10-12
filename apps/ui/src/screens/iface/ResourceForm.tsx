@@ -12,7 +12,7 @@ import { api, type StageCall } from '../../lib/api.js';
 import { Alert, Button, LineDropdown, LineField, Modal, Spinner } from '../../components/ui.js';
 import { boundsOf, decodeValue, setEntries } from '../../lib/fieldSchema.js';
 import type { FormField } from '../../lib/plan.js';
-import { planFieldsFromSchema } from '../../lib/schema.js';
+import { enableGates, planFieldsFromSchema } from '../../lib/schema.js';
 import { fillPattern, mergeValues } from '../../lib/merge.js';
 import { getPath } from '../../lib/format.js';
 import { planCalls, type PerSwitchDraft, type SharedDraft } from '../../lib/plan.js';
@@ -99,8 +99,25 @@ export function ResourceForm({
   const merged = (path: string) =>
     mergeValues(Object.fromEntries(present.map((sw) => [sw, current[sw]?.[path] ?? ''])));
 
+  // Options under a feature toggle stay visible but locked while it is off
+  // (draft first, then the live value, then the schema default; mixed never locks).
+  const gates = enableGates(resolved.map((f) => f.path));
+  const byPath = new Map(resolved.map((f) => [f.path, f]));
+  function offGate(path: string): string | undefined {
+    return gates.get(path)?.find((g) => {
+      const m = merged(g);
+      if (m.kind === 'mixed' && shared[g] === undefined) return false;
+      const fallback = byPath.get(g)?.schema?.['default'];
+      const v = shared[g] ?? (m.kind === 'same' && m.value ? m.value : fallback);
+      return v === 'off';
+    });
+  }
+
   function review() {
-    const p = planCalls(objectPath, present, resolved, current, shared, perSw);
+    const locked = resolved.filter((f) => offGate(f.path)).map((f) => f.path);
+    const live = Object.fromEntries(Object.entries(shared).filter(([k]) => !locked.includes(k)));
+    const liveSw = Object.fromEntries(Object.entries(perSw).filter(([k]) => !locked.includes(k)));
+    const p = planCalls(objectPath, present, resolved, current, live, liveSw);
     if (!p.ok) {
       setError(p.error);
       return;
@@ -113,6 +130,24 @@ export function ResourceForm({
   const wide = resolved.some((f) => f.perSwitch);
 
   function renderField(f: FormField) {
+    const gate = offGate(f.path);
+    if (!gate) return renderInput(f, false);
+    const toggle = byPath.get(gate)?.label ?? gate;
+    return (
+      <div
+        key={f.path}
+        className="gated"
+        title={`Turn ${toggle} on to change this`}
+        style={
+          f.perSwitch || f.kind === 'set' || f.path === 'description' ? { gridColumn: '1 / -1' } : undefined
+        }
+      >
+        {renderInput(f, true)}
+      </div>
+    );
+  }
+
+  function renderInput(f: FormField, locked: boolean) {
     const m = merged(f.path);
     const mixed = m.kind === 'mixed';
     const mixedNote = mixed ? m.groups.map((g) => `${g.value || '—'} ×${g.switches.length}`).join(', ') : '';
@@ -127,6 +162,7 @@ export function ResourceForm({
             <div style={{ flex: 1 }}>
               <LineField
                 label="Pattern"
+                disabled={locked}
                 value={pattern[f.path] ?? ''}
                 placeholder="e.g. 10.0.0.{2n-1}/31 · {sw} = switch"
                 onChange={(e) => setPattern((p) => ({ ...p, [f.path]: e.target.value }))}
@@ -135,7 +171,7 @@ export function ResourceForm({
             <Button
               auto
               variant="secondary"
-              disabled={!pattern[f.path]}
+              disabled={locked || !pattern[f.path]}
               onClick={() =>
                 setPerSw((d) => ({
                   ...d,
@@ -166,6 +202,7 @@ export function ResourceForm({
                       setPerSw((d) => ({ ...d, [f.path]: { ...d[f.path], [sw]: e.target.value } }))
                     }
                     placeholder={f.kind === 'set' ? 'comma-separated' : '—'}
+                    disabled={locked}
                   />
                 </span>
               </div>
@@ -185,6 +222,7 @@ export function ResourceForm({
           key={f.path}
           label={f.label}
           value={value}
+          disabled={locked}
           onChange={(v) => setShared((d) => ({ ...d, [f.path]: v === KEEP ? undefined : v }))}
           options={[
             ...(mixed ? [{ value: KEEP, label: `Mixed — keep each (${mixedNote})` }] : []),
@@ -205,6 +243,7 @@ export function ResourceForm({
         <LineField
           label={f.label}
           value={shown}
+          disabled={locked}
           inputMode={f.kind === 'number' ? 'numeric' : undefined}
           placeholder={
             mixed
@@ -254,11 +293,9 @@ export function ResourceForm({
           marginTop: 16,
         }}
       >
-        {modal !== false && (
-          <Button auto variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-        )}
+        <Button auto variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
         <Button auto onClick={review}>
           Review change
         </Button>

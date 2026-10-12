@@ -8,24 +8,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Breadcrumb, useToast } from '../components/ui.js';
+import { Breadcrumb, Button, useToast } from '../components/ui.js';
 import { ResourceDetail, ValueGrid } from '../components/resource.js';
 import { MixedValue } from '../components/mixed.js';
 import { mergeValues, presence } from '../lib/merge.js';
 import { displayValue, getPath } from '../lib/format.js';
 import { singularOf, type DomainDef } from '../lib/domains.js';
-import { useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
+import { enableGates, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { ResourceForm } from './iface/ResourceForm.js';
 import { refreshInterfaces, scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
-
-type Tab = 'overview' | 'edit';
 
 export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }) {
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>('overview');
+  const [editing, setEditing] = useState(false);
   const base = scopeBase(scope);
   const group = scope.kind === 'group';
   const name = def.name ?? def.key;
@@ -43,14 +41,20 @@ export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }
     checked.length > 0
       ? checked
       : [...new Set(present.flatMap((sw) => Object.keys(read.objects[sw] ?? {})))].slice(0, 24);
+  const mergedAt = (leaf: string) =>
+    mergeValues(Object.fromEntries(present.map((sw) => [sw, displayValue(getPath(read.objects[sw], leaf))])));
+  const gates = enableGates(overviewLeaves);
   const items = overviewLeaves.map((leaf) => {
-    const m = mergeValues(
-      Object.fromEntries(present.map((sw) => [sw, displayValue(getPath(read.objects[sw], leaf))])),
-    );
+    const m = mergedAt(leaf);
+    const muted = !!gates.get(leaf)?.some((g) => {
+      const v = mergedAt(g);
+      return v.kind === 'same' && v.value === 'off';
+    });
     const label = def.labels[leaf] ?? byLeaf.get(leaf)?.label ?? leaf;
     if (m.kind === 'mixed' && group) {
       return {
         label,
+        muted,
         value: (
           <MixedValue
             groups={m.groups}
@@ -60,36 +64,43 @@ export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }
         ),
       };
     }
-    return { label, value: m.kind === 'same' ? m.value || '—' : '—' };
+    return { label, muted, value: m.kind === 'same' ? m.value || '—' : '—' };
   });
 
   const editable = def.editable !== false && checked.length > 0;
-  const tabs: Array<{ id: string; label: string; content: React.ReactNode }> = [
-    { id: 'overview', label: 'Overview', content: <ValueGrid items={items} /> },
+  // Edit is an action, not a place: the button swaps the overview for the form in place.
+  const tabs = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      content:
+        editable && editing ? (
+          <ResourceForm
+            modal={false}
+            scope={scope}
+            objectPath={def.collection}
+            name={name}
+            title={singularOf(def)}
+            only={checked}
+            labels={def.labels}
+            cfg={Object.fromEntries(present.map((sw) => [sw, read.objects[sw]]))}
+            present={present}
+            onClose={() => setEditing(false)}
+            onApplied={() => refreshInterfaces(queryClient)}
+            notify={toast}
+            doneText={`${singularOf(def)} ${name}`}
+          />
+        ) : (
+          <ValueGrid items={items} />
+        ),
+    },
   ];
-  if (editable) {
-    tabs.push({
-      id: 'edit',
-      label: 'Edit',
-      content: (
-        <ResourceForm
-          modal={false}
-          scope={scope}
-          objectPath={def.collection}
-          name={name}
-          title={singularOf(def)}
-          only={checked}
-          labels={def.labels}
-          cfg={Object.fromEntries(present.map((sw) => [sw, read.objects[sw]]))}
-          present={present}
-          onClose={() => setTab('overview')}
-          onApplied={() => refreshInterfaces(queryClient)}
-          notify={toast}
-          doneText={`${singularOf(def)} ${name}`}
-        />
-      ),
-    });
-  }
+  const editButton =
+    editable && !editing ? (
+      <Button auto variant="secondary" onClick={() => setEditing(true)}>
+        Edit
+      </Button>
+    ) : null;
 
   return (
     <ScopeShell scope={scope} active={`/${def.key}`}>
@@ -100,8 +111,7 @@ export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }
         id={def.label}
         path={def.collection}
         tabs={tabs}
-        activeTab={tab}
-        onTabChange={(id) => setTab(id as Tab)}
+        actions={editButton}
         read={read}
         present={present}
       />

@@ -30,14 +30,17 @@ export function ViewSwitcher({
 }) {
   const manifest = useQuery({ queryKey: ['manifest'], queryFn: () => api.manifest(), staleTime: 300_000 });
   const views = manifest.data?.views[path] ?? [];
+  // No views, no slot: an empty placeholder would push header actions off the table edge.
   if (views.length === 0) return null;
   return (
-    <LineDropdown
-      label="View"
-      value={value ?? ''}
-      onChange={(v) => onChange(v || undefined)}
-      options={[{ value: '', label: 'Default' }, ...views.map((v) => ({ value: v, label: v }))]}
-    />
+    <span style={{ minWidth: 180 }}>
+      <LineDropdown
+        label="View"
+        value={value ?? ''}
+        onChange={(v) => onChange(v || undefined)}
+        options={[{ value: '', label: 'Default' }, ...views.map((v) => ({ value: v, label: v }))]}
+      />
+    </span>
   );
 }
 
@@ -159,7 +162,9 @@ export function ResourceDetail({
               </Alert>
             </div>
           )}
-          <Tabs tabs={tabs.map((t) => ({ id: t.id, label: t.label }))} active={active} onChange={select} />
+          {tabs.length > 1 && (
+            <Tabs tabs={tabs.map((t) => ({ id: t.id, label: t.label }))} active={active} onChange={select} />
+          )}
           {tabs.find((t) => t.id === active)?.content}
         </>
       )}
@@ -169,8 +174,9 @@ export function ResourceDetail({
 
 /* ValueGrid: labelled values as an airy tile grid — the one config layout
    for detail pages (switch and group alike). Values may be rich (mixed
-   markers, locks); labels stay uppercase micro-type. */
-export function ValueGrid({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
+   markers, locks); labels stay uppercase micro-type. `muted` dims options
+   whose feature toggle is off. */
+export function ValueGrid({ items }: { items: Array<{ label: string; value: ReactNode; muted?: boolean }> }) {
   return (
     <dl
       style={{
@@ -181,7 +187,7 @@ export function ValueGrid({ items }: { items: Array<{ label: string; value: Reac
       }}
     >
       {items.map((f) => (
-        <div key={f.label} style={{ minWidth: 0 }}>
+        <div key={f.label} className={f.muted ? 'gated' : undefined} style={{ minWidth: 0 }}>
           <dt
             style={{
               fontSize: 11,
@@ -219,6 +225,7 @@ export function ResourceList<T extends object>({
   labels,
   render,
   schemaMethod,
+  alwaysInclude,
 }: {
   switchId: string;
   path: string;
@@ -249,11 +256,16 @@ export function ResourceList<T extends object>({
   render?: Record<string, (row: T) => ReactNode>;
   /** Schema operation for the field catalog (default PATCH; GET for read-only collections). */
   schemaMethod?: string;
+  /** Leaves adapter columns read (e.g. link state), fetched alongside the picked fields. */
+  alwaysInclude?: string[];
 }) {
   const [view, setView] = useState<string | undefined>(undefined);
   const { leaves, loading: schemaLoading } = useSchemaLeaves(schema ? pathTemplate : undefined, schemaMethod);
   const { checked, setChecked } = useSchemaFields(storageKey, schema ? leaves : [], defaultFields ?? []);
-  const include = schema && checked.length > 0 ? toIncludePatterns(path, checked) : undefined;
+  const include =
+    schema && checked.length > 0
+      ? toIncludePatterns(path, [...checked, ...(alwaysInclude ?? [])])
+      : undefined;
   const list = useQuery({
     queryKey: ['resource', switchId, path, view, rev, include],
     queryFn: () =>
@@ -281,7 +293,7 @@ export function ResourceList<T extends object>({
   const cols = [...columns, ...schemaCols];
   return (
     <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+      <div className="list-head" style={{ gap: 16 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{title}</h1>
         <span style={{ flex: 1 }} />
         {actions}
@@ -293,9 +305,7 @@ export function ResourceList<T extends object>({
             onChange={setChecked}
           />
         )}
-        <span style={{ minWidth: 180 }}>
-          <ViewSwitcher path={path} value={view} onChange={setView} />
-        </span>
+        <ViewSwitcher path={path} value={view} onChange={setView} />
       </div>
       {list.isError ? (
         <ReadError switchId={switchId} message={list.error.message} onFixed={() => list.refetch()} />

@@ -39,6 +39,8 @@ const SWITCH_ADAPTERS: GridColumn<IfaceRow>[] = [
 ];
 
 const IFACE_FIELDS = ['type', 'link/speed', 'link/mtu', 'description'];
+/** Leaves `ifaceState` reads: fetched whatever the picker shows, or every badge reads "unknown". */
+const STATE_LEAVES = ['link/state', 'link/oper-status', 'type'];
 const IFACE_LABELS: Record<string, string> = {
   type: 'Type',
   'link/speed': 'Speed',
@@ -55,7 +57,8 @@ export function Interfaces() {
   const { leaves } = useSchemaLeaves('/interface/{interface-id}');
   const { checked, setChecked } = useSchemaFields(fieldKey, leaves, IFACE_FIELDS);
   const [view, setView] = useState<string | undefined>(undefined);
-  const include = checked.length > 0 ? toIncludePatterns('/interface', checked) : undefined;
+  const include =
+    checked.length > 0 ? toIncludePatterns('/interface', [...checked, ...STATE_LEAVES]) : undefined;
   const list = usePerSwitch<Record<string, Obj>>(
     scope,
     '/interface',
@@ -72,11 +75,7 @@ export function Interfaces() {
     ) : null;
 
   const viewPicker =
-    scope.kind === 'group' ? (
-      <span style={{ minWidth: 180 }}>
-        <ViewSwitcher path="/interface" value={view} onChange={setView} />
-      </span>
-    ) : null;
+    scope.kind === 'group' ? <ViewSwitcher path="/interface" value={view} onChange={setView} /> : null;
 
   const newButton = (
     <Button auto variant="secondary" onClick={() => setCreating(true)} disabled={list.loading}>
@@ -101,6 +100,7 @@ export function Interfaces() {
           storageKey="cumulus.interfaces.v1"
           emptyIcon="interfaces"
           rev="operational"
+          alwaysInclude={STATE_LEAVES}
           actions={newButton}
           onSelect={(id) => navigate(`${base}/interfaces/${id}`)}
           rowMenu={(row): RowMenuItem[] => [

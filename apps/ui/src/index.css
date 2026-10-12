@@ -110,6 +110,14 @@ body {
     cursor: default;
     color: var(--color-muted);
   }
+  .lf > input:disabled {
+    cursor: default;
+    color: var(--color-muted);
+  }
+  /* Options under a feature toggle that is off: visible, locked, dimmed. */
+  .gated {
+    opacity: 0.45;
+  }
   .lf.invalid > .select-line {
     border-bottom-color: var(--color-fail);
   }
@@ -296,6 +304,14 @@ body {
     color: var(--color-fail);
     margin-top: 4px;
     min-height: 20px;
+  }
+  /* List title rows reserve the View dropdown's height (label + line field +
+     error line) so title and search sit at one spot with or without views. */
+  .list-head {
+    display: flex;
+    align-items: center;
+    min-height: 87px;
+    margin-bottom: 12px;
   }
   @media (prefers-reduced-motion: reduce) {
     .lf.shake {

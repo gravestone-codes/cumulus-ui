@@ -101,7 +101,24 @@ export function scalarLeaves(item: Schema, prefix = '', depth = 0, maxDepth = 3)
 // a star-slash wildcard prefix; item reads take root-relative pointers.
 export function toIncludePatterns(readPath: string, leaves: string[]): string[] {
   const collection = !readPath.includes('{');
-  return leaves.map((leaf) => (collection ? `/*/${leaf}` : `/${leaf}`));
+  return [...new Set(leaves)].map((leaf) => (collection ? `/*/${leaf}` : `/${leaf}`));
+}
+
+/**
+ * NVUE feature toggles gate their siblings: `vxlan/enable` governs
+ * `vxlan/port`, a root `enable` governs every other leaf. Returns each
+ * path's governing enable leaves (outermost first); ungated paths are absent.
+ */
+export function enableGates(paths: string[]): Map<string, string[]> {
+  const toggles = paths.filter((p) => p === 'enable' || p.endsWith('/enable'));
+  const gates = new Map<string, string[]>();
+  for (const path of paths) {
+    const by = toggles
+      .filter((t) => t !== path && path.startsWith(t.slice(0, -'enable'.length)))
+      .sort((a, b) => a.length - b.length);
+    if (by.length > 0) gates.set(path, by);
+  }
+  return gates;
 }
 
 /** Scalar leaves for a template, live from the backend (dumb UI). */

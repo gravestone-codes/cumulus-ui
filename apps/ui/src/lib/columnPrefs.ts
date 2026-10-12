@@ -3,7 +3,7 @@
  * GRG's useColumnPrefs: order reconciles against the live catalog (unknown
  * keys dropped, new ones appended), `always` pins first and stays visible.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export interface ColumnCatalogEntry<K extends string> {
   key: K;
@@ -32,25 +32,37 @@ function reconcile<K extends string>(
   return { order, hidden };
 }
 
+/** Stored prefs as saved: reconciling here would drop picks for columns the schema has not delivered yet. */
 function load<K extends string>(storageKey: string, catalog: ColumnCatalogEntry<K>[]): ColumnPrefs<K> {
   try {
     const raw = localStorage.getItem(storageKey);
-    return reconcile(catalog, raw ? (JSON.parse(raw) as Partial<ColumnPrefs<K>>) : null);
+    const parsed = raw ? (JSON.parse(raw) as Partial<ColumnPrefs<K>>) : null;
+    if (parsed && Array.isArray(parsed.order) && Array.isArray(parsed.hidden)) {
+      return { order: parsed.order, hidden: parsed.hidden };
+    }
   } catch {
-    return reconcile(catalog, null);
+    /* unreadable: defaults */
   }
+  return reconcile(catalog, null);
 }
 
 export function useColumnPrefs<K extends string>(storageKey: string, catalog: ColumnCatalogEntry<K>[]) {
-  const [prefs, setPrefs] = useState<ColumnPrefs<K>>(() => load(storageKey, catalog));
+  const [stored, setStored] = useState<ColumnPrefs<K>>(() => load(storageKey, catalog));
+  // Reconcile every render: catalogs grow once the schema loads, and columns
+  // missing at first mount must still appear (unknown keys never reach render).
+  const prefs = useMemo(() => reconcile(catalog, stored), [catalog, stored]);
+  const setPrefs = useCallback(
+    (fn: (p: ColumnPrefs<K>) => ColumnPrefs<K>) => setStored((s) => fn(reconcile(catalog, s))),
+    [catalog],
+  );
 
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify(prefs));
+      localStorage.setItem(storageKey, JSON.stringify(stored));
     } catch {
       /* storage disabled — prefs last the session */
     }
-  }, [storageKey, prefs]);
+  }, [storageKey, stored]);
 
   const toggle = useCallback(
     (key: K) => {
@@ -60,7 +72,7 @@ export function useColumnPrefs<K extends string>(storageKey: string, catalog: Co
         return { ...p, hidden };
       });
     },
-    [catalog],
+    [catalog, setPrefs],
   );
 
   const move = useCallback(
@@ -80,10 +92,10 @@ export function useColumnPrefs<K extends string>(storageKey: string, catalog: Co
         return { ...p, order };
       });
     },
-    [catalog],
+    [catalog, setPrefs],
   );
 
-  const reset = useCallback(() => setPrefs(reconcile(catalog, null)), [catalog]);
+  const reset = useCallback(() => setStored(reconcile(catalog, null)), [catalog]);
 
   const visibleKeys = prefs.order.filter((k) => !prefs.hidden.includes(k));
 

@@ -16,22 +16,26 @@ import { MixedValue } from '../components/mixed.js';
 import { mergeValues, presence } from '../lib/merge.js';
 import { displayValue, getPath } from '../lib/format.js';
 import { domainOf, singularOf } from '../lib/domains.js';
-import { useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
+import { enableGates, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { DeleteFlow } from './iface/DeleteFlow.js';
 import { ResourceForm } from './iface/ResourceForm.js';
 import { refreshInterfaces, scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
-type Tab = 'overview' | 'edit';
-
+/** Remounts per object: field picks and edit drafts must not carry over to the next one. */
 export function DomainDetail() {
+  const { switchId, groupId, domainKey = '', name = '' } = useParams();
+  return <DomainObject key={`${groupId ?? switchId}/${domainKey}/${name}`} />;
+}
+
+function DomainObject() {
   const { switchId, groupId, domainKey = '', name = '' } = useParams();
   const def = domainOf(domainKey);
   const scope: Scope = groupId ? { kind: 'group', id: groupId } : { kind: 'switch', id: switchId ?? '' };
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>('overview');
+  const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const base = scopeBase(scope);
   const group = scope.kind === 'group';
@@ -66,14 +70,20 @@ export function DomainDetail() {
     checked.length > 0
       ? checked
       : [...new Set(present.flatMap((sw) => Object.keys(read.objects[sw] ?? {})))].slice(0, 24);
+  const mergedAt = (leaf: string) =>
+    mergeValues(Object.fromEntries(present.map((sw) => [sw, displayValue(getPath(read.objects[sw], leaf))])));
+  const gates = enableGates(overviewLeaves);
   const items = overviewLeaves.map((leaf) => {
-    const m = mergeValues(
-      Object.fromEntries(present.map((sw) => [sw, displayValue(getPath(read.objects[sw], leaf))])),
-    );
+    const m = mergedAt(leaf);
+    const muted = !!gates.get(leaf)?.some((g) => {
+      const v = mergedAt(g);
+      return v.kind === 'same' && v.value === 'off';
+    });
     const label = def.labels[leaf] ?? byLeaf.get(leaf)?.label ?? leaf;
     if (m.kind === 'mixed' && group) {
       return {
         label,
+        muted,
         value: (
           <MixedValue
             groups={m.groups}
@@ -85,36 +95,43 @@ export function DomainDetail() {
         ),
       };
     }
-    return { label, value: m.kind === 'same' ? m.value || '—' : '—' };
+    return { label, muted, value: m.kind === 'same' ? m.value || '—' : '—' };
   });
 
   const editable = def.editable !== false && checked.length > 0;
-  const tabs: Array<{ id: string; label: string; content: React.ReactNode }> = [
-    { id: 'overview', label: 'Overview', content: <ValueGrid items={items} /> },
+  // Edit is an action, not a place: the button swaps the overview for the form in place.
+  const tabs = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      content:
+        editable && editing ? (
+          <ResourceForm
+            modal={false}
+            scope={scope}
+            objectPath={objectPath}
+            name={name}
+            title={singularOf(def)}
+            only={checked}
+            labels={def.labels}
+            cfg={Object.fromEntries(present.map((sw) => [sw, read.objects[sw]]))}
+            present={present}
+            onClose={() => setEditing(false)}
+            onApplied={() => refreshInterfaces(queryClient)}
+            notify={toast}
+            doneText={`${singularOf(def)} ${name}`}
+          />
+        ) : (
+          <ValueGrid items={items} />
+        ),
+    },
   ];
-  if (editable) {
-    tabs.push({
-      id: 'edit',
-      label: 'Edit',
-      content: (
-        <ResourceForm
-          modal={false}
-          scope={scope}
-          objectPath={objectPath}
-          name={name}
-          title={singularOf(def)}
-          only={checked}
-          labels={def.labels}
-          cfg={Object.fromEntries(present.map((sw) => [sw, read.objects[sw]]))}
-          present={present}
-          onClose={() => setTab('overview')}
-          onApplied={() => refreshInterfaces(queryClient)}
-          notify={toast}
-          doneText={`${singularOf(def)} ${name}`}
-        />
-      ),
-    });
-  }
+  const editButton =
+    editable && !editing ? (
+      <Button auto variant="secondary" onClick={() => setEditing(true)}>
+        Edit
+      </Button>
+    ) : null;
 
   return (
     <ScopeShell scope={scope} active={`/${def.key}`}>
@@ -132,13 +149,14 @@ export function DomainDetail() {
         id={name}
         path={objectPath}
         tabs={tabs}
-        activeTab={tab}
-        onTabChange={(id) => setTab(id as Tab)}
         actions={
           editable ? (
-            <Button auto variant="secondary" onClick={() => setDeleting(true)}>
-              Delete
-            </Button>
+            <>
+              {editButton}
+              <Button auto variant="secondary" onClick={() => setDeleting(true)}>
+                Delete
+              </Button>
+            </>
           ) : undefined
         }
         read={read}

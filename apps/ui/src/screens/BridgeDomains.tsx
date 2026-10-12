@@ -92,9 +92,7 @@ export function BridgeDomains() {
           actions={
             <>
               {picker}
-              <span style={{ minWidth: 180 }}>
-                <ViewSwitcher path="/bridge/domain" value={view} onChange={setView} />
-              </span>
+              <ViewSwitcher path="/bridge/domain" value={view} onChange={setView} />
               {newButton}
             </>
           }
