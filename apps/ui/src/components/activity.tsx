@@ -31,7 +31,17 @@ export function ActivityList({ rows, onOpen }: { rows: AuditRow[]; onOpen?: (row
     return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Nothing audited here yet.</p>;
   }
   return (
-    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 2 }}>
+    // minmax(0,1fr) + minWidth 0: long names/paths truncate instead of widening the card.
+    <ul
+      style={{
+        listStyle: 'none',
+        margin: 0,
+        padding: 0,
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr)',
+        gap: 2,
+      }}
+    >
       {rows.map((a) => {
         const body = (
           <>
@@ -39,6 +49,8 @@ export function ActivityList({ rows, onOpen }: { rows: AuditRow[]; onOpen?: (row
             <span
               style={{
                 color: 'var(--color-text)',
+                minWidth: 0,
+                maxWidth: '40%',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -59,6 +71,8 @@ export function ActivityList({ rows, onOpen }: { rows: AuditRow[]; onOpen?: (row
             <span
               style={{
                 color: 'var(--color-muted)',
+                flex: 1,
+                minWidth: 0,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
