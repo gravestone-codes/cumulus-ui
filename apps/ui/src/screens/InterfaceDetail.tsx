@@ -78,7 +78,9 @@ export function InterfaceDetail() {
                 )}
                 <CountersCard scope={scope} ifaceId={ifaceId} present={present} />
                 {type === 'swp' && <TransceiverCard scope={scope} ifaceId={ifaceId} present={present} />}
-                {scope.kind === 'switch' && type === 'swp' && <PhyCard switchId={scope.id} ifaceId={ifaceId} />}
+                {scope.kind === 'switch' && type === 'swp' && (
+                  <PhyCard switchId={scope.id} ifaceId={ifaceId} />
+                )}
                 {!cfg.loading && <LearnedMacs scope={scope} ifaceId={ifaceId} cfg={cfg.objects} />}
               </div>
             ),

@@ -26,9 +26,9 @@ describe('itemSchema', () => {
     expect(itemSchema({ additionalProperties: ifaceItem })).toBe(ifaceItem);
     expect(itemSchema({ items: ifaceItem })).toBe(ifaceItem);
     expect(itemSchema(ifaceItem)?.['type']).toBe('object');
-    expect(itemSchema({ anyOf: [{ properties: { '@clear': {} } }, { additionalProperties: ifaceItem }] })).toBe(
-      ifaceItem,
-    );
+    expect(
+      itemSchema({ anyOf: [{ properties: { '@clear': {} } }, { additionalProperties: ifaceItem }] }),
+    ).toBe(ifaceItem);
     expect(itemSchema(null)).toBeNull();
     expect(itemSchema({ type: 'string' })).toBeNull();
   });

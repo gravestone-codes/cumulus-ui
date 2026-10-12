@@ -7,13 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 import { Alert } from '../../components/ui.js';
-import {
-  choicesOf,
-  decodeValue,
-  invalidReason,
-  kindOf,
-  leafSchema,
-} from '../../lib/fieldSchema.js';
+import { choicesOf, decodeValue, invalidReason, kindOf, leafSchema } from '../../lib/fieldSchema.js';
 import { getPath } from '../../lib/format.js';
 import type { FormField, SharedDraft } from '../../lib/plan.js';
 import { usePerSwitch, type Scope } from './scope.js';

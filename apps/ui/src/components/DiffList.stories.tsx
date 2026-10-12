@@ -6,7 +6,12 @@ export default { title: 'Atoms/DiffList', component: DiffList };
 export const Mixed = {
   args: {
     rows: [
-      { path: '/interface/swp1', method: 'PATCH', before: { description: 'old' }, mine: { description: 'uplink' } },
+      {
+        path: '/interface/swp1',
+        method: 'PATCH',
+        before: { description: 'old' },
+        mine: { description: 'uplink' },
+      },
       { path: '/interface/bond0', method: 'DELETE', before: { type: 'bond' } },
     ],
   },

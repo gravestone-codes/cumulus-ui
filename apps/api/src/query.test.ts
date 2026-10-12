@@ -391,7 +391,10 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
       const hit = fake.hits.find((h) => h.startsWith('GET /nvue_v1/interface?')) ?? '';
       expect(new URL(`https://x/${hit.split(' ')[1]}`).searchParams.get('view')).toBe('counters');
       expect(
-        await api.get('/api/v1/switches/swv/query').set('Cookie', cookie).query({ path: '/interface', view: 'bogus' }),
+        await api
+          .get('/api/v1/switches/swv/query')
+          .set('Cookie', cookie)
+          .query({ path: '/interface', view: 'bogus' }),
       ).toMatchObject({ status: 400 });
     } finally {
       dropUserTokens('qw-view');

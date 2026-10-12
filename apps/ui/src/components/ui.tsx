@@ -183,7 +183,7 @@ export function Confirm({
       setAcked(false);
       setTyped('');
     }
-  }, [open ]);
+  }, [open]);
   const ready = (!ackLabel || acked) && (!requireText || typed === requireText);
   return (
     <Modal open={open} onClose={onCancel} title={title}>
@@ -1367,13 +1367,7 @@ export function Breadcrumb({
 
 /* ScrollArea: bounded scroll region (stone thumb comes from the global
    stylesheet). Tall panels scroll inside instead of pushing the page. */
-export function ScrollArea({
-  maxHeight = 320,
-  children,
-}: {
-  maxHeight?: number;
-  children: ReactNode;
-}) {
+export function ScrollArea({ maxHeight = 320, children }: { maxHeight?: number; children: ReactNode }) {
   return <div style={{ maxHeight, overflowY: 'auto' }}>{children}</div>;
 }
 

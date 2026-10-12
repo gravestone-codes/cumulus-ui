@@ -251,11 +251,11 @@ export function ResourceList<T extends object>({
   const list = useQuery({
     queryKey: ['resource', switchId, path, view, rev, include],
     queryFn: () =>
-      api.query<Record<string, T>>(
-        switchId,
-        path,
-        { ...(view ? { view } : {}), ...(rev ? { rev } : {}), ...(include ? { include } : {}) },
-      ),
+      api.query<Record<string, T>>(switchId, path, {
+        ...(view ? { view } : {}),
+        ...(rev ? { rev } : {}),
+        ...(include ? { include } : {}),
+      }),
     // 4xx is terminal (auth, gate, unknown path) — only 5xx/network retries.
     retry: (count, err) => (err instanceof ApiError ? err.status >= 500 && count < 2 : count < 2),
     staleTime: 30_000,
@@ -280,7 +280,12 @@ export function ResourceList<T extends object>({
         <span style={{ flex: 1 }} />
         {actions}
         {schema && leaves.length > 0 && (
-          <FieldPicker leaves={leaves} checked={checked} defaults={defaultFields ?? []} onChange={setChecked} />
+          <FieldPicker
+            leaves={leaves}
+            checked={checked}
+            defaults={defaultFields ?? []}
+            onChange={setChecked}
+          />
         )}
         <span style={{ minWidth: 180 }}>
           <ViewSwitcher path={path} value={view} onChange={setView} />

@@ -6,7 +6,14 @@ export default { title: 'Atoms/LineField', component: LineField };
 
 function StatefulField(props: { label: string; error?: string; value?: string }) {
   const [value, setValue] = useState(props.value ?? '');
-  return <LineField label={props.label} value={value} onChange={(e) => setValue(e.target.value)} error={props.error} />;
+  return (
+    <LineField
+      label={props.label}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      error={props.error}
+    />
+  );
 }
 
 export const Plain = { render: () => <StatefulField label="Description" /> };

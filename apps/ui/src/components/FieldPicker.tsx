@@ -46,7 +46,7 @@ export function FieldPicker({
       window.removeEventListener('scroll', close, true);
       window.removeEventListener('resize', close);
     };
-  }, [open ]);
+  }, [open]);
 
   function toggleOpen(e: React.MouseEvent) {
     e.stopPropagation();
@@ -87,12 +87,7 @@ export function FieldPicker({
         }}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M4 6h16M4 12h16M4 18h16"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-          />
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
           <circle cx="9" cy="6" r="2" fill="var(--color-surface)" stroke="currentColor" strokeWidth="1.7" />
           <circle cx="15" cy="12" r="2" fill="var(--color-surface)" stroke="currentColor" strokeWidth="1.7" />
           <circle cx="7" cy="18" r="2" fill="var(--color-surface)" stroke="currentColor" strokeWidth="1.7" />

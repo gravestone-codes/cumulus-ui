@@ -9,7 +9,11 @@ const ITEMS: NavItem[] = [
   { to: '/settings', label: 'Settings', icon: 'software' },
 ];
 
-function Stateful(props: { active: string; collapsed?: boolean; scope?: { kind: 'switch' | 'group'; name: string } }) {
+function Stateful(props: {
+  active: string;
+  collapsed?: boolean;
+  scope?: { kind: 'switch' | 'group'; name: string };
+}) {
   const [collapsed, setCollapsed] = useState(props.collapsed ?? false);
   const [active, setActive] = useState(props.active);
   return (

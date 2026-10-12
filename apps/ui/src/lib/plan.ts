@@ -4,14 +4,7 @@
  * so applies only touch switches with a real diff (design §4A).
  */
 import type { StageCall } from './api.js';
-import {
-  encodeValue,
-  mergeBodies,
-  nest,
-  setDelta,
-  setEntries,
-  type FieldKind,
-} from './fieldSchema.js';
+import { encodeValue, mergeBodies, nest, setDelta, setEntries, type FieldKind } from './fieldSchema.js';
 
 export interface PlanField {
   /** Leaf path from the interface root (`link/mtu`). */
