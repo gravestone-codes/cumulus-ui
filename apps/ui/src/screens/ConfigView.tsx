@@ -41,7 +41,7 @@ export function ConfigView() {
   const startup = useRevision(switchId, 'startup', defaults, rev === 'startup' || format === 'unsaved');
   const shown = format === 'unsaved' || rev === 'applied' ? applied : startup;
 
-  const sections = Object.keys(shown.data?.data ?? applied.data?.data ?? {});
+  const sections = Object.keys(shown.data?.data ?? applied.data?.data ?? {}).filter((k) => k !== 'header');
 
   const lines: CodeLine[] = useMemo(() => {
     const pick = (tree: Record<string, unknown> | undefined) =>

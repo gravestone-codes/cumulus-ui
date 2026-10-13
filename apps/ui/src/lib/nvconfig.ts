@@ -16,11 +16,11 @@ export function cliToken(v: unknown): string {
   return `'${s.replace(/'/g, `'\\''`)}'`;
 }
 
-/** `nv set …` lines: a leaf per value, a bare path per empty object (set members, tags). */
+/** `nv set …` lines: a leaf per value, a bare path per empty object (set members, tags). The revision header is not config. */
 export function toCommands(tree: unknown, prefix: string[] = []): string[] {
   if (!isObj(tree)) return [];
   const out: string[] = [];
-  for (const [key, value] of Object.entries(tree)) {
+  for (const [key, value] of Object.entries(prefix.length === 0 ? splitHeader(tree).set : tree)) {
     const path = [...prefix, cliToken(key)];
     if (isObj(value)) {
       if (Object.keys(value).length === 0) out.push(`nv set ${path.join(' ')}`);
@@ -77,9 +77,17 @@ export function toYaml(value: unknown, indent = 0): string[] {
   return [`${pad}${yamlScalar(value)}`];
 }
 
-/** `nv config show` shape: a `- set:` document wrapping the revision tree. */
+/** A revision read with `filled=false` carries `header` (model, release, rev-id) beside the config. */
+export function splitHeader(tree: unknown): { header?: Tree; set: Tree } {
+  if (!isObj(tree)) return { set: {} };
+  const { header, ...set } = tree;
+  return isObj(header) ? { header, set } : { set: tree };
+}
+
+/** `nv config show` shape: an optional `- header:` document, then `- set:` with the config. */
 export function configYaml(tree: unknown): string[] {
-  return ['- set:', ...toYaml(tree, 4)];
+  const { header, set } = splitHeader(tree);
+  return [...(header ? ['- header:', ...toYaml(header, 4)] : []), '- set:', ...toYaml(set, 4)];
 }
 
 export interface DiffLine {

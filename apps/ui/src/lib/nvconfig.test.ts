@@ -47,6 +47,19 @@ describe('toYaml', () => {
     ]);
   });
 
+  it('splits the revision header out like nv config show', () => {
+    const rev = { header: { model: 'vx', 'rev-id': 1 }, system: { hostname: 'leaf01' } };
+    expect(configYaml(rev)).toEqual([
+      '- header:',
+      '    model: vx',
+      '    rev-id: 1',
+      '- set:',
+      '    system:',
+      '      hostname: leaf01',
+    ]);
+    expect(toCommands(rev)).toEqual(['nv set system hostname leaf01']);
+  });
+
   it('wraps a revision in the nv config show document', () => {
     expect(configYaml({ system: { hostname: 'leaf01' } })).toEqual([
       '- set:',
