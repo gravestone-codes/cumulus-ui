@@ -18,7 +18,7 @@ import { GroupTraffic } from './iface/GroupTraffic.js';
 import { CountersCard, PhyCard, TransceiverCard } from './iface/StatsExtras.js';
 import { ConfigTab } from './iface/ConfigTab.js';
 import { displayValue } from '../lib/format.js';
-import { IfaceBridgeSection } from './bridge/IfaceBridgeSection.js';
+import { attachedDomains, IfaceBridgeSection } from './bridge/IfaceBridgeSection.js';
 import { NeighborsTab } from './iface/NeighborsTab.js';
 import { InterfaceActions } from './iface/Actions.js';
 import { ScopeShell } from './iface/ScopeShell.js';
@@ -91,29 +91,38 @@ export function InterfaceDetail() {
             content: cfg.loading ? (
               <Spinner label="Loading configuration" />
             ) : (
-              <div style={{ display: 'grid', gap: 12 }}>
-                <ConfigTab
-                  scope={scope}
-                  objectPath={path}
-                  name={ifaceId}
-                  sections={sectionsFor(cfgType)}
-                  cfg={cfg.objects}
-                  oper={oper.objects}
-                  present={present}
-                  onOpenSwitch={(sw) =>
-                    navigate(`/switches/${encodeURIComponent(sw)}/interfaces/${encodeURIComponent(ifaceId)}`)
-                  }
-                />
-                <IfaceBridgeSection
-                  scope={scope}
-                  ifaceId={ifaceId}
-                  present={present}
-                  cfg={cfg.objects}
-                  onOpenSwitch={(sw) =>
-                    navigate(`/switches/${encodeURIComponent(sw)}/interfaces/${encodeURIComponent(ifaceId)}`)
-                  }
-                />
-              </div>
+              <ConfigTab
+                scope={scope}
+                objectPath={path}
+                name={ifaceId}
+                sections={sectionsFor(cfgType)}
+                cfg={cfg.objects}
+                oper={oper.objects}
+                present={present}
+                onOpenSwitch={(sw) =>
+                  navigate(`/switches/${encodeURIComponent(sw)}/interfaces/${encodeURIComponent(ifaceId)}`)
+                }
+                extras={[
+                  {
+                    id: 'bridge',
+                    title: 'Bridge',
+                    configured: attachedDomains(cfg.objects).length > 0,
+                    content: (
+                      <IfaceBridgeSection
+                        scope={scope}
+                        ifaceId={ifaceId}
+                        present={present}
+                        cfg={cfg.objects}
+                        onOpenSwitch={(sw) =>
+                          navigate(
+                            `/switches/${encodeURIComponent(sw)}/interfaces/${encodeURIComponent(ifaceId)}`,
+                          )
+                        }
+                      />
+                    ),
+                  },
+                ]}
+              />
             ),
           },
           {

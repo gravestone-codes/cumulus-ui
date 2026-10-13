@@ -310,6 +310,7 @@ export function ResourceList<T extends object>({
           storageKey={storageKey}
           onRowClick={onSelect ? (row) => onSelect(rowId(row)) : undefined}
           actions={rowMenu}
+          hideEmpty={!!view}
           fields={
             schema && leaves.length > 0
               ? { leaves, checked, defaults: defaultFields ?? [], onChange: setChecked }

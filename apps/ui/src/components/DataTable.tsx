@@ -69,6 +69,7 @@ export function DataTable<T extends object>({
   subRows,
   rowKey,
   fields,
+  hideEmpty = false,
 }: {
   cols: GridColumn<T>[];
   rows: T[];
@@ -86,6 +87,8 @@ export function DataTable<T extends object>({
   rowKey?: (row: T) => string;
   /** Schema-driven tables: the columns menu also picks which fields load. */
   fields?: FieldPick;
+  /** Drop columns no row has a value for (a manifest view returns only its own fields). */
+  hideEmpty?: boolean;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const toggleRow = (key: string) =>
@@ -97,7 +100,23 @@ export function DataTable<T extends object>({
     });
   const catalog = useMemo(() => cols.map((c) => ({ key: c.key, label: c.label, always: c.always })), [cols]);
   const byKey = useMemo(() => new Map(cols.map((c) => [c.key, c])), [cols]);
-  const { prefs, visibleKeys, toggle, move, reset } = useColumnPrefs(`${storageKey}.columns`, catalog);
+  const {
+    prefs,
+    visibleKeys: chosenKeys,
+    toggle,
+    move,
+    reset,
+  } = useColumnPrefs(`${storageKey}.columns`, catalog);
+  const visibleKeys = useMemo(
+    () =>
+      hideEmpty && rows.length > 0
+        ? chosenKeys.filter((k) => {
+            const col = byKey.get(k);
+            return !col || col.always || rows.some((r) => !['', '—'].includes(col.value(r)));
+          })
+        : chosenKeys,
+    [hideEmpty, rows, chosenKeys, byKey],
+  );
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<TableSort>(() => {
     const first = cols.find((c) => c.sortable !== false);

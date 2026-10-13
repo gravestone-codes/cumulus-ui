@@ -55,6 +55,9 @@ export function Card({
         padding: 16,
         minWidth: 0,
         position: 'relative',
+        // Column so the body fills the card: centered states (AllClear) sit mid-card.
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
@@ -94,7 +97,7 @@ export function Card({
 }
 
 function CardBody({ children }: { children: ReactNode }) {
-  return <div style={{ marginTop: 16 }}>{children}</div>;
+  return <div style={{ marginTop: 16, flex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>;
 }
 
 export function Stat({
@@ -448,6 +451,37 @@ export function SubHead({ title, value }: { title: string; value?: ReactNode }) 
       {value !== undefined && (
         <span style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
       )}
+    </div>
+  );
+}
+
+/** All-clear state: a check and one line, centered in whatever room the card has. */
+export function AllClear({ children }: { children: ReactNode }) {
+  return (
+    <div
+      role="status"
+      style={{
+        flex: 1,
+        minHeight: 96,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        textAlign: 'center',
+      }}
+    >
+      <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="var(--color-pass)" strokeWidth="1.6" />
+        <path
+          d="M7.5 12.5l3 3 6-6.5"
+          stroke="var(--color-pass)"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span style={{ fontSize: 14, color: 'var(--color-muted)' }}>{children}</span>
     </div>
   );
 }

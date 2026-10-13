@@ -90,6 +90,7 @@ export function BridgeDomains() {
               <ViewSwitcher path="/bridge/domain" value={view} onChange={setView} />
             </>
           }
+          hideEmpty={!!view}
           fields={{ leaves, checked, defaults: BRIDGE_FIELDS, onChange: setChecked }}
           onOpen={(name) => navigate(`${base}/bridge/${encodeURIComponent(name)}`)}
           onOpenSwitch={(sw, name) =>

@@ -8,13 +8,15 @@
 import type { NavItem } from '../components/ui.js';
 
 /**
- * Config domains in the order the switch itself lists them (`nv show`:
- * acl, bridge, evpn, interface, mlag, nve, platform, qos, router, service,
- * system, vrf) — BGP sits at router, DHCP at service, Syslog at system.
+ * The switch's own top-level namespaces, in the order NVUE lists them
+ * (`nv show`: acl, action, bridge, evpn, interface, mlag, nve, platform,
+ * qos, router, service, system, vrf). Maintenance sits with the operate
+ * items at the end. BGP, DHCP and Syslog live inside Router, Service and System.
  */
 function domainItems(base: string): Array<NavItem & { to: string }> {
   return [
     { to: `${base}/acl`, label: 'ACL', icon: 'object' },
+    { to: `${base}/action`, label: 'Actions', icon: 'object' },
     { to: `${base}/bridge`, label: 'Bridge', icon: 'bridge' },
     { to: `${base}/evpn`, label: 'EVPN', icon: 'object' },
     { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
@@ -22,9 +24,9 @@ function domainItems(base: string): Array<NavItem & { to: string }> {
     { to: `${base}/nve`, label: 'NVE', icon: 'object' },
     { to: `${base}/platform`, label: 'Platform', icon: 'object' },
     { to: `${base}/qos`, label: 'QoS', icon: 'object' },
-    { to: `${base}/bgp`, label: 'BGP', icon: 'bgp' },
-    { to: `${base}/dhcp`, label: 'DHCP', icon: 'object' },
-    { to: `${base}/syslog`, label: 'Syslog', icon: 'object' },
+    { to: `${base}/router`, label: 'Router', icon: 'bgp' },
+    { to: `${base}/service`, label: 'Service', icon: 'object' },
+    { to: `${base}/system`, label: 'System', icon: 'software' },
     { to: `${base}/vrf`, label: 'VRFs', icon: 'vrfs' },
   ];
 }

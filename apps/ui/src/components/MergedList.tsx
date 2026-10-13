@@ -77,6 +77,7 @@ export function MergedList({
   rowActions,
   emptyIcon,
   fields,
+  hideEmpty,
 }: {
   /** Group scope: presence column, per-switch sub-rows, drift filter. */
   group: boolean;
@@ -105,6 +106,8 @@ export function MergedList({
   emptyIcon?: NavIcon;
   /** Schema field picking, folded into the table's columns menu. */
   fields?: FieldPick;
+  /** Drop columns no row has a value for (set while a manifest view is active). */
+  hideEmpty?: boolean;
 }) {
   const [driftOnly, setDriftOnly] = useState(false);
   const [reconnect, setReconnect] = useState<string | null>(null);
@@ -207,6 +210,7 @@ export function MergedList({
           empty={<EmptyState icon={emptyIcon} text={`No ${noun}.`} />}
           actions={rowActions ? (r) => rowActions(r, holders(r)) : undefined}
           fields={fields}
+          hideEmpty={hideEmpty}
         />
       )}
       {reconnect && (

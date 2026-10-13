@@ -15,7 +15,7 @@ import { ResourceDetail, ValueGrid } from '../components/resource.js';
 import { MixedValue } from '../components/mixed.js';
 import { mergeValues, presence } from '../lib/merge.js';
 import { displayValue, getPath } from '../lib/format.js';
-import { domainOf, singularOf } from '../lib/domains.js';
+import { domainOf, parentCrumb, singularOf } from '../lib/domains.js';
 import { enableGates, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { DeleteFlow } from './iface/DeleteFlow.js';
@@ -42,7 +42,7 @@ function DomainObject() {
   const objectPath = def ? `${def.collection}/${encodeURIComponent(name)}` : name;
   const read = usePerSwitch(scope, def ? objectPath : '/', {
     ...(def?.rev ? { rev: def.rev } : {}),
-    enabled: !!def && !def.singleton,
+    enabled: !!def && !def.singleton && !def.sections,
   });
 
   const { leaves } = useSchemaLeaves(def?.item, def && !def.editable ? 'GET' : 'PATCH');
@@ -53,7 +53,7 @@ function DomainObject() {
   );
   const byLeaf = new Map(leaves.map((l) => [l.path, l]));
   const { present } = presence(read.members, read.objects);
-  if (def?.singleton) {
+  if (def?.singleton || def?.sections) {
     return <Navigate to={`${base}/${def.key}`} replace />;
   }
   if (!def) {
@@ -134,10 +134,11 @@ function DomainObject() {
     ) : null;
 
   return (
-    <ScopeShell scope={scope} active={`/${def.key}`}>
+    <ScopeShell scope={scope} active={`/${def.parent ?? def.key}`}>
       <Breadcrumb
         trail={[
           { label: scope.id, to: base },
+          ...parentCrumb(def, base),
           { label: def.label, to: `${base}/${def.key}` },
           { label: name },
         ]}

@@ -11,12 +11,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Breadcrumb, Button, type RowMenuItem } from '../components/ui.js';
 import { ResourceList, ViewSwitcher } from '../components/resource.js';
 import { MergedList, schemaMergedColumns } from '../components/MergedList.js';
-import { domainOf, singularOf } from '../lib/domains.js';
+import { domainOf, parentCrumb, singularOf } from '../lib/domains.js';
 import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { CreateFlow } from './iface/CreateFlow.js';
 import { DeleteFlow } from './iface/DeleteFlow.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { SingletonDomain } from './SingletonDomain.js';
+import { SectionsDomain } from './SectionsDomain.js';
 import { scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
 type Obj = Record<string, unknown>;
@@ -43,7 +44,7 @@ function DomainList() {
     ...(def?.rev ? { rev: def.rev } : {}),
     ...(include ? { include } : {}),
     ...(view ? { view } : {}),
-    enabled: !!def,
+    enabled: !!def && !def.singleton && !def.sections,
   });
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<{ name: string; members: string[] } | null>(null);
@@ -58,6 +59,9 @@ function DomainList() {
   if (def.singleton) {
     return <SingletonDomain def={def} scope={scope} />;
   }
+  if (def.sections) {
+    return <SectionsDomain def={def} scope={scope} />;
+  }
 
   const objects = list.objects;
 
@@ -70,8 +74,11 @@ function DomainList() {
   const openDetail = (name: string) => navigate(`${base}/${def.key}/${encodeURIComponent(name)}`);
 
   return (
-    <ScopeShell scope={scope} active={`/${def.key}`}>
-      <Breadcrumb trail={[{ label: scope.id, to: base }, { label: def.label }]} onNav={navigate} />
+    <ScopeShell scope={scope} active={`/${def.parent ?? def.key}`}>
+      <Breadcrumb
+        trail={[{ label: scope.id, to: base }, ...parentCrumb(def, base), { label: def.label }]}
+        onNav={navigate}
+      />
       {scope.kind === 'switch' ? (
         <ResourceList<Row>
           switchId={scope.id}
@@ -122,6 +129,7 @@ function DomainList() {
               {viewPicker}
             </>
           }
+          hideEmpty={!!view}
           fields={{ leaves, checked, defaults: def.fields, onChange: setChecked }}
           onOpen={openDetail}
           onOpenSwitch={(sw, name) => navigate(`/switches/${sw}/${def.key}/${encodeURIComponent(name)}`)}

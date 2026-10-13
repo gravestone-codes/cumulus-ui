@@ -168,6 +168,45 @@ export function useSchemaLeaves(
   return { leaves: q.data ?? [], loading: q.isPending && !!pathTemplate };
 }
 
+/**
+ * A container's sections (`/router` → bgp, ospf, pim…): its object-typed
+ * properties, minus `@action` operations and on/off enums, in schema order,
+ * plus every scalar leaf (top-level ones are the container's own settings).
+ */
+export function sectionsOf(item: Schema): { sections: string[]; leaves: SchemaLeaf[] } {
+  const props = item['properties'];
+  const sections =
+    typeof props === 'object' && props !== null
+      ? Object.entries(props as Record<string, unknown>)
+          .filter(([key, raw]) => {
+            if (key.startsWith('@') || typeof raw !== 'object' || raw === null) return false;
+            const sub = raw as Schema;
+            if (Array.isArray(sub['enum'])) return false;
+            return sub['type'] === 'object' || 'properties' in sub || 'additionalProperties' in sub;
+          })
+          .map(([key]) => key)
+      : [];
+  return { sections, leaves: scalarLeaves(item) };
+}
+
+/** Sections + leaves of a container template, live from the backend (dumb UI). */
+export function useSchemaSections(pathTemplate: string): {
+  sections: string[];
+  leaves: SchemaLeaf[];
+  loading: boolean;
+} {
+  const q = useQuery({
+    queryKey: ['schema-sections', pathTemplate],
+    queryFn: async () => {
+      const { schema } = await api.fields(pathTemplate, 'PATCH');
+      const item = itemSchema(schema);
+      return item ? sectionsOf(item) : { sections: [], leaves: [] };
+    },
+    staleTime: 300_000,
+  });
+  return { sections: q.data?.sections ?? [], leaves: q.data?.leaves ?? [], loading: q.isPending };
+}
+
 /** Checked-field state for the picker: persisted per table, reconciled to the schema. */
 export function useSchemaFields(
   storageKey: string,

@@ -35,6 +35,15 @@ export interface DomainDef {
   singular?: string;
   /** Name prompt label for the create modal. */
   nameLabel?: string;
+  /**
+   * Container of sections (`/router` → bgp, ospf…; `/system` → syslog, ntp…):
+   * a section index over one object instead of a table of rows.
+   */
+  sections?: boolean;
+  /** Sections with their own deeper screen (section → domain key), linked from the section card. */
+  sectionLinks?: Record<string, string>;
+  /** Container this domain lives in (nav highlight + breadcrumb), e.g. DHCP → service. */
+  parent?: string;
 }
 
 export const DOMAINS: DomainDef[] = [
@@ -81,7 +90,54 @@ export const DOMAINS: DomainDef[] = [
     rev: 'applied',
   },
   {
+    key: 'router',
+    label: 'Router',
+    icon: 'bgp',
+    collection: '/router',
+    item: '/router',
+    sections: true,
+    fields: [],
+    labels: {},
+    rev: 'applied',
+  },
+  {
+    key: 'service',
+    label: 'Service',
+    icon: 'object',
+    collection: '/service',
+    item: '/service',
+    sections: true,
+    sectionLinks: { 'dhcp-server': 'dhcp' },
+    fields: [],
+    labels: {},
+    rev: 'applied',
+  },
+  {
+    key: 'system',
+    label: 'System',
+    icon: 'software',
+    collection: '/system',
+    item: '/system',
+    sections: true,
+    sectionLinks: { syslog: 'syslog' },
+    fields: [],
+    labels: {},
+    rev: 'applied',
+  },
+  {
+    key: 'action',
+    label: 'Actions',
+    icon: 'object',
+    collection: '/action',
+    item: '/action/{action-job-id}',
+    fields: ['type', 'state', 'status', 'percentage'],
+    labels: { type: 'Type', state: 'State', status: 'Status', percentage: 'Progress' },
+    editable: false,
+    singular: 'Action',
+  },
+  {
     key: 'bgp',
+    parent: 'router',
     label: 'BGP',
     icon: 'bgp',
     collection: '/router/bgp',
@@ -119,6 +175,7 @@ export const DOMAINS: DomainDef[] = [
   },
   {
     key: 'dhcp',
+    parent: 'service',
     label: 'DHCP',
     icon: 'object',
     collection: '/service/dhcp-server',
@@ -132,6 +189,7 @@ export const DOMAINS: DomainDef[] = [
   },
   {
     key: 'syslog',
+    parent: 'system',
     label: 'Syslog',
     icon: 'object',
     collection: '/system/syslog/server',
@@ -180,6 +238,12 @@ export const DOMAINS: DomainDef[] = [
 /** Registry lookup by route key. */
 export function domainOf(key: string): DomainDef | undefined {
   return DOMAINS.find((d) => d.key === key);
+}
+
+/** Breadcrumb step for a domain's container (Service › DHCP); none at top level. */
+export function parentCrumb(def: DomainDef, base: string): Array<{ label: string; to: string }> {
+  const parent = def.parent ? domainOf(def.parent) : undefined;
+  return parent ? [{ label: parent.label, to: `${base}/${parent.key}` }] : [];
 }
 
 /** Singular noun for buttons and titles. */

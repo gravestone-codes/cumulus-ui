@@ -6,6 +6,7 @@ import {
   planFieldsFromSchema,
   scalarLeaves,
   toIncludePatterns,
+  sectionsOf,
 } from './schema.js';
 
 const ifaceItem = {
@@ -180,5 +181,21 @@ describe('enableGates', () => {
     expect(gates.get('vxlan/port')).toEqual(['vxlan/enable']);
     expect(gates.get('vxlan/mtu')).toEqual(['vxlan/enable']);
     expect(gates.has('mac-address')).toBe(false);
+  });
+});
+
+describe('sectionsOf', () => {
+  it('lists object children as sections, skipping @actions and on/off enums', () => {
+    const { sections, leaves } = sectionsOf({
+      properties: {
+        bgp: { type: 'object', properties: { enable: { type: 'string', enum: ['on', 'off'] } } },
+        policy: { type: 'object', additionalProperties: { type: 'object' } },
+        hostname: { type: 'string' },
+        '@reboot': { type: 'object', properties: {} },
+        flag: { type: 'object', enum: ['on', 'off', null] },
+      },
+    });
+    expect(sections).toEqual(['bgp', 'policy']);
+    expect(leaves.map((l) => l.path)).toEqual(['bgp/enable', 'hostname', 'flag']);
   });
 });

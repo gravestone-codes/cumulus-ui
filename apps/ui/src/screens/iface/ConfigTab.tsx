@@ -5,7 +5,7 @@
  * Group scope shows the same cards with mixed / per-switch markers. Any
  * object with sections uses it (interfaces, bridge domains).
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button, Spinner, useToast } from '../../components/ui.js';
 import { Card } from '../../components/cards.js';
@@ -30,6 +30,7 @@ export function ConfigTab({
   oper,
   present,
   onOpenSwitch,
+  extras = [],
 }: {
   scope: Scope;
   /** NVUE path of the object (`/interface/swp1`, `/bridge/domain/br_default`). */
@@ -42,6 +43,8 @@ export function ConfigTab({
   present: string[];
   /** Open the object on one member switch (mixed-value drill-in). */
   onOpenSwitch: (sw: string) => void;
+  /** Sections that draw their own card (e.g. bridge membership), listed in the same index. */
+  extras?: Array<{ id: string; title: string; configured: boolean; content: ReactNode }>;
 }) {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -54,8 +57,15 @@ export function ConfigTab({
 
   const configured = (s: SectionDef) =>
     s.pinned || isConfigured(s.fields.flatMap((f) => Object.values(valuesOf(cfg, fieldPath(s, f)))));
-  const ordered = [...sections.filter(configured), ...sections.filter((s) => !configured(s))];
-  const shown = ordered.find((s) => s.id === picked) ?? ordered[0];
+  // One index over schema sections and custom ones: configured first, then available.
+  const entries = [
+    ...sections.map((s) => ({ id: s.id, title: s.title, configured: configured(s) })),
+    ...extras.map((e) => ({ id: e.id, title: e.title, configured: e.configured })),
+  ];
+  const ordered = [...entries.filter((e) => e.configured), ...entries.filter((e) => !e.configured)];
+  const current = ordered.find((e) => e.id === picked) ?? ordered[0];
+  const shown = sections.find((s) => s.id === current?.id);
+  const extra = extras.find((e) => e.id === current?.id);
 
   function cell(
     objs: Record<string, Obj>,
@@ -89,7 +99,7 @@ export function ConfigTab({
     >
       <nav aria-label="Config sections" style={{ position: 'sticky', top: 16, display: 'grid', gap: 2 }}>
         {(['Configured', 'Available'] as const).map((heading) => {
-          const list = ordered.filter((s) => configured(s) === (heading === 'Configured'));
+          const list = ordered.filter((e) => e.configured === (heading === 'Configured'));
           if (list.length === 0) return null;
           return (
             <div key={heading} style={{ display: 'grid', gap: 2 }}>
@@ -99,7 +109,7 @@ export function ConfigTab({
                   key={s.id}
                   type="button"
                   className="index-link"
-                  aria-current={s.id === shown?.id}
+                  aria-current={s.id === current?.id}
                   onClick={() => setPicked(s.id)}
                 >
                   {s.title}
@@ -110,6 +120,7 @@ export function ConfigTab({
         })}
       </nav>
       <div style={{ display: 'grid', gap: 12 }}>
+        {extra?.content}
         {(shown ? [shown] : []).map((s) => {
           const items = [
             ...s.fields.map((f) => ({

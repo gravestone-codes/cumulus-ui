@@ -25,6 +25,7 @@ import { api } from '../../lib/api.js';
 import type { SwitchRow } from '../../lib/api.js';
 import { Badge } from '../../components/ui.js';
 import {
+  AllClear,
   Card,
   Facts,
   Legend,
@@ -447,12 +448,7 @@ function InterfaceErrorsCard({ switches }: { switches: SwitchRow[] }) {
     .sort((a, b) => b.errors + b.drops - (a.errors + a.drops))
     .slice(0, 8);
   if (bad.length === 0) {
-    return (
-      <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
-        <Badge tone="pass">clean</Badge>
-        <span style={{ color: 'var(--color-muted)' }}>No errors or drops on {p.rows.length} ports.</span>
-      </span>
-    );
+    return <AllClear>No errors or drops on {p.rows.length} ports.</AllClear>;
   }
   return (
     <MiniTable
@@ -749,12 +745,7 @@ function FlappingPortsCard({ switches }: WidgetProps) {
     .sort((a, b) => b.flaps - a.flaps)
     .slice(0, 8);
   if (rows.length === 0) {
-    return (
-      <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
-        <Badge tone="pass">stable</Badge>
-        <span style={{ color: 'var(--color-muted)' }}>No link flaps on {p.rows.length} ports.</span>
-      </span>
-    );
+    return <AllClear>No link flaps on {p.rows.length} ports.</AllClear>;
   }
   return (
     <MiniTable
@@ -789,17 +780,15 @@ function DownPortsCard({ switches }: WidgetProps) {
   if (p.loading) return <Quiet>Loading…</Quiet>;
   const down = p.rows.filter((r) => r.state === 'down');
   const admin = p.rows.filter((r) => r.state === 'admin-down').length;
+  if (down.length === 0) {
+    return <AllClear>Every enabled port has link{admin > 0 ? ` · ${admin} shut on purpose` : ''}.</AllClear>;
+  }
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>
         {down.length} enabled without link · {admin} shut on purpose
       </span>
-      {down.length === 0 ? (
-        <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
-          <Badge tone="pass">all linked</Badge>
-          <span style={{ color: 'var(--color-muted)' }}>Every enabled port has link.</span>
-        </span>
-      ) : (
+      {
         <MiniTable
           cols={[
             { label: 'Port', cell: (r: PortRow) => r.name },
@@ -815,7 +804,7 @@ function DownPortsCard({ switches }: WidgetProps) {
             navigate(`/switches/${encodeURIComponent(r.sw)}/interfaces/${encodeURIComponent(r.name)}`)
           }
         />
-      )}
+      }
     </div>
   );
 }
@@ -954,15 +943,17 @@ function UnsavedConfigCard({ switches }: WidgetProps) {
       ).length,
     }));
   const dirty = rows.filter((r) => r.changes > 0);
+  if (dirty.length === 0 && failed.length === 0) {
+    return (
+      <AllClear>
+        {rows.length === 1 ? 'Running config is saved.' : `All ${rows.length} switches saved.`}
+      </AllClear>
+    );
+  }
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       {dirty.length === 0 ? (
-        <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
-          <Badge tone="pass">saved</Badge>
-          <span style={{ color: 'var(--color-muted)' }}>
-            {rows.length === 1 ? 'Running config is saved.' : `All ${rows.length} switches saved.`}
-          </span>
-        </span>
+        <Quiet>{`${rows.length} switch${rows.length === 1 ? '' : 'es'} saved.`}</Quiet>
       ) : (
         <MiniTable
           cols={[

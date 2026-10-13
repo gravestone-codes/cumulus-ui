@@ -1,6 +1,7 @@
 /**
  * ActivityList: compact audit rows — relative time, user, method chip, short
- * path. One row per line, no wrapping paths. Clickable rows open the audit
+ * path in fixed columns, hairline-divided like every card list. One row per
+ * line, no wrapping paths. Clickable rows open the audit
  * page; the caller decides where (switch scope) or nothing.
  */
 import type { AuditRow } from '../lib/api.js';
@@ -26,12 +27,21 @@ const METHOD_TONE: Record<string, string> = {
   DELETE: 'var(--color-fail)',
 };
 
+/** Fixed columns so a long name never shifts method and path: time · user · method · path. */
+const COLUMNS = '64px minmax(0, 96px) 52px minmax(0, 1fr)';
+
+const clip: React.CSSProperties = {
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+
 export function ActivityList({ rows, onOpen }: { rows: AuditRow[]; onOpen?: (row: AuditRow) => void }) {
   if (rows.length === 0) {
     return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Nothing audited here yet.</p>;
   }
   return (
-    // minmax(0,1fr) + minWidth 0: long names/paths truncate instead of widening the card.
     <ul
       style={{
         listStyle: 'none',
@@ -39,50 +49,40 @@ export function ActivityList({ rows, onOpen }: { rows: AuditRow[]; onOpen?: (row
         padding: 0,
         display: 'grid',
         gridTemplateColumns: 'minmax(0, 1fr)',
-        gap: 2,
       }}
     >
-      {rows.map((a) => {
+      {rows.map((a, i) => {
         const body = (
           <>
-            <span style={{ color: 'var(--color-muted)', minWidth: 62, flexShrink: 0 }}>{timeAgo(a.ts)}</span>
-            <span
-              style={{
-                color: 'var(--color-text)',
-                minWidth: 0,
-                maxWidth: '40%',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <span style={{ ...clip, color: 'var(--color-muted)' }}>{timeAgo(a.ts)}</span>
+            <span style={{ ...clip, color: 'var(--color-text)' }} title={a.username}>
               {a.username}
             </span>
             <span
               style={{
+                ...clip,
                 fontSize: 11,
                 fontWeight: 800,
                 color: METHOD_TONE[a.method] ?? 'var(--color-muted)',
-                flexShrink: 0,
               }}
             >
               {a.method}
             </span>
-            <span
-              style={{
-                color: 'var(--color-muted)',
-                flex: 1,
-                minWidth: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-              title={`${a.method} ${a.path}`}
-            >
+            <span style={{ ...clip, color: 'var(--color-muted)' }} title={`${a.method} ${a.path}`}>
               {shortAuditPath(a.method, a.path).slice(a.method.length + 1)}
             </span>
           </>
         );
+        const row: React.CSSProperties = {
+          display: 'grid',
+          gridTemplateColumns: COLUMNS,
+          alignItems: 'baseline',
+          columnGap: 10,
+          width: '100%',
+          fontSize: 13,
+          padding: '9px 0',
+          borderTop: i === 0 ? 'none' : '1px solid var(--color-border)',
+        };
         return (
           <li key={a.id}>
             {onOpen ? (
@@ -90,28 +90,20 @@ export function ActivityList({ rows, onOpen }: { rows: AuditRow[]; onOpen?: (row
                 type="button"
                 onClick={() => onOpen(a)}
                 style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 8,
-                  width: '100%',
+                  ...row,
                   background: 'transparent',
                   border: 'none',
-                  borderRadius: 6,
+                  borderTop: row.borderTop,
                   cursor: 'pointer',
                   font: 'inherit',
                   fontSize: 13,
-                  padding: '6px 4px',
                   textAlign: 'left',
                 }}
               >
                 {body}
               </button>
             ) : (
-              <div
-                style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 13, padding: '6px 4px' }}
-              >
-                {body}
-              </div>
+              <div style={row}>{body}</div>
             )}
           </li>
         );

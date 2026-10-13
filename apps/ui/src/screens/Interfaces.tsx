@@ -126,6 +126,7 @@ export function Interfaces() {
               {viewPicker}
             </>
           }
+          hideEmpty={!!view}
           fields={{ leaves, checked, defaults: IFACE_FIELDS, onChange: setChecked }}
           onOpen={(name) => navigate(`${base}/interfaces/${name}`)}
           onOpenSwitch={(sw, name) => navigate(`/switches/${sw}/interfaces/${name}`)}

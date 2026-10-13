@@ -38,8 +38,21 @@ describe('domain registry', () => {
       expect(d.collection, d.key).toBe(d.item);
       expect(d.creatable ?? false, d.key).toBe(false);
     }
-    for (const d of DOMAINS.filter((x) => !x.singleton)) {
+    for (const d of DOMAINS.filter((x) => !x.singleton && !x.sections)) {
       expect(d.item, d.key).toContain('{');
+    }
+  });
+
+  it('containers are one object with sections; section links and parents resolve', () => {
+    for (const d of DOMAINS.filter((x) => x.sections)) {
+      expect(d.collection, d.key).toBe(d.item);
+      expect(d.creatable ?? false, d.key).toBe(false);
+      for (const target of Object.values(d.sectionLinks ?? {}))
+        expect(domainOf(target), target).toBeDefined();
+    }
+    for (const d of DOMAINS.filter((x) => x.parent)) {
+      expect(domainOf(d.parent ?? '')?.sections, d.key).toBe(true);
+      expect(d.collection.startsWith(domainOf(d.parent ?? '')?.collection ?? '?'), d.key).toBe(true);
     }
   });
 

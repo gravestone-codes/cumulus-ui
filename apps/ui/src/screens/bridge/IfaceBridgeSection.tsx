@@ -22,7 +22,7 @@ type Obj = Record<string, unknown>;
 const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
 
 /** Domains this interface joins on any member, in natural order. */
-function attachedDomains(cfg: Record<string, Obj | undefined>): string[] {
+export function attachedDomains(cfg: Record<string, Obj | undefined>): string[] {
   const names = new Set<string>();
   for (const obj of Object.values(cfg)) {
     const doms = getPath(obj, 'bridge/domain');

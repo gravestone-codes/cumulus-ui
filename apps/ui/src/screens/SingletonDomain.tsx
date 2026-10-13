@@ -13,7 +13,7 @@ import { ResourceDetail, ValueGrid } from '../components/resource.js';
 import { MixedValue } from '../components/mixed.js';
 import { mergeValues, presence } from '../lib/merge.js';
 import { displayValue, getPath } from '../lib/format.js';
-import { singularOf, type DomainDef } from '../lib/domains.js';
+import { parentCrumb, singularOf, type DomainDef } from '../lib/domains.js';
 import { enableGates, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { ResourceForm } from './iface/ResourceForm.js';
@@ -103,8 +103,11 @@ export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }
     ) : null;
 
   return (
-    <ScopeShell scope={scope} active={`/${def.key}`}>
-      <Breadcrumb trail={[{ label: scope.id, to: base }, { label: def.label }]} onNav={navigate} />
+    <ScopeShell scope={scope} active={`/${def.parent ?? def.key}`}>
+      <Breadcrumb
+        trail={[{ label: scope.id, to: base }, ...parentCrumb(def, base), { label: def.label }]}
+        onNav={navigate}
+      />
       <ResourceDetail
         scope={scope}
         kind="generic"
