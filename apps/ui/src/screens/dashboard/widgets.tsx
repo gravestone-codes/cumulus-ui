@@ -408,8 +408,7 @@ function ResourcesCard({ switches }: { switches: SwitchRow[] }) {
   );
 }
 
-const pctText = (n: number | undefined) =>
-  n === undefined ? '—' : `${n < 10 ? n.toFixed(1) : Math.round(n)}%`;
+const pctText = (n: number | undefined) => (n === undefined ? '—' : `${Number(n.toFixed(1))}%`);
 const bytesText = (n: number | undefined) => (n === undefined ? '—' : bytes(n));
 
 /** One switch's CPU and memory: a section each — reading, bar, then the sizes behind it. */
@@ -422,7 +421,12 @@ function SwitchResources({ x }: { x: Vitals | undefined }) {
         <Meter label="CPU utilization" value={x?.cpu} bare />
         <Facts
           items={[
-            { label: 'Model', value: x?.cpuModel ?? '—' },
+            {
+              label: 'Model',
+              // Trademark marks cost width and say nothing; the full string stays in the tooltip.
+              value: x?.cpuModel?.replace(/\((R|TM)\)/gi, '').replace(/\s+/g, ' ') ?? '—',
+              title: x?.cpuModel,
+            },
             { label: 'Cores', value: x?.cpuCores === undefined ? '—' : String(x.cpuCores) },
             { label: 'Used', value: pctText(x?.cpu) },
             { label: 'Free', value: pctText(x?.cpu === undefined ? undefined : 100 - x.cpu) },

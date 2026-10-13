@@ -57,8 +57,8 @@ export function Card({
         position: 'relative',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 2px', flex: 1 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 2px', flex: '1 0 auto' }}>
           {title}
           {info && <Hint text={info} />}
           {sample && <SampleBadge />}

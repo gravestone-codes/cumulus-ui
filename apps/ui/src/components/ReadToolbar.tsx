@@ -28,8 +28,10 @@ export function ReadToolbar({
       }}
     >
       {children}
-      <span style={{ flex: 1 }} />
-      <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+      {/* margin-left:auto keeps the group right-aligned even after it wraps. */}
+      <span
+        style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginLeft: 'auto' }}
+      >
         {q.dataUpdatedAt > 0 && (
           <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>
             read {timeAgo(new Date(q.dataUpdatedAt).toISOString())}
