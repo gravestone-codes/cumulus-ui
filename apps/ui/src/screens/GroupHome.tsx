@@ -1,6 +1,7 @@
 /**
  * Group overview: the members' analytics (health, load, ports, errors,
- * environment, traffic, activity) over a member roster. Empty groups get a
+ * environment, traffic, activity, roster) as a personal, customizable
+ * Dashboard (scope group). Empty groups get a
  * centered icon + Add devices action (no warning colors for a normal state).
  * Guardrail detail lives behind the title Hint; leftover prose stays out.
  */
@@ -13,27 +14,13 @@ import {
   AppShell,
   Button,
   EmptyState,
-  Hint,
   Modal,
   NavRail,
   usePinnedRail,
   useToast,
 } from '../components/ui.js';
 import { groupNav } from '../lib/nav.js';
-import { Card } from '../components/cards.js';
-import { MemberTable, WidgetGrid } from './dashboard/widgets.js';
-
-/** Group overview widgets, in reading order: is anything wrong, then where, then trends. */
-const GROUP_WIDGETS = [
-  'health',
-  'port-status',
-  'resources',
-  'environment',
-  'interface-errors',
-  'top-talkers',
-  'traffic',
-  'recent-activity',
-];
+import { Dashboard } from './dashboard/Dashboard.js';
 
 const UNIQUE_EXAMPLES = 'interface IPs, MAC addresses, BGP router-ids, hostnames';
 
@@ -96,40 +83,35 @@ export function GroupHome() {
         />
       }
     >
-      <div className="list-head" style={{ gap: 12 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>
-          {groupId}
-          <Hint
-            text={`Group scope: one change fans out to every member, each with its own dry-run and result. Shared settings take one value; per-switch-unique values (${UNIQUE_EXAMPLES}) take one value per member, never a shared one.`}
-          />
-        </h1>
-        <span style={{ flex: 1 }} />
-        {members.length > 0 && (
-          <Button auto variant="secondary" onClick={openAdder}>
-            Add devices
-          </Button>
-        )}
-      </div>
       {switches.isError && <Alert tone="fail">Could not load switches: {switches.error.message}</Alert>}
-      {!switches.isPending && members.length === 0 && (
-        <EmptyState
-          icon="switches"
-          text="No devices added to this group yet."
-          action={
-            <Button auto onClick={openAdder}>
+      {!switches.isPending && members.length === 0 ? (
+        <>
+          <div className="list-head" style={{ gap: 12 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{groupId}</h1>
+          </div>
+          <EmptyState
+            icon="switches"
+            text="No devices added to this group yet."
+            action={
+              <Button auto onClick={openAdder}>
+                Add devices
+              </Button>
+            }
+          />
+        </>
+      ) : (
+        <Dashboard
+          scope="group"
+          switches={members}
+          groupId={groupId}
+          title={groupId}
+          hint={`Group scope: one change fans out to every member, each with its own dry-run and result. Shared settings take one value; per-switch-unique values (${UNIQUE_EXAMPLES}) take one value per member, never a shared one.`}
+          actions={
+            <Button auto variant="secondary" onClick={openAdder}>
               Add devices
             </Button>
           }
         />
-      )}
-      {members.length > 0 && (
-        <WidgetGrid ids={GROUP_WIDGETS} switches={members}>
-          <div className="wide" style={{ minWidth: 0 }}>
-            <Card title={`Members · ${members.length}`}>
-              <MemberTable switches={members} groupId={groupId} />
-            </Card>
-          </div>
-        </WidgetGrid>
       )}
       <Modal open={adderOpen} onClose={() => setAdderOpen(false)} title={`Add devices to ${groupId}`}>
         {candidates.length === 0 ? (

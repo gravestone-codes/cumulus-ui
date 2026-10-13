@@ -90,6 +90,13 @@ export interface SwitchRow {
   last_check_at?: string | null;
   last_check_ok?: boolean | null;
 }
+/** Which personal layout a dashboard reads: the fleet welcome screen, group overviews, switch homes. */
+export type DashboardScope = 'fleet' | 'group' | 'switch';
+export interface DashboardPrefs {
+  widgets: Array<{ id: string; config?: Record<string, unknown> }>;
+  /** Widget ids this dashboard kind can show (the Customize picker's source). */
+  available: string[];
+}
 export interface GroupRow {
   id: string;
   display_name: string;
@@ -357,11 +364,9 @@ export const api = {
     request<{ spans: Array<{ from: string; to: string }> }>(
       `/api/v1/switches/${encodeURIComponent(switchId)}/interfaces/${encodeURIComponent(iface)}/coverage`,
     ),
-  switchTraffic: (
-    switchId: string,
-    opts: { range?: string; metric?: string; from?: string; to?: string } = {},
-  ) => {
-    const qs = new URLSearchParams();
+  /** Switch-wide traffic summed over one or many switches; unreadable ones come back in `skipped`. */
+  traffic: (ids: string[], opts: { range?: string; metric?: string; from?: string; to?: string } = {}) => {
+    const qs = new URLSearchParams({ ids: ids.join(',') });
     if (opts.range) qs.set('range', opts.range);
     if (opts.metric) qs.set('metric', opts.metric);
     if (opts.from) qs.set('from', opts.from);
@@ -371,11 +376,12 @@ export const api = {
       metric: string;
       points: Array<{ t: string; in: number; out: number }>;
       earliest: string | null;
-    }>(`/api/v1/switches/${encodeURIComponent(switchId)}/traffic?${qs}`);
+      skipped: string[];
+    }>(`/api/v1/traffic?${qs}`);
   },
-  switchCoverage: (switchId: string) =>
-    request<{ spans: Array<{ from: string; to: string }> }>(
-      `/api/v1/switches/${encodeURIComponent(switchId)}/traffic/coverage`,
+  trafficCoverage: (ids: string[]) =>
+    request<{ spans: Array<{ from: string; to: string }>; skipped: string[] }>(
+      `/api/v1/traffic/coverage?${new URLSearchParams({ ids: ids.join(',') })}`,
     ),
   audit: (limit = 8, sw?: string) => {
     const qs = new URLSearchParams({ limit: String(limit) });
@@ -384,10 +390,9 @@ export const api = {
   },
   platformUsers: () => request<PlatformUserRow[]>('/api/v1/users'),
   platformRoles: () => request<RoleRow[]>('/api/v1/roles'),
-  dashboard: () =>
-    request<{ widgets: Array<{ id: string; config?: Record<string, unknown> }> }>('/api/v1/me/dashboard'),
-  saveDashboard: (widgets: Array<{ id: string; config?: Record<string, unknown> }>) =>
-    request<{ widgets: Array<{ id: string }> }>('/api/v1/me/dashboard', { method: 'PUT', json: { widgets } }),
+  dashboard: (scope: DashboardScope) => request<DashboardPrefs>(`/api/v1/me/dashboard?scope=${scope}`),
+  saveDashboard: (scope: DashboardScope, widgets: Array<{ id: string; config?: Record<string, unknown> }>) =>
+    request<DashboardPrefs>(`/api/v1/me/dashboard?scope=${scope}`, { method: 'PUT', json: { widgets } }),
 
   query: <T = unknown>(switchId: string, path: string, opts?: QueryOpts) => {
     const qs = new URLSearchParams({ path });

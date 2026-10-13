@@ -30,6 +30,15 @@ const Query = z.object({
   to: z.string().datetime({ offset: true }).optional(),
 });
 
+/** Switch-wide reads over a set of switches: `ids=a,b,c` (deduplicated, 1–128). */
+const FleetQuery = Query.extend({
+  ids: z
+    .string()
+    .max(8192)
+    .transform((v) => [...new Set(v.split(',').filter(Boolean))])
+    .refine((a) => a.length >= 1 && a.length <= 128),
+});
+
 const SamplesQuery = z.object({
   minutes: z.coerce.number().int().min(1).max(60).default(15),
 });
@@ -81,10 +90,38 @@ export function toRates(
   return pts.filter((_, i) => i % stride === 0);
 }
 
+type Caller = NonNullable<Awaited<ReturnType<typeof resolveCaller>>>;
+type Denial = { status: 403 | 404; title: string; detail: string };
+
 /**
- * Shared preamble for counter reads: session, switch, and the same grant a
- * live `GET /interface` needs. True means a problem was already sent (a
- * boolean, not the reply: replies are thenables and `await` would unwrap them).
+ * Whether `who` may read one switch's counters: the switch exists and the
+ * same grant a live `GET /interface` needs. Gate denials are audited.
+ */
+async function counterReadDenial(request: FastifyRequest, who: Caller, id: string): Promise<Denial | null> {
+  const sw = await getSwitch(id);
+  if (!sw) return { status: 404, title: 'Not Found', detail: `no switch ${id}` };
+  const roles = await getUserRoles(who.sub);
+  if (!mayAccessSwitch(roles, sw.groups)) {
+    return { status: 403, title: 'Forbidden', detail: `no role covers switch ${id}` };
+  }
+  if (!gateCheck(roles, { method: 'GET', path: '/interface', switchGroups: sw.groups })) {
+    await audit({
+      userSub: who.sub,
+      username: who.username,
+      roles: roles.map((r) => r.id),
+      switchId: id,
+      method: 'GET',
+      path: request.url,
+    });
+    return { status: 403, title: 'Forbidden', detail: 'not granted by any role' };
+  }
+  return null;
+}
+
+/**
+ * Shared preamble for one switch's counter reads: session, then
+ * counterReadDenial. True means a problem was already sent (a boolean, not
+ * the reply: replies are thenables and `await` would unwrap them).
  */
 async function denyCounterRead(
   request: FastifyRequest,
@@ -97,29 +134,74 @@ async function denyCounterRead(
     problem(reply, 401, 'Unauthorized', 'no active session', request.url);
     return true;
   }
-  const sw = await getSwitch(id);
-  if (!sw) {
-    problem(reply, 404, 'Not Found', `no switch ${id}`, request.url);
-    return true;
-  }
-  const roles = await getUserRoles(who.sub);
-  if (!mayAccessSwitch(roles, sw.groups)) {
-    problem(reply, 403, 'Forbidden', `no role covers switch ${id}`, request.url);
-    return true;
-  }
-  if (!gateCheck(roles, { method: 'GET', path: '/interface', switchGroups: sw.groups })) {
-    await audit({
-      userSub: who.sub,
-      username: who.username,
-      roles: roles.map((r) => r.id),
-      switchId: id,
-      method: 'GET',
-      path: request.url,
-    });
-    problem(reply, 403, 'Forbidden', 'not granted by any role', request.url);
+  const denial = await counterReadDenial(request, who, id);
+  if (denial) {
+    problem(reply, denial.status, denial.title, denial.detail, request.url);
     return true;
   }
   return false;
+}
+
+/**
+ * Many-switch preamble: session, then each switch vetted on its own. Switches
+ * the caller cannot read are skipped (and named), not fatal, so one
+ * uncovered member never blanks a fleet graph. Null means 401 was sent.
+ */
+async function readableSwitches(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  cfg: AuthConfig,
+  ids: string[],
+): Promise<{ allowed: string[]; skipped: string[] } | null> {
+  const who = await resolveCaller(request, cfg);
+  if (!who) {
+    problem(reply, 401, 'Unauthorized', 'no active session', request.url);
+    return null;
+  }
+  const allowed: string[] = [];
+  const skipped: string[] = [];
+  for (const id of ids) ((await counterReadDenial(request, who, id)) ? skipped : allowed).push(id);
+  return { allowed, skipped };
+}
+
+/**
+ * Sum switch series on a shared minute grid: each switch averages within a
+ * minute, then switches add. Pollers drift, so a switch missing one minute
+ * holds its previous minute rather than dipping the total.
+ */
+export function sumAligned(series: HistoryPoint[][]): HistoryPoint[] {
+  const MIN = 60_000;
+  const perSwitch = series.map((pts) => {
+    const m = new Map<number, { in: number; out: number; n: number }>();
+    for (const p of pts) {
+      const k = Math.floor(Date.parse(p.t) / MIN) * MIN;
+      const c = m.get(k) ?? { in: 0, out: 0, n: 0 };
+      c.in += p.in;
+      c.out += p.out;
+      c.n += 1;
+      m.set(k, c);
+    }
+    return m;
+  });
+  const grid = [...new Set(perSwitch.flatMap((m) => [...m.keys()]))].sort((a, b) => a - b);
+  return grid.map((k) => {
+    let inSum = 0;
+    let outSum = 0;
+    for (const m of perSwitch) {
+      const c = m.get(k) ?? m.get(k - MIN);
+      if (!c) continue;
+      inSum += c.in / c.n;
+      outSum += c.out / c.n;
+    }
+    return { t: new Date(k).toISOString(), in: inSum, out: outSum };
+  });
+}
+
+/** Every Nth point once a series passes MAX_POINTS (graphs never need more). */
+function capPoints(pts: HistoryPoint[]): HistoryPoint[] {
+  if (pts.length <= MAX_POINTS) return pts;
+  const stride = Math.ceil(pts.length / MAX_POINTS);
+  return pts.filter((_, i) => i % stride === 0);
 }
 
 export async function historyRoutes(app: FastifyInstance, deps: { cfg: AuthConfig }): Promise<void> {
@@ -139,7 +221,7 @@ export async function historyRoutes(app: FastifyInstance, deps: { cfg: AuthConfi
       (a, b) => hourlyPoints(id, iface, a, b, colA, colB),
       (a, b) => rawPoints(id, iface, a, b, colA, colB),
     );
-    return { range, metric, points, earliest: await earliestSample(id, iface) };
+    return { range, metric, points, earliest: await earliestSample([id], iface) };
   });
 
   app.get('/api/v1/switches/:id/interfaces/:iface/samples', async (request, reply) => {
@@ -170,36 +252,52 @@ export async function historyRoutes(app: FastifyInstance, deps: { cfg: AuthConfi
       dr: Number(r.drops),
       er: Number(r.errors),
     }));
-    return { samples, earliest: await earliestSample(id, iface) };
+    return { samples, earliest: await earliestSample([id], iface) };
   });
 
   app.get('/api/v1/switches/:id/interfaces/:iface/coverage', async (request, reply) => {
     const { id, iface } = request.params as { id: string; iface: string };
     if (await denyCounterRead(request, reply, cfg, id)) return reply;
-    return { spans: await coverage(id, iface) };
+    return { spans: await coverage([id], iface) };
   });
 
-  app.get('/api/v1/switches/:id/traffic/coverage', async (request, reply) => {
-    const { id } = request.params as { id: string };
-    if (await denyCounterRead(request, reply, cfg, id)) return reply;
-    return { spans: await coverage(id) };
-  });
-
-  app.get('/api/v1/switches/:id/traffic', async (request, reply) => {
-    const { id } = request.params as { id: string };
-    if (await denyCounterRead(request, reply, cfg, id)) return reply;
-    const parsed = Query.safeParse(request.query);
-    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'range/metric invalid', request.url);
+  // Switch-wide traffic for one or many switches (a switch home, a group, the
+  // fleet): each switch's ports summed, then switches summed on a minute grid.
+  app.get('/api/v1/traffic', async (request, reply) => {
+    const parsed = FleetQuery.safeParse(request.query);
+    if (!parsed.success) {
+      return problem(reply, 400, 'Bad Request', 'ids (1–128) or range/metric invalid', request.url);
+    }
+    const scope = await readableSwitches(request, reply, cfg, parsed.data.ids);
+    if (!scope) return reply;
     const { range, metric } = parsed.data;
     const [colA, colB] = COLUMNS[metric];
     const w = windowOf(parsed.data);
     if (!w) return problem(reply, 400, 'Bad Request', 'from/to invalid or span over 3 years', request.url);
-    const points = await stitched(
-      w,
-      (a, b) => hourlyTraffic(id, a, b, colA, colB),
-      (a, b) => rawTraffic(id, a, b, colA, colB),
+    const series = await Promise.all(
+      scope.allowed.map((id) =>
+        stitched(
+          w,
+          (a, b) => hourlyTraffic(id, a, b, colA, colB),
+          (a, b) => rawTraffic(id, a, b, colA, colB),
+        ),
+      ),
     );
-    return { range, metric, points, earliest: await earliestSample(id) };
+    return {
+      range,
+      metric,
+      points: capPoints(sumAligned(series)),
+      earliest: scope.allowed.length > 0 ? await earliestSample(scope.allowed) : null,
+      skipped: scope.skipped,
+    };
+  });
+
+  app.get('/api/v1/traffic/coverage', async (request, reply) => {
+    const parsed = FleetQuery.pick({ ids: true }).safeParse(request.query);
+    if (!parsed.success) return problem(reply, 400, 'Bad Request', 'ids (1–128) invalid', request.url);
+    const scope = await readableSwitches(request, reply, cfg, parsed.data.ids);
+    if (!scope) return reply;
+    return { spans: scope.allowed.length > 0 ? await coverage(scope.allowed) : [], skipped: scope.skipped };
   });
 }
 
@@ -247,36 +345,36 @@ async function stitched(
 
 /** Port filter for switch-wide reads (no iface) vs one port. */
 const ifaceClause = (iface?: string) => (iface === undefined ? '' : ' AND iface = $2');
-const ifaceArgs = (switchId: string, iface?: string) =>
-  iface === undefined ? [switchId] : [switchId, iface];
+const ifaceArgs = (switchIds: string[], iface?: string) =>
+  iface === undefined ? [switchIds] : [switchIds, iface];
 
 /**
  * Hours that can draw a rate (raw hours need two readings; hourly buckets
  * are deltas already), merged into spans so pickers can skip the gaps.
  */
-async function coverage(switchId: string, iface?: string): Promise<Array<{ from: string; to: string }>> {
+async function coverage(switchIds: string[], iface?: string): Promise<Array<{ from: string; to: string }>> {
   const f = ifaceClause(iface);
   const { rows } = await db().query<{ h: Date }>(
     `SELECT h FROM (
        SELECT date_trunc('hour', ts) AS h FROM interface_samples
-       WHERE switch_id = $1${f} GROUP BY 1 HAVING count(DISTINCT ts) >= 2
+       WHERE switch_id = ANY($1)${f} GROUP BY switch_id, 1 HAVING count(DISTINCT ts) >= 2
        UNION
-       SELECT hour FROM interface_samples_hourly WHERE switch_id = $1${f}
+       SELECT hour FROM interface_samples_hourly WHERE switch_id = ANY($1)${f}
      ) x ORDER BY h`,
-    ifaceArgs(switchId, iface),
+    ifaceArgs(switchIds, iface),
   );
   return mergeHours(rows.map((r) => new Date(r.h).getTime()));
 }
 
-/** When history begins (raw or hourly) for a port, or any port without `iface`. */
-async function earliestSample(switchId: string, iface?: string): Promise<string | null> {
+/** When history begins (raw or hourly) for a port, or any port of the switches without `iface`. */
+async function earliestSample(switchIds: string[], iface?: string): Promise<string | null> {
   const f = ifaceClause(iface);
   const { rows } = await db().query<{ t: Date | null }>(
     `SELECT LEAST(
-       (SELECT min(ts) FROM interface_samples WHERE switch_id = $1${f}),
-       (SELECT min(hour) FROM interface_samples_hourly WHERE switch_id = $1${f})
+       (SELECT min(ts) FROM interface_samples WHERE switch_id = ANY($1)${f}),
+       (SELECT min(hour) FROM interface_samples_hourly WHERE switch_id = ANY($1)${f})
      ) AS t`,
-    ifaceArgs(switchId, iface),
+    ifaceArgs(switchIds, iface),
   );
   const t = rows[0]?.t;
   return t ? new Date(t).toISOString() : null;
@@ -324,7 +422,8 @@ async function hourlyPoints(
 }
 
 /**
- * Switch-wide traffic: per-tick deltas summed across interfaces, then rated.
+ * Switch-wide traffic: per-tick deltas summed across interfaces, then rated
+ * (uncapped: callers sum switches first, then cap).
  * Raw ticks share one timestamp per switch poll, so grouping by ts works;
  * hourly buckets sum cleanly. Reset-aware per interface before summing.
  */
@@ -360,9 +459,7 @@ async function rawTraffic(
       out: Number(rows[i]?.b ?? 0) / dt,
     });
   }
-  if (pts.length <= MAX_POINTS) return pts;
-  const stride = Math.ceil(pts.length / MAX_POINTS);
-  return pts.filter((_, i) => i % stride === 0);
+  return pts;
 }
 
 async function hourlyTraffic(
@@ -383,7 +480,5 @@ async function hourlyTraffic(
     in: Number(r.a) / 3600,
     out: Number(r.b) / 3600,
   }));
-  if (pts.length <= MAX_POINTS) return pts;
-  const stride = Math.ceil(pts.length / MAX_POINTS);
-  return pts.filter((_, i) => i % stride === 0);
+  return pts;
 }

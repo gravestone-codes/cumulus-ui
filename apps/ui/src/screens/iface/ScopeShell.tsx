@@ -155,7 +155,9 @@ export function BranchBanner({ scope }: { scope: Scope }) {
   });
   if (drafts.isPending || drafts.isError) return null;
   if (group && switches.isPending) return null;
-  const members = group ? new Set((switches.data ?? []).filter((s) => s.groups.includes(scope.id)).map((s) => s.id)) : null;
+  const members = group
+    ? new Set((switches.data ?? []).filter((s) => s.groups.includes(scope.id)).map((s) => s.id))
+    : null;
   const hits = (drafts.data ?? []).filter((d) =>
     scope.kind === 'switch' ? d.switchId === scope.id : members?.has(d.switchId),
   );

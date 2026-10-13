@@ -164,10 +164,10 @@ function PortsTab({ scope, domainId, present }: { scope: Scope; domainId: string
         loading={applied.loading || oper.loading}
         error={applied.error}
         refetch={applied.refetch}
-          columns={PORT_COLUMNS}
-          storageKey="cumulus.bridge-ports.v1"
-          emptyIcon="interfaces"
-          actions={
+        columns={PORT_COLUMNS}
+        storageKey="cumulus.bridge-ports.v1"
+        emptyIcon="interfaces"
+        actions={
           <Button auto variant="secondary" onClick={() => setAttaching(true)} disabled={applied.loading}>
             Add ports
           </Button>

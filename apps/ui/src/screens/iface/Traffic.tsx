@@ -146,30 +146,35 @@ function readSample(data: Record<string, unknown>, whole: boolean): TrafficSampl
  * Traffic graph: live in/out rates from 5s counter reads, seeded with the
  * server's recent raw readings so it draws on arrival, or history ranges
  * from the backend sampler. Compare lays a second picked period over the
- * view, start on start. Without `ifaceId` it graphs the whole switch
- * (every port summed); `embedded` drops the outer spacing and the
+ * view, start on start. With `ifaceId` it graphs one port of the first
+ * switch; without, every port of every listed switch summed (a switch
+ * home, a group, the fleet). `embedded` drops the outer spacing and the
  * discards card for dashboard grids.
  */
 export function TrafficPanel({
-  switchId,
+  switchIds,
   ifaceId,
   title = 'Traffic',
   info = "This port's bits (or packets) per second, received (In) and sent (Out). Compare draws a second period you pick as dashed lines over the view, start lined up with start.",
   embedded = false,
   initialRange = 'live',
+  onRemove,
 }: {
-  switchId: string;
+  switchIds: string[];
   ifaceId?: string;
   title?: string;
   info?: string;
   embedded?: boolean;
   /** Dashboards open on history so a glance never starts 5s polling. */
   initialRange?: RangeSel;
+  onRemove?: () => void;
 }) {
+  const switchId = switchIds[0] ?? '';
+  const idsKey = switchIds.join(',');
   const path = ifaceId === undefined ? '/interface' : `/interface/${encodeURIComponent(ifaceId)}`;
   const port = ifaceId ?? '*';
   const [samples, setSamples] = useState<TrafficSample[]>([]);
-  const [liveError, setLiveError] = useState<string | null>(null);
+  const [liveError, setLiveError] = useState<{ switchId: string; message: string } | null>(null);
   const [seedEarliest, setSeedEarliest] = useState<string | null>(null);
   const tickRef = useRef<() => void>(() => undefined);
   const [range, setRange] = useState<RangeSel>(initialRange);
@@ -195,21 +200,45 @@ export function TrafficPanel({
           /* no seed: live ticks still build the graph */
         });
     }
+    const ids = ifaceId === undefined ? idsKey.split(',').filter(Boolean) : [switchId];
     async function tick() {
-      try {
-        const res = await api.query<Record<string, unknown>>(switchId, path, { rev: 'operational' });
-        if (dead) return;
-        fails = 0;
-        setLiveError(null);
-        const sample = readSample(res.data, ifaceId === undefined);
-        if (!sample) return;
-        setSamples((prev) => mergeSamples(prev, [sample], sample.t - LIVE_WINDOW_MS));
-      } catch (err) {
-        if (dead) return;
+      // Every switch reads each tick; one failure drops the whole tick so the
+      // summed counters never jump when a member blinks.
+      const reads = await Promise.allSettled(
+        ids.map((id) => api.query<Record<string, unknown>>(id, path, { rev: 'operational' })),
+      );
+      if (dead) return;
+      const failed = reads.findIndex((r) => r.status === 'rejected');
+      if (failed >= 0) {
         fails++;
-        if (fails >= LIVE_FAILS_TO_SHOW)
-          setLiveError(err instanceof Error ? err.message : 'switch read failed');
+        const r = reads[failed];
+        const reason = r?.status === 'rejected' ? r.reason : null;
+        if (fails >= LIVE_FAILS_TO_SHOW) {
+          setLiveError({
+            switchId: ids[failed] ?? switchId,
+            message: reason instanceof Error ? reason.message : 'switch read failed',
+          });
+        }
+        return;
       }
+      fails = 0;
+      setLiveError(null);
+      const parts = reads.map((r) =>
+        r.status === 'fulfilled' ? readSample(r.value.data, ifaceId === undefined) : null,
+      );
+      if (parts.some((p) => p === null)) return;
+      const add = (a: number | undefined, b: number | undefined) =>
+        a === undefined || b === undefined ? undefined : a + b;
+      const sample = (parts as TrafficSample[]).reduce((acc, p) => ({
+        t: acc.t,
+        inB: acc.inB + p.inB,
+        outB: acc.outB + p.outB,
+        inP: add(acc.inP, p.inP),
+        outP: add(acc.outP, p.outP),
+        dr: add(acc.dr, p.dr),
+        er: add(acc.er, p.er),
+      }));
+      setSamples((prev) => mergeSamples(prev, [sample], sample.t - LIVE_WINDOW_MS));
     }
     tickRef.current = () => void tick();
     void tick();
@@ -218,7 +247,7 @@ export function TrafficPanel({
       dead = true;
       clearInterval(id);
     };
-  }, [switchId, ifaceId, path, polling]);
+  }, [switchId, idsKey, ifaceId, path, polling]);
 
   const [metric, setMetric] = useState<'bytes' | 'packets'>('bytes');
   const [custom, setCustom] = useState<Period | null>(null);
@@ -231,9 +260,9 @@ export function TrafficPanel({
   const [draftB, setDraftB] = useState<Period | null>(null);
   // One port's history, or the switch-wide sum (same shapes, same bounds).
   const readHistory = (opts: { range?: string; metric?: string; from?: string; to?: string }) =>
-    ifaceId === undefined ? api.switchTraffic(switchId, opts) : api.history(switchId, ifaceId, opts);
+    ifaceId === undefined ? api.traffic(switchIds, opts) : api.history(switchId, ifaceId, opts);
   const history = useQuery({
-    queryKey: ['traffic-history', switchId, port, range, custom, metric],
+    queryKey: ['traffic-history', idsKey, port, range, custom, metric],
     queryFn: () =>
       readHistory({
         range: range === 'custom' ? '24h' : range,
@@ -257,7 +286,7 @@ export function TrafficPanel({
   const baseTo = range === 'custom' && custom ? custom.to : nowMin;
   const offsetMs = compare ? baseFrom - compare.from : 0;
   const compareHistory = useQuery({
-    queryKey: ['traffic-compare', switchId, port, compare, metric],
+    queryKey: ['traffic-compare', idsKey, port, compare, metric],
     queryFn: () =>
       readHistory({
         from: new Date(compare?.from ?? 0).toISOString(),
@@ -272,9 +301,9 @@ export function TrafficPanel({
   const earliest = earliestIso ? Date.parse(earliestIso) : null;
   // Hours this port actually has history for; pickers only offer those.
   const coverage = useQuery({
-    queryKey: ['traffic-coverage', switchId, port],
+    queryKey: ['traffic-coverage', idsKey, port],
     queryFn: () =>
-      ifaceId === undefined ? api.switchCoverage(switchId) : api.ifaceCoverage(switchId, ifaceId),
+      ifaceId === undefined ? api.trafficCoverage(switchIds) : api.ifaceCoverage(switchId, ifaceId),
     staleTime: 60_000,
   });
   const spans: Period[] = (coverage.data?.spans ?? []).map((s) => ({
@@ -425,6 +454,9 @@ export function TrafficPanel({
   // Series names carry their period so the legend tells baseline from comparison.
   const baseLabel = compare && custom && range === 'custom' ? ` · ${spanLabel(custom.from, custom.to)}` : '';
   const historyError = range !== 'live' && history.isError ? 'History unavailable for this range.' : null;
+  // Switches the backend left out of a sum (no role covers them) are named, never silently dropped.
+  const skipped: string[] =
+    range !== 'live' && history.data && 'skipped' in history.data ? (history.data.skipped as string[]) : [];
   const compareNote = !compare
     ? null
     : compareHistory.isError
@@ -467,6 +499,7 @@ export function TrafficPanel({
         <Card
           title={title}
           info={info}
+          onRemove={onRemove}
           actions={
             <span style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>
               <SelectMenu
@@ -616,9 +649,18 @@ export function TrafficPanel({
           {compareNote && (
             <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '8px 0 0' }}>{compareNote}</p>
           )}
+          {skipped.length > 0 && (
+            <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: '8px 0 0' }}>
+              Not included (no read access): {skipped.join(', ')}.
+            </p>
+          )}
           {showLiveError && (
             <div style={{ marginTop: points.length === 0 ? 0 : 12 }}>
-              <ReadError switchId={switchId} message={liveError} onFixed={() => tickRef.current()} />
+              <ReadError
+                switchId={liveError.switchId}
+                message={liveError.message}
+                onFixed={() => tickRef.current()}
+              />
             </div>
           )}
         </Card>

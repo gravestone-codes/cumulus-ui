@@ -14,7 +14,7 @@ import { counterDelta, extractCounters, rollupTick, sampleSwitch } from './sampl
 import { setSwitchCredential } from '../users/store.js';
 import { dropUserTokens, getSwitchToken, setSwitchToken } from '../switchauth/sessions.js';
 import { startFakeNvue, json } from '../test-nvue.js';
-import { mergeHours, toRates } from './routes.js';
+import { mergeHours, sumAligned, toRates } from './routes.js';
 
 const CFG: AuthConfig = { credKey: 'test-cred-key-long-enough-12345', idleMinutes: 30 };
 
@@ -157,35 +157,39 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
       expect(custom.status).toBe(200);
       expect(custom.body.points.length).toBeGreaterThan(0);
 
-      const agg = await api.get('/api/v1/switches/sh1/traffic?range=24h&metric=bytes').set('Cookie', cookie);
+      const agg = await api.get('/api/v1/traffic?ids=sh1,nope&range=24h&metric=bytes').set('Cookie', cookie);
       expect(agg.status).toBe(200);
       expect(agg.body.points.length).toBeGreaterThan(0);
       expect(agg.body.points[0]).toHaveProperty('in');
       expect(agg.body.points[0]).toHaveProperty('out');
       expect(agg.body.earliest).toBeTruthy();
+      // Unknown or uncovered switches are skipped by name, never fatal.
+      expect(agg.body.skipped).toEqual(['nope']);
+      expect((await api.get('/api/v1/traffic').set('Cookie', cookie)).status).toBe(400);
+      expect((await api.get('/api/v1/traffic?ids=sh1')).status).toBe(401);
 
       // Switch-wide custom windows and comparisons, same bounds as a port.
       const aggCustom = await api
         .get(
-          `/api/v1/switches/sh1/traffic?from=${encodeURIComponent(dayAgo)}&to=${encodeURIComponent(now.toISOString())}&metric=bytes`,
+          `/api/v1/traffic?ids=sh1&from=${encodeURIComponent(dayAgo)}&to=${encodeURIComponent(now.toISOString())}&metric=bytes`,
         )
         .set('Cookie', cookie);
       expect(aggCustom.status).toBe(200);
       expect(aggCustom.body.points.length).toBeGreaterThan(0);
       const aggOld = await api
         .get(
-          `/api/v1/switches/sh1/traffic?from=${encodeURIComponent(oldFrom)}&to=${encodeURIComponent(oldTo)}&metric=bytes`,
+          `/api/v1/traffic?ids=sh1&from=${encodeURIComponent(oldFrom)}&to=${encodeURIComponent(oldTo)}&metric=bytes`,
         )
         .set('Cookie', cookie);
       expect(aggOld.status).toBe(200);
       expect(aggOld.body.points.length).toBeGreaterThan(0);
       const aggFlipped = await api
         .get(
-          `/api/v1/switches/sh1/traffic?from=${encodeURIComponent(now.toISOString())}&to=${encodeURIComponent(dayAgo)}`,
+          `/api/v1/traffic?ids=sh1&from=${encodeURIComponent(now.toISOString())}&to=${encodeURIComponent(dayAgo)}`,
         )
         .set('Cookie', cookie);
       expect(aggFlipped.status).toBe(400);
-      const aggCoverage = await api.get('/api/v1/switches/sh1/traffic/coverage').set('Cookie', cookie);
+      const aggCoverage = await api.get('/api/v1/traffic/coverage?ids=sh1').set('Cookie', cookie);
       expect(aggCoverage.status).toBe(200);
       expect(aggCoverage.body.spans.length).toBeGreaterThan(0);
 
@@ -252,12 +256,14 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
       const first = cov.body.spans[0];
       expect(Date.parse(first.from)).toBeLessThanOrEqual(base - 10 * 60_000);
       expect((Date.parse(first.to) - Date.parse(first.from)) % 3600_000).toBe(0);
-      expect(await api.get('/api/v1/switches/sh2/traffic/coverage').set('Cookie', nobody)).toMatchObject({
-        status: 403,
-      });
-      expect(await api.get('/api/v1/switches/sh2/traffic').set('Cookie', nobody)).toMatchObject({
-        status: 403,
-      });
+      // Many-switch reads skip what the caller cannot read (denial audited) instead of failing.
+      const denied = await api.get('/api/v1/traffic?ids=sh2').set('Cookie', nobody);
+      expect(denied.status).toBe(200);
+      expect(denied.body).toMatchObject({ points: [], skipped: ['sh2'] });
+      const deniedCov = await api.get('/api/v1/traffic/coverage?ids=sh2').set('Cookie', nobody);
+      expect(deniedCov.body).toMatchObject({ spans: [], skipped: ['sh2'] });
+      const allowedCov = await api.get('/api/v1/traffic/coverage?ids=sh2').set('Cookie', admin);
+      expect(allowedCov.body.spans.length).toBeGreaterThan(0);
     } finally {
       await pool.query(`DELETE FROM interface_samples WHERE switch_id = 'sh2'`);
       await pool.query(`DELETE FROM sessions WHERE user_sub IN ('qh-admin', 'qh-nobody')`);
@@ -311,6 +317,28 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
       await pool.query(`DELETE FROM switches WHERE id = 'sh3'`);
       await fake.close();
     }
+  });
+});
+
+describe('sumAligned', () => {
+  it('adds switches on a minute grid, averaging within a minute and holding one missed minute', () => {
+    const at = (s: string) => `2026-10-13T10:${s}Z`;
+    const a = [
+      { t: at('00:05'), in: 10, out: 1 },
+      { t: at('00:50'), in: 30, out: 3 },
+      { t: at('01:05'), in: 10, out: 1 },
+    ];
+    // Switch b polls on another phase and skips minute :01 (drift).
+    const b = [
+      { t: at('00:35'), in: 100, out: 10 },
+      { t: at('02:35'), in: 200, out: 20 },
+    ];
+    expect(sumAligned([a, b])).toEqual([
+      { t: at('00:00.000'), in: 120, out: 12 },
+      { t: at('01:00.000'), in: 110, out: 11 },
+      { t: at('02:00.000'), in: 210, out: 21 },
+    ]);
+    expect(sumAligned([])).toEqual([]);
   });
 });
 

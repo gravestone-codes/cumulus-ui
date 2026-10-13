@@ -377,10 +377,12 @@ body {
       grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
   }
-  /* Dashboard tiles: as many 320px columns as fit, one full-width column on phones. */
+  /* Dashboard tiles: as many 320px columns as fit, one full-width column on
+     phones; dense flow lets later tiles backfill the hole a wide tile leaves. */
   .widget-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+    grid-auto-flow: row dense;
     gap: 12px;
   }
   .widget-grid > .wide {

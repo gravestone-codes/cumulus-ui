@@ -1,6 +1,7 @@
 /**
  * Personal dashboard prefs tests: defaults for new users, add/remove
- * persistence per user, unknown widgets rejected, retired ids map forward.
+ * persistence per user and per scope, unknown or misfit widgets rejected,
+ * retired ids map forward.
  */
 import { describe, expect, it, beforeAll } from 'vitest';
 import request from 'supertest';
@@ -45,13 +46,15 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
     try {
       expect(await api.get('/api/v1/me/dashboard')).toMatchObject({ status: 401 });
 
+      const ids = (r: { body: { widgets: Array<{ id: string }> } }) => r.body.widgets.map((w) => w.id);
       const fresh = await api.get('/api/v1/me/dashboard').set('Cookie', alice);
       expect(fresh.status).toBe(200);
-      expect(fresh.body.widgets.map((w: { id: string }) => w.id)).toEqual([
+      expect(ids(fresh)).toEqual([
         'fleet-stats',
         'health',
         'reachability',
-        'resources',
+        'cpu',
+        'memory',
         'port-status',
         'traffic',
         'interface-errors',
@@ -60,19 +63,45 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
         'software',
         'recent-activity',
       ]);
+      // Hidden widgets are offered by the picker, never placed by default.
+      expect(fresh.body.available).toContain('unsaved-config');
+      expect(fresh.body.available).not.toContain('connection');
 
       const saved = await api
         .put('/api/v1/me/dashboard')
         .set('Cookie', alice)
-        .send({ widgets: [{ id: 'recent-activity' }] });
+        .send({ widgets: [{ id: 'recent-activity' }, { id: 'bgp-sessions' }] });
       expect(saved.status).toBe(200);
-      expect(saved.body.widgets).toEqual([{ id: 'recent-activity' }]);
+      expect(ids(saved)).toEqual(['recent-activity', 'bgp-sessions']);
+      expect(ids(await api.get('/api/v1/me/dashboard').set('Cookie', alice))).toEqual([
+        'recent-activity',
+        'bgp-sessions',
+      ]);
 
-      const reread = await api.get('/api/v1/me/dashboard').set('Cookie', alice);
-      expect(reread.body.widgets).toEqual([{ id: 'recent-activity' }]);
+      // Each dashboard kind keeps its own layout and catalog.
+      const sw = await api.get('/api/v1/me/dashboard?scope=switch').set('Cookie', alice);
+      expect(ids(sw)).toContain('connection');
+      expect(sw.body.available).not.toContain('members');
+      const swSaved = await api
+        .put('/api/v1/me/dashboard?scope=switch')
+        .set('Cookie', alice)
+        .send({ widgets: [{ id: 'connection' }, { id: 'cpu' }] });
+      expect(ids(swSaved)).toEqual(['connection', 'cpu']);
+      expect(ids(await api.get('/api/v1/me/dashboard').set('Cookie', alice))).toEqual([
+        'recent-activity',
+        'bgp-sessions',
+      ]);
+      expect(ids(await api.get('/api/v1/me/dashboard?scope=group').set('Cookie', alice))).toContain(
+        'members',
+      );
+      const misfit = await api
+        .put('/api/v1/me/dashboard?scope=fleet')
+        .set('Cookie', alice)
+        .send({ widgets: [{ id: 'connection' }] });
+      expect(misfit.status).toBe(400);
+      expect((await api.get('/api/v1/me/dashboard?scope=nope').set('Cookie', alice)).status).toBe(400);
 
-      const bobPrefs = await api.get('/api/v1/me/dashboard').set('Cookie', bob);
-      expect(bobPrefs.body.widgets).toHaveLength(11);
+      expect(ids(await api.get('/api/v1/me/dashboard').set('Cookie', bob))).toHaveLength(12);
 
       const bad = await api
         .put('/api/v1/me/dashboard')
@@ -82,13 +111,19 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
 
       const empty = await api.put('/api/v1/me/dashboard').set('Cookie', alice).send({ widgets: [] });
       expect(empty.status).toBe(200);
-      expect(empty.body.widgets).toHaveLength(11);
+      expect(empty.body.widgets).toHaveLength(12);
 
+      // Retired ids map forward in place; the old CPU & memory card splits in two.
       await pool.query(
-        `INSERT INTO user_dashboard_widgets (user_sub, widgets, seen) VALUES ('qd-bob', $1::jsonb, $2)
-         ON CONFLICT (user_sub) DO UPDATE SET widgets = EXCLUDED.widgets, seen = EXCLUDED.seen`,
+        `INSERT INTO user_dashboard_widgets (user_sub, scope, widgets, seen) VALUES ('qd-bob', 'fleet', $1::jsonb, $2)
+         ON CONFLICT (user_sub, scope) DO UPDATE SET widgets = EXCLUDED.widgets, seen = EXCLUDED.seen`,
         [
-          JSON.stringify([{ id: 'fleet-health' }, { id: 'needs-attention' }, { id: 'nope' }]),
+          JSON.stringify([
+            { id: 'fleet-health' },
+            { id: 'resources' },
+            { id: 'needs-attention' },
+            { id: 'nope' },
+          ]),
           [
             'fleet-stats',
             'health',
@@ -104,18 +139,21 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
           ],
         ],
       );
-      const migrated = await api.get('/api/v1/me/dashboard').set('Cookie', bob);
-      expect(migrated.body.widgets.map((w: { id: string }) => w.id)).toEqual(['fleet-stats']);
+      expect(ids(await api.get('/api/v1/me/dashboard').set('Cookie', bob))).toEqual([
+        'fleet-stats',
+        'cpu',
+        'memory',
+      ]);
 
       // A save from before new widgets shipped: unseen defaults join once, after the user's own.
       await pool.query(`UPDATE user_dashboard_widgets SET seen = $1 WHERE user_sub = 'qd-bob'`, [
         ['fleet-stats', 'reachability', 'traffic'],
       ]);
-      const grown = await api.get('/api/v1/me/dashboard').set('Cookie', bob);
-      expect(grown.body.widgets.map((w: { id: string }) => w.id)).toEqual([
+      expect(ids(await api.get('/api/v1/me/dashboard').set('Cookie', bob))).toEqual([
         'fleet-stats',
+        'cpu',
+        'memory',
         'health',
-        'resources',
         'port-status',
         'interface-errors',
         'top-talkers',

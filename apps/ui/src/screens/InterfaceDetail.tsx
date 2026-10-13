@@ -73,7 +73,7 @@ export function InterfaceDetail() {
                 ) : (
                   <>
                     <InterfaceStats switchId={scope.id} path={path} />
-                    <TrafficPanel switchId={scope.id} ifaceId={ifaceId} />
+                    <TrafficPanel switchIds={[scope.id]} ifaceId={ifaceId} />
                   </>
                 )}
                 <CountersCard scope={scope} ifaceId={ifaceId} present={present} />
