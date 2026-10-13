@@ -19,7 +19,7 @@ import { displayValue, getPath } from '../lib/format.js';
 import { domainOf, type DomainDef } from '../lib/domains.js';
 import { itemSchema, leafLabel, scalarLeaves, useSchemaSections } from '../lib/schema.js';
 import { api } from '../lib/api.js';
-import { SectionActions } from '../components/SectionActions.js';
+import { SectionActions, actionPaths } from '../components/SectionActions.js';
 import { SubCollections } from '../components/SubCollections.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { ResourceForm } from './iface/ResourceForm.js';
@@ -79,7 +79,48 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
       : configuredKeys.has(id);
   const titleOf = (id: string) => (id === GENERAL ? 'General' : leafLabel(id));
   const ordered = [...ids.filter(configured), ...ids.filter((id) => !configured(id))];
-  const current = ordered.find((id) => id === params.get('section')) ?? ordered[0];
+
+  // Dead sections (hostname, timezone, cpu…): empty `{}` in the spec — no
+  // PATCH leaves, no POST actions, no row maps. They stay only while holding
+  // live config; empty and unwritable ones leave the index instead of
+  // dead-ending on "Nothing set" with no Configure.
+  const containerFields = useQuery({
+    queryKey: ['spec-fields', def.collection],
+    queryFn: () => api.fields(def.collection, 'PATCH'),
+    staleTime: Infinity,
+    retry: false,
+  });
+  const manifest = useQuery({ queryKey: ['manifest'], queryFn: () => api.manifest(), staleTime: 300_000 });
+  const containerItem = containerFields.data ? itemSchema(containerFields.data.schema) : null;
+  const containerProps =
+    containerItem && isObj(containerItem.properties)
+      ? (containerItem.properties as Record<string, unknown>)
+      : null;
+  const sliceLeaves = (id: string) =>
+    schema.leaves.filter((l) => l.path.startsWith(`${id}/`)).map((l) => l.path.slice(id.length + 1));
+  const hasSubMaps = (id: string) => {
+    const prop = containerProps?.[id];
+    if (!isObj(prop)) return false;
+    if (isObj(prop.additionalProperties)) return true;
+    if (!isObj(prop.properties)) return false;
+    return Object.values(prop.properties as Record<string, unknown>).some(
+      (k) => isObj(k) && isObj((k as Obj).additionalProperties),
+    );
+  };
+  const sectionRef = (id: string) => `${def.collection}/${id}`;
+  // Conservative while the manifest is still loading: sections only leave
+  // once known dead, never on unknown.
+  const hideable = (id: string) =>
+    id !== GENERAL &&
+    !configured(id) &&
+    !domainOf(def.sectionLinks?.[id] ?? '') &&
+    sliceLeaves(id).length === 0 &&
+    containerProps !== null &&
+    !hasSubMaps(id) &&
+    !manifest.isPending &&
+    actionPaths(manifest.data?.routes ?? {}, sectionRef(id)).length === 0;
+  const visible = ordered.filter((id) => !hideable(id));
+  const current = visible.find((id) => id === params.get('section')) ?? visible[0];
   // TODO promote: SectionIndex (scrollable + filterable split-index nav) shared with
   // iface/ConfigTab (merge-back: next domain slice touching either).
   const q = filter.trim().toLowerCase();
@@ -214,7 +255,7 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
               style={{ position: 'sticky', top: 0, background: 'var(--color-bg)', zIndex: 1 }}
             />
             {(['Configured', 'Available'] as const).map((heading) => {
-              const list = ordered.filter(
+              const list = visible.filter(
                 (id) => configured(id) === (heading === 'Configured') && matches(id),
               );
               if (list.length === 0) return null;
@@ -239,48 +280,46 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
                 </div>
               );
             })}
-            {q !== '' && !ordered.some(matches) && (
+            {q !== '' && !visible.some(matches) && (
               <span style={{ fontSize: 13, color: 'var(--color-muted)', padding: '4px 10px' }}>
                 No sections match “{filter.trim()}”.
               </span>
             )}
           </nav>
           {current && (
-            <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
-              <Card
-                title={titleOf(current)}
-                hint={configured(current) ? undefined : 'Not configured'}
-                actions={
-                  <span style={{ display: 'inline-flex', gap: 8 }}>
-                    {linkDef && (
-                      <Button auto variant="secondary" onClick={() => navigate(`${base}/${linkDef.key}`)}>
-                        Open {linkDef.label}
-                      </Button>
-                    )}
-                    {editLeaves.length > 0 && (
-                      <Button auto variant="secondary" onClick={() => setEditing(true)}>
-                        {configured(current) ? 'Edit' : 'Configure'}
-                      </Button>
-                    )}
-                    <SectionActions scope={scope} objectPath={objectPath} members={present} />
-                  </span>
-                }
-              >
-                {items.length > 0 ? (
-                  <ValueGrid items={items} />
-                ) : (
-                  <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
-                    Nothing set — the switch runs this section on its defaults.
-                  </p>
-                )}
-              </Card>
+            <Card
+              title={titleOf(current)}
+              hint={configured(current) ? undefined : 'Not configured'}
+              actions={
+                <span style={{ display: 'inline-flex', gap: 8 }}>
+                  {linkDef && (
+                    <Button auto variant="secondary" onClick={() => navigate(`${base}/${linkDef.key}`)}>
+                      Open {linkDef.label}
+                    </Button>
+                  )}
+                  {editLeaves.length > 0 && (
+                    <Button auto variant="secondary" onClick={() => setEditing(true)}>
+                      {configured(current) ? 'Edit' : 'Configure'}
+                    </Button>
+                  )}
+                  <SectionActions scope={scope} objectPath={objectPath} members={present} />
+                </span>
+              }
+            >
+              {items.length > 0 ? (
+                <ValueGrid items={items} />
+              ) : (
+                <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+                  Nothing set — the switch runs this section on its defaults.
+                </p>
+              )}
               <SubCollections
                 scope={scope}
                 parentPath={objectPath}
                 objects={Object.fromEntries(present.map((sw) => [sw, sectionObj(sw, current)]))}
                 present={present}
               />
-            </div>
+            </Card>
           )}
         </div>
       )}

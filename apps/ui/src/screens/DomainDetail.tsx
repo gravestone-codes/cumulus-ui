@@ -123,7 +123,10 @@ function DomainObject() {
             doneText={`${singularOf(def)} ${name}`}
           />
         ) : (
-          <ValueGrid items={items} />
+          <>
+            <ValueGrid items={items} />
+            <SubCollections scope={scope} parentPath={objectPath} objects={read.objects} present={present} />
+          </>
         ),
     },
   ];
@@ -164,7 +167,6 @@ function DomainObject() {
         read={read}
         present={present}
       />
-      <SubCollections scope={scope} parentPath={objectPath} objects={read.objects} present={present} />
       {deleting && (
         <DeleteFlow
           scope={scope}

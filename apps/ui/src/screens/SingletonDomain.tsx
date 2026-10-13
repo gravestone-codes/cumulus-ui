@@ -92,7 +92,15 @@ export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }
             doneText={`${singularOf(def)} ${name}`}
           />
         ) : (
-          <ValueGrid items={items} />
+          <>
+            <ValueGrid items={items} />
+            <SubCollections
+              scope={scope}
+              parentPath={def.collection}
+              objects={read.objects}
+              present={present}
+            />
+          </>
         ),
     },
   ];
@@ -119,7 +127,6 @@ export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }
         read={read}
         present={present}
       />
-      <SubCollections scope={scope} parentPath={def.collection} objects={read.objects} present={present} />
     </ScopeShell>
   );
 }
