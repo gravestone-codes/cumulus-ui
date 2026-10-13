@@ -5,7 +5,7 @@
  * widgets over one switch still cost one read per path. Nothing fabricated:
  * unread values render as "—", unreachable switches are named.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import {
@@ -1139,10 +1139,27 @@ export function WidgetGrid({
 }) {
   const [drag, setDrag] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [cols, setCols] = useState(1);
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const measure = () =>
+      setCols(getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length || 1);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const editing = onChange !== undefined;
   const shown = ids.filter((id) => WIDGETS[id]);
+  // Dense flow backfills every hole but the last row; the last regular card
+  // stretches over what is left so no row ends in an empty cell.
+  const regular = shown.filter((id) => !WIDGETS[id]?.wide);
+  const rest = regular.length % cols;
+  const stretched = rest > 0 ? regular[regular.length - 1] : undefined;
   return (
-    <div className="widget-grid">
+    <div ref={gridRef} className="widget-grid">
       {shown.map((id, i) => {
         const w = WIDGETS[id];
         if (!w) return null;
@@ -1178,6 +1195,7 @@ export function WidgetGrid({
               minWidth: 0,
               display: 'grid',
               position: 'relative',
+              gridColumn: id === stretched ? `span ${cols - rest + 1}` : undefined,
               borderRadius: 12,
               opacity: drag === id ? 0.4 : 1,
               outline: target ? '2px solid var(--color-brand)' : undefined,
@@ -1262,7 +1280,17 @@ function EditChrome({
         {btn(`Move ${title} later`, '→', onLater)}
         {btn(`Remove ${title}`, '×', onRemove)}
       </div>
-      <span style={{ fontSize: 13, color: 'var(--color-muted)', userSelect: 'none' }}>
+      <span
+        style={{
+          fontSize: 13,
+          color: 'var(--color-text)',
+          userSelect: 'none',
+          background: 'var(--color-surface-2)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 99,
+          padding: '6px 12px',
+        }}
+      >
         <span aria-hidden="true">⠿ </span>
         {title} · drag to move
       </span>
