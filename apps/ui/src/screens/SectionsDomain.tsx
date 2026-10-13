@@ -9,7 +9,7 @@
  */
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumb, Button, Spinner, useToast } from '../components/ui.js';
 import { Card } from '../components/cards.js';
 import { ReadError, ValueGrid } from '../components/resource.js';
@@ -17,7 +17,10 @@ import { MixedValue } from '../components/mixed.js';
 import { mergeValues } from '../lib/merge.js';
 import { displayValue, getPath } from '../lib/format.js';
 import { domainOf, type DomainDef } from '../lib/domains.js';
-import { leafLabel, useSchemaSections } from '../lib/schema.js';
+import { itemSchema, leafLabel, scalarLeaves, useSchemaSections } from '../lib/schema.js';
+import { api } from '../lib/api.js';
+import { SectionActions } from '../components/SectionActions.js';
+import { SubCollections } from '../components/SubCollections.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { ResourceForm } from './iface/ResourceForm.js';
 import { refreshInterfaces, scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
@@ -34,6 +37,7 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
+  const [filter, setFilter] = useState('');
   const base = scopeBase(scope);
   const group = scope.kind === 'group';
   // What `nv config show` prints: the root without defaults (NVUE honours filled only at `/`),
@@ -76,15 +80,36 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
   const titleOf = (id: string) => (id === GENERAL ? 'General' : leafLabel(id));
   const ordered = [...ids.filter(configured), ...ids.filter((id) => !configured(id))];
   const current = ordered.find((id) => id === params.get('section')) ?? ordered[0];
+  // TODO promote: SectionIndex (scrollable + filterable split-index nav) shared with
+  // iface/ConfigTab (merge-back: next domain slice touching either).
+  const q = filter.trim().toLowerCase();
+  const matches = (id: string) => q === '' || titleOf(id).toLowerCase().includes(q);
+
+  // The container slice only sees depth-1 scalars, so deep-but-scalar settings
+  // (aaa/*, sflow/*, telemetry/*…) never offered Configure. The section's own
+  // PATCH schema enumerates them all; `@action` leaves are operations (POST),
+  // never PATCH bodies, so they stay out of display and forms alike.
+  const sectionPath = current && current !== GENERAL ? `${def.collection}/${current}` : null;
+  const sectionFields = useQuery({
+    queryKey: ['spec-fields', sectionPath ?? ''],
+    queryFn: () => api.fields(sectionPath ?? '', 'PATCH'),
+    enabled: !!sectionPath,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const sectionItem = sectionFields.data ? itemSchema(sectionFields.data.schema) : null;
+  const sectionLeaves = sectionItem
+    ? scalarLeaves(sectionItem, '', 0, 6).filter((l) => !l.path.split('/').some((seg) => seg.startsWith('@')))
+    : null;
 
   // Leaves of the picked section, relative to its own path.
-  const leaves = !current
-    ? []
-    : current === GENERAL
+  const leaves =
+    !current || current === GENERAL
       ? general
-      : schema.leaves
+      : (sectionLeaves ??
+        schema.leaves
           .filter((l) => l.path.startsWith(`${current}/`))
-          .map((l) => ({ ...l, path: l.path.slice(current.length + 1) }));
+          .map((l) => ({ ...l, path: l.path.slice(current.length + 1) })));
   const valuesAt = (path: string) =>
     Object.fromEntries(present.map((sw) => [sw, displayValue(getPath(sectionObj(sw, current ?? ''), path))]));
   const set = leaves.filter((l) => Object.values(valuesAt(l.path)).some((v) => v !== ''));
@@ -134,12 +159,14 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
       };
     }),
   ];
-  // Edit offers what is set plus the section's own direct settings (nested trees stay out).
+  // Edit offers every scalar leaf the section's PATCH schema enumerates (what
+  // is set plus what is available); `@action` operations stay out (POST-only).
   const editLeaves = [
-    ...new Set([
-      ...set.map((l) => l.path),
-      ...leaves.filter((l) => !l.path.includes('/')).map((l) => l.path),
-    ]),
+    ...new Set(
+      [...set.map((l) => l.path), ...leaves.map((l) => l.path)].filter(
+        (p) => !p.split('/').some((seg) => seg.startsWith('@')),
+      ),
+    ),
   ];
   const objectPath = current === GENERAL ? def.collection : `${def.collection}/${current}`;
   const link = current ? def.sectionLinks?.[current] : undefined;
@@ -167,10 +194,29 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
         >
           <nav
             aria-label={`${def.label} sections`}
-            style={{ position: 'sticky', top: 16, display: 'grid', gap: 2 }}
+            style={{
+              position: 'sticky',
+              top: 16,
+              display: 'grid',
+              gap: 2,
+              alignContent: 'start',
+              maxHeight: 'calc(100dvh - 140px)',
+              overflowY: 'auto',
+            }}
           >
+            <input
+              type="search"
+              aria-label={`Filter ${def.label} sections`}
+              placeholder="Filter…"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="select-search"
+              style={{ position: 'sticky', top: 0, background: 'var(--color-bg)', zIndex: 1 }}
+            />
             {(['Configured', 'Available'] as const).map((heading) => {
-              const list = ordered.filter((id) => configured(id) === (heading === 'Configured'));
+              const list = ordered.filter(
+                (id) => configured(id) === (heading === 'Configured') && matches(id),
+              );
               if (list.length === 0) return null;
               return (
                 <div key={heading} style={{ display: 'grid', gap: 2 }}>
@@ -181,6 +227,7 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
                       type="button"
                       className="index-link"
                       aria-current={id === current}
+                      ref={id === current ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
                       onClick={() => {
                         setEditing(false);
                         setParams({ section: id }, { replace: true });
@@ -192,34 +239,48 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
                 </div>
               );
             })}
+            {q !== '' && !ordered.some(matches) && (
+              <span style={{ fontSize: 13, color: 'var(--color-muted)', padding: '4px 10px' }}>
+                No sections match “{filter.trim()}”.
+              </span>
+            )}
           </nav>
           {current && (
-            <Card
-              title={titleOf(current)}
-              hint={configured(current) ? undefined : 'Not configured'}
-              actions={
-                <span style={{ display: 'inline-flex', gap: 8 }}>
-                  {linkDef && (
-                    <Button auto variant="secondary" onClick={() => navigate(`${base}/${linkDef.key}`)}>
-                      Open {linkDef.label}
-                    </Button>
-                  )}
-                  {editLeaves.length > 0 && (
-                    <Button auto variant="secondary" onClick={() => setEditing(true)}>
-                      {configured(current) ? 'Edit' : 'Configure'}
-                    </Button>
-                  )}
-                </span>
-              }
-            >
-              {items.length > 0 ? (
-                <ValueGrid items={items} />
-              ) : (
-                <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
-                  Nothing set — the switch runs this section on its defaults.
-                </p>
-              )}
-            </Card>
+            <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+              <Card
+                title={titleOf(current)}
+                hint={configured(current) ? undefined : 'Not configured'}
+                actions={
+                  <span style={{ display: 'inline-flex', gap: 8 }}>
+                    {linkDef && (
+                      <Button auto variant="secondary" onClick={() => navigate(`${base}/${linkDef.key}`)}>
+                        Open {linkDef.label}
+                      </Button>
+                    )}
+                    {editLeaves.length > 0 && (
+                      <Button auto variant="secondary" onClick={() => setEditing(true)}>
+                        {configured(current) ? 'Edit' : 'Configure'}
+                      </Button>
+                    )}
+                    <SectionActions scope={scope} objectPath={objectPath} members={present} />
+                  </span>
+                }
+              >
+                {items.length > 0 ? (
+                  <ValueGrid items={items} />
+                ) : (
+                  <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+                    Nothing set — the switch runs this section on its defaults.
+                  </p>
+                )}
+              </Card>
+              <SubCollections
+                scope={scope}
+                parentPath={objectPath}
+                objects={Object.fromEntries(present.map((sw) => [sw, sectionObj(sw, current)]))}
+                present={present}
+              />
+            </div>
           )}
         </div>
       )}

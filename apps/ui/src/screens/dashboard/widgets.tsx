@@ -47,6 +47,7 @@ import { parseBgp, parseRoutes, protocolCounts, type BgpRow } from '../../lib/tr
 import { diffCommands, toCommands } from '../../lib/nvconfig.js';
 import { TrafficPanel } from '../iface/Traffic.js';
 import { moveWidget } from '../../lib/layout.js';
+import { SwitchPager } from '../../components/SwitchPager.js';
 
 const nameOf = (switches: SwitchRow[], id: string) => switches.find((s) => s.id === id)?.display_name || id;
 
@@ -295,42 +296,13 @@ function HealthCard({ switches }: { switches: SwitchRow[] }) {
 const pctText = (n: number | undefined) => (n === undefined ? '—' : `${Number(n.toFixed(1))}%`);
 const bytesText = (n: number | undefined) => (n === undefined ? '—' : bytes(n));
 
-/**
- * One block per switch in scope, the same block a switch home shows: one
- * switch reads "Utilization", several are headed by name (unreachable said).
- */
-function PerSwitch({
-  switches,
-  failed,
-  children,
-}: {
-  switches: SwitchRow[];
-  failed: string[];
-  children: (id: string, heading: string) => React.ReactNode;
-}) {
-  return (
-    <div style={{ display: 'grid', gap: 22 }}>
-      {switches.map((s) => (
-        <section key={s.id} style={{ display: 'grid', gap: 10 }}>
-          {children(
-            s.id,
-            switches.length === 1
-              ? 'Utilization'
-              : `${nameOf(switches, s.id)}${failed.includes(s.id) ? ' · unreachable' : ''}`,
-          )}
-        </section>
-      ))}
-    </div>
-  );
-}
-
 /** CPU per switch: reading, bar, then the model, cores, used and free behind it. */
 function CpuCard({ switches }: WidgetProps) {
   const v = useVitals(switches.map((s) => s.id));
   if (switches.length === 0) return <Quiet>No switches yet.</Quiet>;
   if (v.loading) return <Quiet>Loading…</Quiet>;
   return (
-    <PerSwitch switches={switches} failed={v.failed}>
+    <SwitchPager switches={switches} failed={v.failed} label="CPU per switch">
       {(id, heading) => {
         const x = v.byId[id];
         return (
@@ -353,7 +325,7 @@ function CpuCard({ switches }: WidgetProps) {
           </>
         );
       }}
-    </PerSwitch>
+    </SwitchPager>
   );
 }
 
@@ -363,7 +335,7 @@ function MemoryCard({ switches }: WidgetProps) {
   if (switches.length === 0) return <Quiet>No switches yet.</Quiet>;
   if (v.loading) return <Quiet>Loading…</Quiet>;
   return (
-    <PerSwitch switches={switches} failed={v.failed}>
+    <SwitchPager switches={switches} failed={v.failed} label="Memory per switch">
       {(id, heading) => {
         const x = v.byId[id];
         const swap = x?.swap;
@@ -391,7 +363,7 @@ function MemoryCard({ switches }: WidgetProps) {
           </>
         );
       }}
-    </PerSwitch>
+    </SwitchPager>
   );
 }
 

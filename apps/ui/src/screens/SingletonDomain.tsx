@@ -17,6 +17,7 @@ import { parentCrumb, singularOf, type DomainDef } from '../lib/domains.js';
 import { enableGates, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { ResourceForm } from './iface/ResourceForm.js';
+import { SubCollections } from '../components/SubCollections.js';
 import { refreshInterfaces, scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
 export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }) {
@@ -118,6 +119,7 @@ export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }
         read={read}
         present={present}
       />
+      <SubCollections scope={scope} parentPath={def.collection} objects={read.objects} present={present} />
     </ScopeShell>
   );
 }

@@ -20,6 +20,7 @@ import { enableGates, useSchemaFields, useSchemaLeaves } from '../lib/schema.js'
 import { ScopeShell } from './iface/ScopeShell.js';
 import { DeleteFlow } from './iface/DeleteFlow.js';
 import { ResourceForm } from './iface/ResourceForm.js';
+import { SubCollections } from '../components/SubCollections.js';
 import { refreshInterfaces, scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
 /** Remounts per object: field picks and edit drafts must not carry over to the next one. */
@@ -163,6 +164,7 @@ function DomainObject() {
         read={read}
         present={present}
       />
+      <SubCollections scope={scope} parentPath={objectPath} objects={read.objects} present={present} />
       {deleting && (
         <DeleteFlow
           scope={scope}

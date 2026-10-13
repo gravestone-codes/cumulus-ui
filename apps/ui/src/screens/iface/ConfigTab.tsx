@@ -50,6 +50,7 @@ export function ConfigTab({
   const toast = useToast();
   const [editing, setEditing] = useState<{ section: SectionDef; preset?: SharedDraft } | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
+  const [filter, setFilter] = useState('');
   const group = scope.kind === 'group';
 
   const valuesOf = (objs: Record<string, Obj>, path: string) =>
@@ -64,6 +65,10 @@ export function ConfigTab({
   ];
   const ordered = [...entries.filter((e) => e.configured), ...entries.filter((e) => !e.configured)];
   const current = ordered.find((e) => e.id === picked) ?? ordered[0];
+  // TODO promote: SectionIndex (scrollable + filterable split-index nav) shared with
+  // SectionsDomain (merge-back: next domain slice touching either).
+  const q = filter.trim().toLowerCase();
+  const matches = (title: string) => q === '' || title.toLowerCase().includes(q);
   const shown = sections.find((s) => s.id === current?.id);
   const extra = extras.find((e) => e.id === current?.id);
 
@@ -97,9 +102,29 @@ export function ConfigTab({
       className="split-index"
       style={{ display: 'grid', gridTemplateColumns: '180px minmax(0, 1fr)', gap: 20, alignItems: 'start' }}
     >
-      <nav aria-label="Config sections" style={{ position: 'sticky', top: 16, display: 'grid', gap: 2 }}>
+      <nav
+        aria-label="Config sections"
+        style={{
+          position: 'sticky',
+          top: 16,
+          display: 'grid',
+          gap: 2,
+          alignContent: 'start',
+          maxHeight: 'calc(100dvh - 140px)',
+          overflowY: 'auto',
+        }}
+      >
+        <input
+          type="search"
+          aria-label="Filter config sections"
+          placeholder="Filter…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="select-search"
+          style={{ position: 'sticky', top: 0, background: 'var(--color-bg)', zIndex: 1 }}
+        />
         {(['Configured', 'Available'] as const).map((heading) => {
-          const list = ordered.filter((e) => e.configured === (heading === 'Configured'));
+          const list = ordered.filter((e) => e.configured === (heading === 'Configured') && matches(e.title));
           if (list.length === 0) return null;
           return (
             <div key={heading} style={{ display: 'grid', gap: 2 }}>
@@ -110,6 +135,7 @@ export function ConfigTab({
                   type="button"
                   className="index-link"
                   aria-current={s.id === current?.id}
+                  ref={s.id === current?.id ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
                   onClick={() => setPicked(s.id)}
                 >
                   {s.title}
@@ -118,6 +144,11 @@ export function ConfigTab({
             </div>
           );
         })}
+        {q !== '' && !ordered.some((e) => matches(e.title)) && (
+          <span style={{ fontSize: 13, color: 'var(--color-muted)', padding: '4px 10px' }}>
+            No sections match “{filter.trim()}”.
+          </span>
+        )}
       </nav>
       <div style={{ display: 'grid', gap: 12 }}>
         {extra?.content}
