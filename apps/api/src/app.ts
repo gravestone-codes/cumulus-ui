@@ -15,6 +15,7 @@ import { dashboardRoutes } from './dashboard/routes.js';
 import { queryRoutes } from './query/routes.js';
 import { historyRoutes } from './history/routes.js';
 import { specRoutes } from './spec/routes.js';
+import { journeyRoutes } from './journeys/routes.js';
 import { fixtureRoutes } from './fixtures/routes.js';
 import { authRoutes } from './auth/routes.js';
 import { usersRoutes } from './users/routes.js';
@@ -85,6 +86,7 @@ export async function buildApp(options?: AppOptions): Promise<FastifyInstance> {
     await app.register(queryRoutes, { cfg: auth.cfg });
     await app.register(historyRoutes, { cfg: auth.cfg });
     await app.register(specRoutes, { cfg: auth.cfg });
+    await app.register(journeyRoutes, { cfg: auth.cfg });
   }
 
   app.setNotFoundHandler(async (request, reply) => {

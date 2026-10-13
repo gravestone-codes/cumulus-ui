@@ -9,15 +9,19 @@ export interface Problem {
   instance?: string;
 }
 
-/** Send a problem+json response. Never includes secrets — callers pass safe detail only. */
+/**
+ * Send a problem+json response. Never includes secrets — callers pass safe
+ * detail only. `extensions` are RFC 9457 extension members (e.g. per-field `errors`).
+ */
 export function problem(
   reply: FastifyReply,
   status: number,
   title: string,
   detail?: string,
   instance?: string,
+  extensions?: Record<string, unknown>,
 ) {
-  const body: Problem = { type: 'about:blank', title, status };
+  const body: Problem & Record<string, unknown> = { ...extensions, type: 'about:blank', title, status };
   if (detail !== undefined) body.detail = detail;
   if (instance !== undefined) body.instance = instance;
   return reply.code(status).type('application/problem+json').send(body);

@@ -232,6 +232,75 @@ export interface RebaseResult {
 }
 export type StageCall = { path: string; method: 'PATCH' | 'DELETE'; body?: Record<string, unknown> };
 
+/** Journey scope: the switch or group a run targets. */
+export interface JourneyScope {
+  kind: 'switch' | 'group';
+  id: string;
+}
+/** One operator input of a journey's input step (validated again server-side). */
+export interface JourneyField {
+  name: string;
+  label: string;
+  hint?: string;
+  kind: 'text' | 'number' | 'list' | 'prefix' | 'choice';
+  choices?: string[];
+  optional?: boolean;
+  default?: string;
+  min?: number;
+  max?: number;
+}
+/** A journey step as the runner renders it (server catalog; extra fields ignored). */
+export interface JourneyStepDef {
+  id: string;
+  title: string;
+  help: string;
+  kind: 'input' | 'change' | 'verify';
+  skippable?: boolean;
+  fields?: JourneyField[];
+}
+/** A catalog journey; `locked` says why this user cannot finish it in this scope. */
+export interface JourneyDef {
+  key: string;
+  label: string;
+  summary: string;
+  area: 'provision' | 'diagnose';
+  steps: JourneyStepDef[];
+  locked: string | null;
+}
+/** One switch's answer to a step's check. */
+export interface JourneyEvidence {
+  switchId: string;
+  path: string;
+  ok: boolean;
+  lines: Array<{ ok: boolean; text: string }>;
+  /** The read could not run (denied, unreachable). */
+  error?: string;
+}
+export interface JourneyStepState {
+  status: 'done' | 'skipped' | 'blocked' | 'branched';
+  at: string;
+  evidence?: JourneyEvidence[];
+  note?: string;
+}
+/** My run of a journey: where it stands, what it captured, and the current change step's plan. */
+export interface JourneyRun {
+  id: string;
+  journey: string;
+  label: string;
+  scope: JourneyScope;
+  members: string[];
+  state: 'in-progress' | 'blocked' | 'done' | 'abandoned';
+  current: string | null;
+  steps: Record<string, JourneyStepState>;
+  values: Record<string, string | number | string[]>;
+  note: string | null;
+  auditId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  plan?: StageCall[];
+  planError?: string;
+}
+
 export const api = {
   setupStatus: () => request<SetupStatus>('/api/v1/setup/status'),
   setupAdmin: (body: { id: string; display_name: string; password: string }) =>
@@ -450,6 +519,21 @@ export const api = {
       `/api/v1/switches/${encodeURIComponent(switchId)}/action`,
       body,
     ),
+  journeys: (scope: JourneyScope) =>
+    request<{ journeys: JourneyDef[] }>(`/api/v1/journeys?${new URLSearchParams({ ...scope })}`),
+  journeyRuns: (scope: JourneyScope) =>
+    request<{ runs: JourneyRun[] }>(`/api/v1/me/journeys?${new URLSearchParams({ ...scope })}`),
+  startJourney: (journey: string, scope: JourneyScope) =>
+    post<JourneyRun>('/api/v1/me/journeys', { journey, scope }),
+  journeyRun: (id: string) => request<JourneyRun>(`/api/v1/me/journeys/${encodeURIComponent(id)}`),
+  journeyStep: (
+    id: string,
+    step: string,
+    body: { op: 'submit' | 'verify' | 'skip'; values?: Record<string, string> },
+  ) =>
+    post<JourneyRun>(`/api/v1/me/journeys/${encodeURIComponent(id)}/steps/${encodeURIComponent(step)}`, body),
+  abandonJourney: (id: string) =>
+    request<JourneyRun>(`/api/v1/me/journeys/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   manifest: () => request<SpecManifest>('/api/v1/spec/manifest'),
   fields: (path: string, method: string) => {
     const qs = new URLSearchParams({ path, method });

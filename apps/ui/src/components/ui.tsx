@@ -362,6 +362,7 @@ export type NavIcon =
   | 'software'
   | 'object'
   | 'troubleshoot'
+  | 'journeys'
   | 'config';
 
 /* Hand-drawn stroke icon set (final.html §9). One set, keyed by item. */
@@ -420,6 +421,22 @@ const NAV_ICONS: Record<NavIcon, ReactNode> = {
       <circle cx="18" cy="6" r="2.5" />
       <circle cx="12" cy="18" r="2.5" />
       <path d="M7.5 8l3.5 7.5M16.5 8L13 15.5M8.5 6h7" />
+    </svg>
+  ),
+  journeys: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="5" cy="19" r="2" />
+      <circle cx="19" cy="5" r="2" />
+      <path d="M7 19h8a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h8" />
     </svg>
   ),
   audit: (

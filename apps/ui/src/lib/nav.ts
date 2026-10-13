@@ -1,6 +1,6 @@
 /**
  * Shared navigation: the rail from final.html §9 — Dashboard, the config
- * domains in switch order, then Troubleshoot, Maintenance, Audit Log. One
+ * domains in switch order, then Troubleshoot, Maintenance, Journeys, Audit Log. One
  * definition used by every switch-scoped screen.
  * Generic domains (registry) render enabled with the shared object icon;
  * a deep slice swaps in its bespoke screen and icon — one line.
@@ -31,7 +31,7 @@ function domainItems(base: string): Array<NavItem & { to: string }> {
   ];
 }
 
-/** Rail items for a switch: dashboard, domains in switch order, then operate (troubleshoot, maintenance, audit). */
+/** Rail items for a switch: dashboard, domains in switch order, then operate (troubleshoot, maintenance, journeys, audit). */
 export function switchNav(switchId: string): Array<NavItem & { to: string }> {
   const base = `/switches/${switchId}`;
   return [
@@ -39,6 +39,7 @@ export function switchNav(switchId: string): Array<NavItem & { to: string }> {
     ...domainItems(base),
     { to: `${base}/troubleshoot`, label: 'Troubleshoot', icon: 'troubleshoot' },
     { to: `${base}/maintenance`, label: 'Maintenance', icon: 'object' },
+    { to: `${base}/journeys`, label: 'Journeys', icon: 'journeys' },
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit' },
   ];
 }
@@ -70,6 +71,7 @@ export function groupNav(groupId: string): Array<NavItem & { to: string }> {
     { to: base, label: 'Overview', icon: 'dashboard' },
     ...domainItems(base),
     { to: `${base}/maintenance`, label: 'Maintenance', icon: 'object' },
+    { to: `${base}/journeys`, label: 'Journeys', icon: 'journeys' },
     { to: `${base}/audit`, label: 'Audit Log', icon: 'audit', disabled: true },
   ];
 }

@@ -210,6 +210,17 @@ export interface FanoutReadResult {
   error?: string;
 }
 
+/** One gated GET, as group screens and journey checks issue it. */
+export interface MemberRead {
+  path: string;
+  rev?: string;
+  view?: string;
+  include?: string[];
+  omit?: string[];
+  /** NVUE `filled` (root reads): false = only what differs from defaults, as `nv config show`. */
+  filled?: 'true' | 'false';
+}
+
 /**
  * Read one path from every member in parallel (group screens). Each member
  * is gated on its own groups; a denied or failed member is a result row,
@@ -218,17 +229,17 @@ export interface FanoutReadResult {
 export async function fanoutQuery(
   ctx: { sub: string; roles: Role[]; credKey: string },
   groupId: string,
-  call: {
-    path: string;
-    rev?: string;
-    view?: string;
-    include?: string[];
-    omit?: string[];
-    /** NVUE `filled` (root reads): false = only what differs from defaults, as `nv config show`. */
-    filled?: 'true' | 'false';
-  },
+  call: MemberRead,
 ): Promise<{ results: FanoutReadResult[]; denied: string[] }> {
-  const switches = await getSwitchesByGroup(groupId);
+  return readMembers(ctx, await getSwitchesByGroup(groupId), call);
+}
+
+/** The same gated parallel read over an explicit switch list (journey checks span a run's members). */
+export async function readMembers(
+  ctx: { sub: string; roles: Role[]; credKey: string },
+  switches: SwitchWithState[],
+  call: MemberRead,
+): Promise<{ results: FanoutReadResult[]; denied: string[] }> {
   const denied: string[] = [];
   const results = await Promise.all(
     switches.map(async (sw): Promise<FanoutReadResult> => {

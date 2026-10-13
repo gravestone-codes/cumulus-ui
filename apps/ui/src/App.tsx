@@ -25,6 +25,8 @@ import { Groups } from './screens/Groups.js';
 import { GroupHome } from './screens/GroupHome.js';
 import { Settings } from './screens/Settings.js';
 import { Troubleshoot } from './screens/Troubleshoot.js';
+import { Journeys } from './screens/journeys/Journeys.js';
+import { JourneyRun } from './screens/journeys/JourneyRun.js';
 
 const queryClient = new QueryClient();
 
@@ -125,6 +127,22 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/groups/:groupId/journeys',
+    element: (
+      <RequireAuth>
+        <Journeys />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/groups/:groupId/journeys/:runId',
+    element: (
+      <RequireAuth>
+        <JourneyRun />
+      </RequireAuth>
+    ),
+  },
+  {
     path: '/groups/:groupId/:domainKey',
     element: (
       <RequireAuth>
@@ -217,6 +235,22 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <ConfigRedirect />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId/journeys',
+    element: (
+      <RequireAuth>
+        <Journeys />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId/journeys/:runId',
+    element: (
+      <RequireAuth>
+        <JourneyRun />
       </RequireAuth>
     ),
   },
