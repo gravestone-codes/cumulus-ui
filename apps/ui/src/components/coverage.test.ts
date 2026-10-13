@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { actionParams, actionPaths } from './SectionActions.js';
-import { mapKeys, probeMethods } from './SubCollections.js';
+import { childObjectKeys, hasChildren, mapKeys, probeMethods } from './SubCollections.js';
 
 const routes: Record<string, string[]> = {
   '/system/packages': ['delete', 'get', 'patch', 'post'],
@@ -91,5 +91,29 @@ describe('mapKeys', () => {
   it('tolerates bare schemas', () => {
     expect(mapKeys(null)).toEqual([]);
     expect(mapKeys({})).toEqual([]);
+  });
+});
+
+describe('childObjectKeys', () => {
+  it('finds drillable singletons, skipping maps and actions', () => {
+    expect(
+      childObjectKeys({
+        properties: {
+          router: { type: 'object', properties: { bgp: { type: 'object' } } },
+          server: { type: 'object', additionalProperties: { type: 'object' } },
+          mode: { type: 'string' },
+          '@clear': { type: 'object', properties: {} },
+        },
+      }),
+    ).toEqual(['router']);
+  });
+});
+
+describe('hasChildren', () => {
+  it('is true for maps and drillable objects only', () => {
+    expect(hasChildren({ properties: { server: { additionalProperties: {} } } })).toBe(true);
+    expect(hasChildren({ properties: { router: { properties: {} } } })).toBe(true);
+    expect(hasChildren({ properties: { mode: { type: 'string' } } })).toBe(false);
+    expect(hasChildren(null)).toBe(false);
   });
 });

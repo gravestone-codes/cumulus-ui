@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type StageCall } from '../lib/api.js';
 import { itemSchema, leafLabel, scalarLeaves } from '../lib/schema.js';
 import { MiniTable } from './cards.js';
-import { Button, PromptModal, useToast } from './ui.js';
+import { Button, Modal, PromptModal, useToast } from './ui.js';
 import { ChangeFlow } from '../screens/iface/ChangeFlow.js';
 import { CreateFlow, OBJECT_NAME } from '../screens/iface/CreateFlow.js';
 import { DeleteFlow } from '../screens/iface/DeleteFlow.js';
@@ -12,6 +12,9 @@ import { refreshInterfaces, type Scope } from '../screens/iface/scope.js';
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** Drill depth: VRF → router → bgp → neighbor tables resolve within two hops. */
+const DRILL_DEPTH = 2;
 
 /**
  * Map-typed children of an item schema (flattened: `additionalProperties`
@@ -23,6 +26,36 @@ export function mapKeys(item: unknown): string[] {
   return Object.entries(item.properties as Record<string, unknown>)
     .filter(([k, v]) => !k.startsWith('@') && isObj(v) && isObj((v as Obj).additionalProperties))
     .map(([k]) => k);
+}
+
+/**
+ * Singleton-object children worth drilling through (router → bgp): objects,
+ * never maps, never actions. Row collections below them surface as
+ * `Bgp › Neighbor` tables.
+ */
+export function childObjectKeys(item: unknown): string[] {
+  if (!isObj(item) || !isObj(item.properties)) return [];
+  return Object.entries(item.properties as Record<string, unknown>)
+    .filter(
+      ([k, v]) =>
+        !k.startsWith('@') &&
+        isObj(v) &&
+        !isObj((v as Obj).additionalProperties) &&
+        isObj((v as Obj).properties),
+    )
+    .map(([k]) => k);
+}
+
+/** Any nested content (maps or drillable objects) below an item schema. */
+export function hasChildren(item: unknown): boolean {
+  if (!isObj(item) || !isObj(item.properties)) return false;
+  const props = item.properties as Record<string, unknown>;
+  return Object.entries(props).some(
+    ([k, v]) =>
+      !k.startsWith('@') &&
+      isObj(v) &&
+      (isObj((v as Obj).additionalProperties) || isObj((v as Obj).properties)),
+  );
 }
 
 /**
@@ -41,9 +74,10 @@ export function probeMethods(routes: Record<string, string[]>, probe: string): s
 
 /**
  * Row management for every map nested under one object (NTP servers, DHCP
- * pools, AAA servers, SNMP communities…): list, add, edit, delete — all
- * schema-driven, no per-map code. Second consumer (with DomainDetail) of the
- * split-index family; promote to a registry pattern on the third.
+ * pools, AAA servers, SNMP communities, BGP peers via VRF → router → bgp…):
+ * list, add, edit, delete — all schema-driven, no per-map code. Second
+ * consumer (with DomainDetail) of the split-index family; promote to a
+ * registry pattern on the third.
  */
 export function SubCollections({
   scope,
@@ -58,6 +92,36 @@ export function SubCollections({
   objects: Record<string, Obj | undefined>;
   /** Members to offer (switches holding the parent). */
   present: string[];
+}) {
+  return (
+    <ChildMaps
+      scope={scope}
+      parentPath={parentPath}
+      objects={objects}
+      present={present}
+      depth={DRILL_DEPTH}
+    />
+  );
+}
+
+function ChildMaps({
+  scope,
+  parentPath,
+  objects,
+  present,
+  depth,
+  crumb,
+  nested,
+}: {
+  scope: Scope;
+  parentPath: string;
+  objects: Record<string, Obj | undefined>;
+  present: string[];
+  depth: number;
+  /** Title prefix for drilled tables (`Bgp › `). */
+  crumb?: string;
+  /** Nested renders (member modals, drills) skip the card-body top margin. */
+  nested?: boolean;
 }) {
   const parent = useQuery({
     queryKey: ['spec-fields', parentPath, 'GET'],
@@ -78,10 +142,11 @@ export function SubCollections({
       if (probeMethods(routes, `${parentPath}/${k}/-`).length > 0) subs.push(k);
     }
   }
-  if (parent.isError || subs.length === 0) return null;
+  const drills = depth > 0 ? childObjectKeys(item) : [];
+  if (parent.isError || (subs.length === 0 && drills.length === 0)) return null;
   if (parent.isPending || !manifest.data) return null;
   return (
-    <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
+    <div style={{ display: 'grid', gap: 16, ...(nested ? {} : { marginTop: 16 }) }}>
       {subs.map((sub) => (
         <SubTable
           key={sub}
@@ -90,7 +155,22 @@ export function SubCollections({
           sub={sub}
           objects={objects}
           present={present}
+          crumb={crumb}
           methods={probeMethods(manifest.data.routes, `${parentPath}/${sub}/-`)}
+        />
+      ))}
+      {drills.map((key) => (
+        <ChildMaps
+          key={key}
+          scope={scope}
+          parentPath={`${parentPath}/${key}`}
+          objects={Object.fromEntries(
+            present.map((sw) => [sw, isObj(objects[sw]?.[key]) ? (objects[sw]?.[key] as Obj) : undefined]),
+          )}
+          present={present}
+          depth={depth - 1}
+          crumb={`${crumb ?? ''}${leafLabel(key)} › `}
+          nested
         />
       ))}
     </div>
@@ -103,6 +183,7 @@ function SubTable({
   sub,
   objects,
   present,
+  crumb,
   methods,
 }: {
   scope: Scope;
@@ -110,6 +191,7 @@ function SubTable({
   sub: string;
   objects: Record<string, Obj | undefined>;
   present: string[];
+  crumb?: string;
   methods: string[];
 }) {
   const toast = useToast();
@@ -124,10 +206,16 @@ function SubTable({
   const [quickName, setQuickName] = useState<string | null>(null);
   const [quickCalls, setQuickCalls] = useState<Record<string, StageCall[]> | null>(null);
   const subPath = `${parentPath}/${sub}`;
-  const title = leafLabel(sub);
+  const title = `${crumb ?? ''}${leafLabel(sub)}`;
   const memberFields = useQuery({
     queryKey: ['spec-fields', `${subPath}/-`, 'PATCH'],
     queryFn: () => api.fields(`${subPath}/-`, 'PATCH'),
+    staleTime: Infinity,
+    retry: false,
+  });
+  const memberGet = useQuery({
+    queryKey: ['spec-fields', `${subPath}/-`, 'GET'],
+    queryFn: () => api.fields(`${subPath}/-`, 'GET'),
     staleTime: Infinity,
     retry: false,
   });
@@ -137,6 +225,7 @@ function SubTable({
         .map((l) => l.path)
         .filter((p) => !p.split('/').some((seg) => seg.startsWith('@')))
     : [];
+  const memberGetItem = memberGet.data ? itemSchema(memberGet.data.schema) : null;
   const holders = (id: string) =>
     present.filter((sw) => isObj(objects[sw]?.[sub]) && (objects[sw]?.[sub] as Obj)[id] !== undefined);
   const ids = [
@@ -152,6 +241,8 @@ function SubTable({
   const refreshed = () => refreshInterfaces(queryClient);
   const singular = title.endsWith('s') && !title.endsWith('ss') ? title.slice(0, -1) : `${title} entry`;
   const keyOnly = canWrite && !!memberFields.data && createLeaves.length === 0;
+  // Row opens when something lives behind it: values to edit, or children to manage.
+  const openable = canWrite && (createLeaves.length > 0 || hasChildren(memberGetItem));
   const closeQuick = () => {
     setQuickOpen(false);
     setQuickError(null);
@@ -179,6 +270,7 @@ function SubTable({
       ),
     );
   };
+  const editHolders = editing ? holders(editing) : [];
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -244,13 +336,7 @@ function SubTable({
           ]}
           rows={ids}
           rowKey={(id) => id}
-          onRow={
-            canWrite && createLeaves.length > 0
-              ? (id) => setEditing(id)
-              : canDelete
-                ? (id) => setDeleting(id)
-                : undefined
-          }
+          onRow={openable ? (id) => setEditing(id) : canDelete ? (id) => setDeleting(id) : undefined}
         />
       ) : (
         <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: 0 }}>
@@ -269,20 +355,35 @@ function SubTable({
         />
       )}
       {editing && (
-        <ResourceForm
-          scope={scope}
-          objectPath={`${subPath}/${encodeURIComponent(editing)}`}
-          name={editing}
-          title={title}
-          cfg={Object.fromEntries(
-            holders(editing).map((sw) => [sw, (objects[sw]?.[sub] as Obj)?.[editing] as Obj | undefined]),
+        <Modal open onClose={() => setEditing(null)} title={`${title} ${editing}`} width={640}>
+          {createLeaves.length > 0 && (
+            <ResourceForm
+              modal={false}
+              scope={scope}
+              objectPath={`${subPath}/${encodeURIComponent(editing)}`}
+              name={editing}
+              title={title}
+              cfg={Object.fromEntries(
+                editHolders.map((sw) => [sw, (objects[sw]?.[sub] as Obj)?.[editing] as Obj | undefined]),
+              )}
+              present={editHolders}
+              onClose={() => setEditing(null)}
+              onApplied={refreshed}
+              notify={toast}
+              doneText={`${title} ${editing}`}
+            />
           )}
-          present={holders(editing)}
-          onClose={() => setEditing(null)}
-          onApplied={refreshed}
-          notify={toast}
-          doneText={`${title} ${editing}`}
-        />
+          <ChildMaps
+            scope={scope}
+            parentPath={`${subPath}/${encodeURIComponent(editing)}`}
+            objects={Object.fromEntries(
+              editHolders.map((sw) => [sw, (objects[sw]?.[sub] as Obj)?.[editing] as Obj | undefined]),
+            )}
+            present={editHolders}
+            depth={DRILL_DEPTH}
+            nested
+          />
+        </Modal>
       )}
       {deleting && (
         <DeleteFlow
