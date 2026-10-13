@@ -108,6 +108,61 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
     }
   });
 
+  it('collects a per-member read across a collection, 404 as empty, denials refused', async () => {
+    const pool2: PoolType = new Pool({ connectionString: process.env.DATABASE_URL });
+    const fake = await startFakeNvue((req, res) => {
+      const url = new URL(req.url ?? '/', 'https://x');
+      if (url.pathname === '/nvue_v1/interface') json(res, 200, { swp1: {}, swp2: {}, 'swp3.10': {} });
+      else if (url.pathname === '/nvue_v1/interface/swp1/lldp/neighbor')
+        json(res, 200, { spine1: { chassis: { 'system-name': 'spine1' } } });
+      else if (url.pathname === '/nvue_v1/interface/swp3.10/lldp/neighbor')
+        json(res, 500, { message: 'boom' });
+      else json(res, 404, { message: 'nope' });
+    });
+    await db().query(
+      `INSERT INTO switches (id, display_name, base_url, cert_fingerprint, cert_pem) VALUES ('swc', 't', $1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET base_url = EXCLUDED.base_url, cert_fingerprint = EXCLUDED.cert_fingerprint, cert_pem = EXCLUDED.cert_pem`,
+      [fake.baseUrl, fake.pin, fake.caPem],
+    );
+    const app = await buildApp({ auth: { cfg: CFG } });
+    await app.ready();
+    const op = await sessionCookie(pool2, 'qc-op', { appRoles: ['net-operator'] });
+    setSwitchToken('qc-op', 'swc', 'stub-jwt');
+    const nobody = await sessionCookie(pool2, 'qc-none', { appRoles: [] });
+    setSwitchToken('qc-none', 'swc', 'stub-jwt');
+    const api = request(app.server);
+    const q = { each: '/interface', path: '/interface/{key}/lldp/neighbor', rev: 'operational' };
+    try {
+      expect(await api.get('/api/v1/switches/swc/collect').query(q)).toMatchObject({ status: 401 });
+      const got = await api.get('/api/v1/switches/swc/collect').set('Cookie', op).query(q);
+      expect(got.status).toBe(200);
+      expect(got.body.data).toEqual({
+        swp1: { spine1: { chassis: { 'system-name': 'spine1' } } },
+        swp2: null,
+      });
+      expect(Object.keys(got.body.errors)).toEqual(['swp3.10']);
+
+      const stray = await api
+        .get('/api/v1/switches/swc/collect')
+        .set('Cookie', op)
+        .query({ each: '/interface', path: '/system/{key}' });
+      expect(stray.status).toBe(400);
+
+      const denied = await api.get('/api/v1/switches/swc/collect').set('Cookie', nobody).query(q);
+      expect(denied.status).toBe(403);
+    } finally {
+      dropUserTokens('qc-op');
+      dropUserTokens('qc-none');
+      await pool2.query(`DELETE FROM sessions WHERE user_sub IN ('qc-op', 'qc-none')`);
+      await pool2.query(`DELETE FROM user_roles WHERE user_sub IN ('qc-op', 'qc-none')`);
+      await pool2.query(`DELETE FROM users WHERE id IN ('qc-op', 'qc-none')`);
+      await pool2.query('DELETE FROM switches WHERE id = $1', ['swc']);
+      await pool2.end();
+      await fake.close();
+      await app.close();
+    }
+  });
+
   it('a brand-new token rejected on first use is retried, not replaced', async () => {
     const pool2: PoolType = new Pool({ connectionString: process.env.DATABASE_URL });
     const seen = new Set<string>();

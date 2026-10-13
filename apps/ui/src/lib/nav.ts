@@ -11,6 +11,8 @@ export function switchNav(switchId: string): Array<NavItem & { to: string }> {
   const base = `/switches/${switchId}`;
   return [
     { to: base, label: 'Dashboard', icon: 'dashboard' },
+    { to: `${base}/troubleshoot`, label: 'Troubleshoot', icon: 'troubleshoot' },
+    { to: `${base}/config`, label: 'Config', icon: 'config' },
     { to: `${base}/interfaces`, label: 'Interfaces', icon: 'interfaces' },
     { to: `${base}/bridge`, label: 'Bridge', icon: 'bridge' },
     { to: `${base}/vrf`, label: 'VRFs', icon: 'vrfs' },

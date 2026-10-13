@@ -46,6 +46,8 @@ export interface PortRow {
   outBytes: number;
   errors: number;
   drops: number;
+  /** Carrier transitions: link flaps since the counters were last cleared. */
+  flaps: number;
 }
 
 const num = (v: unknown): number | undefined => {
@@ -124,6 +126,7 @@ export function parsePorts(sw: string, ifaces: Record<string, unknown> | undefin
         outBytes: st('out-bytes'),
         errors: st('in-errors') + st('out-errors'),
         drops: st('in-drops') + st('out-drops'),
+        flaps: st('carrier-transitions'),
       },
     ];
   });

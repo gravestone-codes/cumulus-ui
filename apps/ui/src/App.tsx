@@ -24,6 +24,8 @@ import { Switches } from './screens/Switches.js';
 import { Groups } from './screens/Groups.js';
 import { GroupHome } from './screens/GroupHome.js';
 import { Settings } from './screens/Settings.js';
+import { Troubleshoot } from './screens/Troubleshoot.js';
+import { ConfigView } from './screens/ConfigView.js';
 
 const queryClient = new QueryClient();
 
@@ -194,6 +196,22 @@ const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <BridgeDomainDetail />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId/troubleshoot',
+    element: (
+      <RequireAuth>
+        <Troubleshoot />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/switches/:switchId/config',
+    element: (
+      <RequireAuth>
+        <ConfigView />
       </RequireAuth>
     ),
   },

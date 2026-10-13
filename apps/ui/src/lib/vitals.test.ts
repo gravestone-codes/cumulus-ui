@@ -88,7 +88,7 @@ describe('parsePorts', () => {
       ['swp2', 'admin-down'],
       ['swp3', 'down'],
     ]);
-    expect(rows[0]).toMatchObject({ sw: 'leaf01', inBytes: 10, outBytes: 20, errors: 3, drops: 3 });
+    expect(rows[0]).toMatchObject({ sw: 'leaf01', inBytes: 10, outBytes: 20, errors: 3, drops: 3, flaps: 0 });
   });
 });
 

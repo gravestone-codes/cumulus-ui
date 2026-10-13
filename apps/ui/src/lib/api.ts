@@ -383,6 +383,20 @@ export const api = {
     pushEach(qs, 'omit', opts?.omit);
     return request<QueryResult<T>>(`/api/v1/switches/${encodeURIComponent(switchId)}/query?${qs}`);
   },
+  /** One read per member of `each` (`path` holds a `{key}` slot); 404 members come back null. */
+  collect: <T = unknown>(
+    switchId: string,
+    each: string,
+    path: string,
+    opts?: { rev?: string; eachRev?: string },
+  ) => {
+    const qs = new URLSearchParams({ each, path });
+    if (opts?.rev) qs.set('rev', opts.rev);
+    if (opts?.eachRev) qs.set('eachRev', opts.eachRev);
+    return request<{ data: Record<string, T | null>; errors: Record<string, string> }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/collect?${qs}`,
+    );
+  },
   groupQuery: <T = unknown>(groupId: string, path: string, opts?: QueryOpts) => {
     const qs = new URLSearchParams({ path });
     if (opts?.rev) qs.set('rev', opts.rev);

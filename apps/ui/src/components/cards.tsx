@@ -139,7 +139,17 @@ export function Stat({
         {value}
       </p>
       {sub && (
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: '2px 0 0', whiteSpace: 'nowrap' }}>
+        <p
+          title={sub}
+          style={{
+            fontSize: 12,
+            color: 'var(--color-muted)',
+            margin: '2px 0 0',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           {sub}
         </p>
       )}

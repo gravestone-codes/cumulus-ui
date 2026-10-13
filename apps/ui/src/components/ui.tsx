@@ -352,7 +352,17 @@ export interface NavItem {
 }
 
 export type NavIcon =
-  'dashboard' | 'interfaces' | 'bridge' | 'vrfs' | 'bgp' | 'audit' | 'switches' | 'software' | 'object';
+  | 'dashboard'
+  | 'interfaces'
+  | 'bridge'
+  | 'vrfs'
+  | 'bgp'
+  | 'audit'
+  | 'switches'
+  | 'software'
+  | 'object'
+  | 'troubleshoot'
+  | 'config';
 
 /* Hand-drawn stroke icon set (final.html §9). One set, keyed by item. */
 const NAV_ICONS: Record<NavIcon, ReactNode> = {
@@ -442,6 +452,36 @@ const NAV_ICONS: Record<NavIcon, ReactNode> = {
       <rect x="3" y="14" width="18" height="6" rx="1.5" />
       <circle cx="7" cy="7" r="1" fill="currentColor" />
       <circle cx="7" cy="17" r="1" fill="currentColor" />
+    </svg>
+  ),
+  troubleshoot: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M15.5 15.5L21 21M7 10.5h2l1-2.5 1.5 5 1-2.5h1.5" />
+    </svg>
+  ),
+  config: (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M15 3v4h4M9.5 12l-2 2 2 2M13.5 12l2 2-2 2" />
     </svg>
   ),
   software: (
@@ -589,6 +629,7 @@ export function NavRail({
         position: 'sticky',
         top: 0,
         height: '100vh',
+        overflowY: 'auto',
       }}
     >
       {back && !collapsed && (
@@ -964,7 +1005,11 @@ export function Tabs({
   onChange: (id: string) => void;
 }) {
   return (
-    <div role="tablist" aria-label="Sections" style={{ display: 'flex', gap: 4, margin: '0 0 16px -14px' }}>
+    <div
+      role="tablist"
+      aria-label="Sections"
+      style={{ display: 'flex', gap: 4, margin: '0 0 16px -14px', overflowX: 'auto', scrollbarWidth: 'none' }}
+    >
       {tabs.map((t) => {
         const selected = t.id === active;
         return (
@@ -985,6 +1030,8 @@ export function Tabs({
               fontSize: 14,
               fontWeight: selected ? 700 : 500,
               padding: '8px 14px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             {t.label}
