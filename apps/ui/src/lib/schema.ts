@@ -65,9 +65,23 @@ export function leafLabel(path: string, schema?: Schema): string {
   const titled = typeof schema?.['title'] === 'string' && schema['title'];
   if (titled) return titled;
   const last = path.split('/').pop() ?? path;
-  const words = last.replace(/[_-]+/g, ' ').trim();
-  return words.charAt(0).toUpperCase() + words.slice(1);
+  const words = last.replace(/[_-]+/g, ' ').trim().split(' ');
+  return words
+    .map((w, i) =>
+      w.toLowerCase() === 'sflow'
+        ? 'sFlow'
+        : ACRONYM.test(w)
+          ? w.toUpperCase()
+          : i === 0
+            ? w.charAt(0).toUpperCase() + w.slice(1)
+            : w,
+    )
+    .join(' ');
 }
+
+/** Networking acronyms NVUE keys spell lowercase (`bgp`, `ospf6`, `dhcp`): shown as written in docs. */
+const ACRONYM =
+  /^(aaa|acl|api|arp|bfd|bgp|cli|dhcp|dns|evpn|gnmi|grpc|igmp|ip|ipv4|ipv6|lldp|mac|mlag|mtu|nat|nd|ntp|nve|ospf|pbr|pim|ptm|ptp|qos|snmp|ssh|stp|vlan|vni|vrf|vrr|vrrp|vxlan|wjh|ztp)\d*$/i;
 
 /** Kind of an anyOf/oneOf whose branches are all scalars (first non-enum type wins), else null. */
 function scalarUnion(sub: Schema): string | null {

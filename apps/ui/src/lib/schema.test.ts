@@ -117,7 +117,10 @@ describe('leafLabel', () => {
   it('prefers titles, prettifies keys', () => {
     expect(leafLabel('type', { title: 'Kind' })).toBe('Kind');
     expect(leafLabel('link/auto-negotiate')).toBe('Auto negotiate');
-    expect(leafLabel('mac-address')).toBe('Mac address');
+    expect(leafLabel('mac-address')).toBe('MAC address');
+    expect(leafLabel('dhcp-relay6')).toBe('DHCP relay6');
+    expect(leafLabel('ospf6')).toBe('OSPF6');
+    expect(leafLabel('sflow')).toBe('sFlow');
   });
 });
 
@@ -153,7 +156,7 @@ describe('planFieldsFromSchema', () => {
     expect(fields.map((f) => [f.path, f.kind, f.label])).toEqual([
       ['description', 'text', 'Description'],
       ['type', 'choice', 'Type'],
-      ['link/mtu', 'number', 'Mtu'],
+      ['link/mtu', 'number', 'MTU'],
     ]);
     expect(fields[1]?.choices).toEqual(['swp', 'bond']);
     expect(fields[2]?.invalid('100000')).toMatch(/at most 9216/);

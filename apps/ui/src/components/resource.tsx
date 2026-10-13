@@ -225,6 +225,7 @@ export function ResourceList<T extends object>({
   render,
   schemaMethod,
   alwaysInclude,
+  includeFields = true,
 }: {
   switchId: string;
   path: string;
@@ -257,13 +258,15 @@ export function ResourceList<T extends object>({
   schemaMethod?: string;
   /** Leaves adapter columns read (e.g. link state), fetched alongside the picked fields. */
   alwaysInclude?: string[];
+  /** Send picked fields as `?include` (off for collections NVUE refuses it on). */
+  includeFields?: boolean;
 }) {
   const [view, setView] = useState<string | undefined>(undefined);
   const { leaves, loading: schemaLoading } = useSchemaLeaves(schema ? pathTemplate : undefined, schemaMethod);
   const { checked, setChecked } = useSchemaFields(storageKey, schema ? leaves : [], defaultFields ?? []);
   // NVUE rejects `include` alongside `view`: a view is its own field set.
   const include =
-    schema && checked.length > 0 && !view
+    schema && checked.length > 0 && !view && includeFields
       ? toIncludePatterns(path, [...checked, ...(alwaysInclude ?? [])])
       : undefined;
   const list = useQuery({

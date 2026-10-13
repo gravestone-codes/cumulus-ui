@@ -39,7 +39,10 @@ function DomainList() {
   const { leaves } = useSchemaLeaves(def?.item, def && !def.editable ? 'GET' : 'PATCH');
   const { checked, setChecked } = useSchemaFields(fieldKey, leaves, def?.fields ?? []);
   const [view, setView] = useState<string | undefined>(undefined);
-  const include = def && checked.length > 0 && !view ? toIncludePatterns(def.collection, checked) : undefined;
+  const include =
+    def && !def.noInclude && checked.length > 0 && !view
+      ? toIncludePatterns(def.collection, checked)
+      : undefined;
   const list = usePerSwitch<Record<string, Obj>>(scope, def?.collection ?? '/', {
     ...(def?.rev ? { rev: def.rev } : {}),
     ...(include ? { include } : {}),
@@ -94,6 +97,7 @@ function DomainList() {
           storageKey={fieldKey}
           emptyIcon="object"
           rev={def.rev}
+          includeFields={!def.noInclude}
           actions={<>{newButton}</>}
           onSelect={openDetail}
           rowMenu={(row): RowMenuItem[] => [

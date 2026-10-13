@@ -44,6 +44,8 @@ export interface DomainDef {
   sectionLinks?: Record<string, string>;
   /** Container this domain lives in (nav highlight + breadcrumb), e.g. DHCP → service. */
   parent?: string;
+  /** The collection rejects `?include` (NVUE answers 404): read whole, pick columns client-side. */
+  noInclude?: boolean;
 }
 
 export const DOMAINS: DomainDef[] = [
@@ -130,9 +132,10 @@ export const DOMAINS: DomainDef[] = [
     icon: 'object',
     collection: '/action',
     item: '/action/{action-job-id}',
-    fields: ['type', 'state', 'status', 'percentage'],
-    labels: { type: 'Type', state: 'State', status: 'Status', percentage: 'Progress' },
+    fields: ['state', 'status'],
+    labels: { state: 'State', status: 'Status', percentage: 'Progress' },
     editable: false,
+    noInclude: true,
     singular: 'Action',
   },
   {
