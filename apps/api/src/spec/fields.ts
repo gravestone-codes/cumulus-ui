@@ -106,9 +106,29 @@ export function flattenComposites(schema: unknown): unknown {
     return out;
   }
   const merged: Record<string, unknown> = { type: 'object', properties: {}, required: [] };
+  // CUE refines scalars through allOf (`string & format & pattern`): without a
+  // scalar preference those branches merge into an empty object that hides the
+  // leaf from forms (e.g. system hostname). Object shape always wins when a
+  // branch actually carries some; otherwise the scalar (or all-string enum)
+  // evidence decides the type.
+  let scalarType: string | undefined;
   for (const branch of allOf) {
     const flat = flattenComposites(branch) as Record<string, unknown>;
     if (typeof flat !== 'object' || flat === null || Array.isArray(flat)) continue;
+    const t = flat['type'];
+    if (
+      scalarType === undefined &&
+      (t === 'string' || t === 'number' || t === 'integer' || t === 'boolean')
+    ) {
+      scalarType = t as string;
+    }
+    if (
+      scalarType === undefined &&
+      Array.isArray(flat['enum']) &&
+      (flat['enum'] as unknown[]).filter((e) => e !== null).every((e) => typeof e === 'string')
+    ) {
+      scalarType = 'string';
+    }
     if (typeof flat['properties'] === 'object' && flat['properties'] !== null) {
       Object.assign(
         merged['properties'] as Record<string, unknown>,
@@ -123,6 +143,14 @@ export function flattenComposites(schema: unknown): unknown {
     }
   }
   if ((merged['required'] as unknown[]).length === 0) delete merged['required'];
+  const shapeOf = (n: Record<string, unknown>) =>
+    Object.keys((n['properties'] ?? {}) as Record<string, unknown>).length > 0 ||
+    n['additionalProperties'] !== undefined ||
+    n['items'] !== undefined;
+  if (!shapeOf(merged) && !shapeOf(obj) && scalarType !== undefined) {
+    merged['type'] = scalarType;
+    delete merged['properties'];
+  }
   return { ...obj, ...merged, allOf: undefined };
 }
 

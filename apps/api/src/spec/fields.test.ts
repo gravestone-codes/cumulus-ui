@@ -49,4 +49,20 @@ describe('spec fields', () => {
     const doc = specDoc();
     expect(Object.keys(doc.paths ?? {}).length).toBeGreaterThan(1000);
   });
+
+  it('allOf scalar refinements keep their type (system hostname stays a string)', () => {
+    const found = requestBodySchema('/system', 'patch');
+    const schema = found?.schema as { properties?: Record<string, { type?: string; pattern?: string }> };
+    expect(schema.properties?.hostname?.type).toBe('string');
+    expect(schema.properties?.hostname?.pattern).toBe('^[^.]*$');
+  });
+
+  it('allOf enum refinements keep their values (system timezone stays an enum)', () => {
+    const found = requestBodySchema('/system', 'patch');
+    const schema = found?.schema as {
+      properties?: Record<string, { type?: string; enum?: unknown[] }>;
+    };
+    expect(schema.properties?.timezone?.type).toBe('string');
+    expect(schema.properties?.timezone?.enum).toContain('Africa/Kigali');
+  });
 });
