@@ -67,7 +67,7 @@ function FleetStatsCard({ switches }: { switches: SwitchRow[] }) {
   const failing = switches.filter((x) => x.last_check_ok === false).length;
   const untrusted = switches.filter((x) => !x.trust_verified).length;
   return (
-    <StatRow columns={3}>
+    <StatRow columns={2}>
       <Stat label="Switches" value={String(n)} sub={`${reachable} reachable`} />
       <Stat
         label="Failing"
@@ -294,93 +294,103 @@ function HealthCard({ switches }: { switches: SwitchRow[] }) {
 const pctText = (n: number | undefined) => (n === undefined ? '—' : `${Number(n.toFixed(1))}%`);
 const bytesText = (n: number | undefined) => (n === undefined ? '—' : bytes(n));
 
-/** One utilization bar per switch, named; unreachable switches say so. */
-function MeterList({
+/**
+ * One block per switch in scope, the same block a switch home shows: one
+ * switch reads "Utilization", several are headed by name (unreachable said).
+ */
+function PerSwitch({
   switches,
   failed,
-  value,
+  children,
 }: {
   switches: SwitchRow[];
   failed: string[];
-  value: (id: string) => number | undefined;
+  children: (id: string, heading: string) => React.ReactNode;
 }) {
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
+    <div style={{ display: 'grid', gap: 22 }}>
       {switches.map((s) => (
-        <Meter
-          key={s.id}
-          label={failed.includes(s.id) ? `${nameOf(switches, s.id)} · unreachable` : nameOf(switches, s.id)}
-          value={value(s.id)}
-          labelWidth={120}
-        />
+        <section key={s.id} style={{ display: 'grid', gap: 10 }}>
+          {children(
+            s.id,
+            switches.length === 1
+              ? 'Utilization'
+              : `${nameOf(switches, s.id)}${failed.includes(s.id) ? ' · unreachable' : ''}`,
+          )}
+        </section>
       ))}
     </div>
   );
 }
 
-/** CPU: one switch gets reading, bar and the chip behind it; many get a bar each. */
+/** CPU per switch: reading, bar, then the model, cores, used and free behind it. */
 function CpuCard({ switches }: WidgetProps) {
-  const ids = switches.map((s) => s.id);
-  const v = useVitals(ids);
+  const v = useVitals(switches.map((s) => s.id));
   if (switches.length === 0) return <Quiet>No switches yet.</Quiet>;
   if (v.loading) return <Quiet>Loading…</Quiet>;
-  if (ids.length > 1)
-    return <MeterList switches={switches} failed={v.failed} value={(id) => v.byId[id]?.cpu} />;
-  const x = v.byId[ids[0] ?? ''];
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <SubHead title="Utilization" value={pctText(x?.cpu)} />
-      <Meter label="CPU utilization" value={x?.cpu} bare />
-      <Facts
-        items={[
-          {
-            label: 'Model',
-            // Trademark marks cost width and say nothing; the full string stays in the tooltip.
-            value: x?.cpuModel?.replace(/\((R|TM)\)/gi, '').replace(/\s+/g, ' ') ?? '—',
-            title: x?.cpuModel,
-          },
-          { label: 'Cores', value: x?.cpuCores === undefined ? '—' : String(x.cpuCores) },
-          { label: 'Used', value: pctText(x?.cpu) },
-          { label: 'Free', value: pctText(x?.cpu === undefined ? undefined : 100 - x.cpu) },
-        ]}
-      />
-    </div>
+    <PerSwitch switches={switches} failed={v.failed}>
+      {(id, heading) => {
+        const x = v.byId[id];
+        return (
+          <>
+            <SubHead title={heading} value={pctText(x?.cpu)} />
+            <Meter label={`${heading} CPU utilization`} value={x?.cpu} bare />
+            <Facts
+              items={[
+                {
+                  label: 'Model',
+                  // Trademark marks cost width and say nothing; the full string stays in the tooltip.
+                  value: x?.cpuModel?.replace(/\((R|TM)\)/gi, '').replace(/\s+/g, ' ') ?? '—',
+                  title: x?.cpuModel,
+                },
+                { label: 'Cores', value: x?.cpuCores === undefined ? '—' : String(x.cpuCores) },
+                { label: 'Used', value: pctText(x?.cpu) },
+                { label: 'Free', value: pctText(x?.cpu === undefined ? undefined : 100 - x.cpu) },
+              ]}
+            />
+          </>
+        );
+      }}
+    </PerSwitch>
   );
 }
 
-/** Memory: one switch gets reading, bar and the sizes behind it; many get a bar each. */
+/** Memory per switch: reading, bar, then total, used, buffers & cache, free and swap. */
 function MemoryCard({ switches }: WidgetProps) {
-  const ids = switches.map((s) => s.id);
-  const v = useVitals(ids);
+  const v = useVitals(switches.map((s) => s.id));
   if (switches.length === 0) return <Quiet>No switches yet.</Quiet>;
   if (v.loading) return <Quiet>Loading…</Quiet>;
-  if (ids.length > 1) {
-    return <MeterList switches={switches} failed={v.failed} value={(id) => v.byId[id]?.memory} />;
-  }
-  const x = v.byId[ids[0] ?? ''];
-  const swap = x?.swap;
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <SubHead title="Utilization" value={pctText(x?.memory)} />
-      <Meter label="Memory utilization" value={x?.memory} bare />
-      <Facts
-        items={[
-          { label: 'Total', value: bytesText(x?.physical.total) },
-          { label: 'Used', value: bytesText(x?.physical.used) },
-          { label: 'Buffers & cache', value: bytesText(x?.physical.cache) },
-          { label: 'Free', value: bytesText(x?.physical.free) },
-          {
-            label: 'Swap',
-            value:
-              swap?.total === undefined
-                ? '—'
-                : swap.total === 0
-                  ? 'none'
-                  : `${bytesText(swap.used)} of ${bytesText(swap.total)}`,
-          },
-        ]}
-      />
-    </div>
+    <PerSwitch switches={switches} failed={v.failed}>
+      {(id, heading) => {
+        const x = v.byId[id];
+        const swap = x?.swap;
+        return (
+          <>
+            <SubHead title={heading} value={pctText(x?.memory)} />
+            <Meter label={`${heading} memory utilization`} value={x?.memory} bare />
+            <Facts
+              items={[
+                { label: 'Total', value: bytesText(x?.physical.total) },
+                { label: 'Used', value: bytesText(x?.physical.used) },
+                { label: 'Buffers & cache', value: bytesText(x?.physical.cache) },
+                { label: 'Free', value: bytesText(x?.physical.free) },
+                {
+                  label: 'Swap',
+                  value:
+                    swap?.total === undefined
+                      ? '—'
+                      : swap.total === 0
+                        ? 'none'
+                        : `${bytesText(swap.used)} of ${bytesText(swap.total)}`,
+                },
+              ]}
+            />
+          </>
+        );
+      }}
+    </PerSwitch>
   );
 }
 
@@ -399,7 +409,7 @@ function PortStatusCard({ switches }: { switches: SwitchRow[] }) {
   const total = count(p.rows);
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      <StatRow columns={3}>
+      <StatRow columns={2}>
         <Stat label="Ports" value={String(p.rows.length)} />
         <Stat label="Up" value={String(total[0]?.value ?? 0)} tone="var(--color-pass)" />
         <Stat
@@ -506,7 +516,7 @@ function EnvironmentCard({ switches }: { switches: SwitchRow[] }) {
   const hot = hottest?.current !== undefined && hottest.max !== undefined && hottest.current >= hottest.max;
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      <StatRow columns={3}>
+      <StatRow columns={2}>
         <Stat
           label="Fans OK"
           value={ratio(of('fan'))}
@@ -838,7 +848,7 @@ function BgpSessionsCard({ switches }: WidgetProps) {
   }
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      <StatRow columns={3}>
+      <StatRow columns={2}>
         <Stat label="Peers" value={String(rows.length)} />
         <Stat label="Established" value={String(up)} tone={up > 0 ? 'var(--color-pass)' : undefined} />
         <Stat
@@ -1022,13 +1032,13 @@ export const WIDGETS: Record<
   cpu: {
     title: 'CPU',
     blurb: 'Utilization, model and cores.',
-    info: 'Current CPU utilization. One switch shows the processor model and core count with used and free; several show a bar each. Amber past 80%, red past 90%.',
+    info: 'Current CPU utilization per switch, with the processor model, core count, used and free. Amber past 80%, red past 90%.',
     Component: CpuCard,
   },
   memory: {
     title: 'Memory',
     blurb: 'Utilization and sizes.',
-    info: 'Physical memory utilization. One switch shows total, used, buffers & cache, free and swap; several show a bar each. Amber past 80%, red past 90%.',
+    info: 'Physical memory utilization per switch, with total, used, buffers & cache, free and swap. Amber past 80%, red past 90%.',
     Component: MemoryCard,
   },
   'port-status': {

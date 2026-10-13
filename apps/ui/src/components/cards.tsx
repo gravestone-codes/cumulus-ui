@@ -202,18 +202,7 @@ export function packets(v: number): string {
 }
 
 /** Meter: a labelled 0–100% bar; warn past 80, fail past 90 (utilization reads). `bare` is the bar alone (a SubHead carries label and reading). */
-export function Meter({
-  label,
-  value,
-  bare,
-  labelWidth = 38,
-}: {
-  label: string;
-  value: number | undefined;
-  bare?: boolean;
-  /** Wider side labels for per-switch rows (names, not "CPU"). */
-  labelWidth?: number;
-}) {
+export function Meter({ label, value, bare }: { label: string; value: number | undefined; bare?: boolean }) {
   const pct = value === undefined ? 0 : Math.max(0, Math.min(100, value));
   const tone =
     value === undefined
@@ -227,25 +216,12 @@ export function Meter({
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: bare ? 'minmax(0, 1fr)' : `${labelWidth}px minmax(0, 1fr) 44px`,
+        gridTemplateColumns: bare ? 'minmax(0, 1fr)' : '38px minmax(0, 1fr) 44px',
         alignItems: 'center',
         gap: 8,
       }}
     >
-      {!bare && (
-        <span
-          title={label}
-          style={{
-            fontSize: 12,
-            color: 'var(--color-muted)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {label}
-        </span>
-      )}
+      {!bare && <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{label}</span>}
       <span
         role="meter"
         aria-label={label}
