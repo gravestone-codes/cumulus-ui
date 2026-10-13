@@ -56,7 +56,13 @@ export function Settings() {
       <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '0 0 16px' }}>
         Who can sign in, what they may do, how switches are grouped.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
+          gap: 12,
+        }}
+      >
         <SettingCard
           title="Users"
           count={users}

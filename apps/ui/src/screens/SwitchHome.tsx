@@ -1,7 +1,7 @@
 /**
- * Switch home: title, trust banner, and the switch's own metric widgets —
- * interface counts, liveness, recent activity, traffic placeholder. Same
- * Card/Stat language as the fleet dashboard; every number is live.
+ * Switch home: title, trust banner, and the switch's own widgets — health,
+ * load, ports, errors, environment, software, activity — from the shared
+ * widget library, plus connection state and ranged traffic. Every number is live.
  */
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -10,11 +10,23 @@ import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, X
 import { api } from '../lib/api.js';
 import { Alert, AppShell, NavRail, SelectMenu, usePinnedRail } from '../components/ui.js';
 import { Card, Stat, StatRow, packets } from '../components/cards.js';
-import { ifaceState } from '../lib/format.js';
 import { ReadError } from '../components/resource.js';
-import { ActivityList } from '../components/activity.js';
 import { timeAgo } from '../lib/format.js';
 import { switchNav } from '../lib/nav.js';
+import { ifaceQuery } from '../lib/vitals.js';
+import { WidgetGrid } from './dashboard/widgets.js';
+
+/** Switch home widgets: verdict first, then load and ports, then detail. */
+const SWITCH_WIDGETS = [
+  'software',
+  'health',
+  'resources',
+  'port-status',
+  'environment',
+  'interface-errors',
+  'top-talkers',
+  'recent-activity',
+];
 
 export function SwitchHome() {
   const { switchId = '' } = useParams();
@@ -24,26 +36,12 @@ export function SwitchHome() {
   const session = useQuery({ queryKey: ['me'], queryFn: () => api.me(), retry: false });
   const switches = useQuery({ queryKey: ['switches'], queryFn: () => api.switches(), retry: false });
   const row = (switches.data ?? []).find((s) => s.id === switchId);
-  // Shared cache key with the Interfaces list: one fetch serves both.
-  // Operational rev: applied state alone leaves unconfigured ports empty.
-  const ifaces = useQuery({
-    queryKey: ['resource', switchId, '/interface', undefined, 'operational'],
-    queryFn: () =>
-      api.query<Record<string, { state?: unknown }>>(switchId, '/interface', { rev: 'operational' }),
-    retry: false,
-    staleTime: 30_000,
-  });
-  const activity = useQuery({
-    queryKey: ['audit-switch', switchId],
-    queryFn: () => api.audit(6, switchId),
-    retry: false,
-  });
+  // Shared with the port widgets: a failed read here offers reconnect inline.
+  const ifaces = useQuery(ifaceQuery(switchId));
   async function logout() {
     await api.logout();
     navigate('/login', { replace: true });
   }
-  const entries = ifaces.data ? Object.entries(ifaces.data.data) : [];
-  const up = entries.filter(([, v]) => ifaceState(v) === 'up').length;
   return (
     <AppShell
       rail={
@@ -61,7 +59,9 @@ export function SwitchHome() {
         />
       }
     >
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 16px' }}>{switchId}</h1>
+      <div className="list-head">
+        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{switchId}</h1>
+      </div>
       {row && !row.trust_verified && (
         <div style={{ marginBottom: 12 }}>
           <Alert tone="warn">
@@ -85,49 +85,37 @@ export function SwitchHome() {
           </Alert>
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-        <Card title="Interfaces">
-          {ifaces.isError ? (
-            <ReadError
-              switchId={switchId}
-              message={ifaces.error.message}
-              onFixed={() => {
-                queryClient.invalidateQueries({ queryKey: ['resource', switchId] });
-                queryClient.invalidateQueries({ queryKey: ['switches'] });
-              }}
-            />
-          ) : ifaces.isPending ? (
-            <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
-          ) : (
-            <StatRow columns={2}>
-              <Stat label="Total" value={String(entries.length)} />
-              <Stat label="Up" value={String(up)} tone={up > 0 ? 'var(--color-pass)' : undefined} />
-              <Stat label="Down / other" value={String(entries.length - up)} />
+      {ifaces.isError && (
+        <div style={{ marginBottom: 12 }}>
+          <ReadError
+            switchId={switchId}
+            message={ifaces.error.message}
+            onFixed={() => {
+              queryClient.invalidateQueries({ queryKey: ['resource', switchId] });
+              queryClient.invalidateQueries({ queryKey: ['vitals', switchId] });
+              queryClient.invalidateQueries({ queryKey: ['switches'] });
+            }}
+          />
+        </div>
+      )}
+      <WidgetGrid ids={SWITCH_WIDGETS} switches={row ? [row] : []}>
+        <div style={{ minWidth: 0, display: 'grid' }}>
+          <Card title="Connection">
+            <StatRow columns={3}>
+              <Stat
+                label="Trust"
+                value={row ? (row.trust_verified ? 'Verified' : 'Pending') : '—'}
+                tone={row?.trust_verified ? 'var(--color-pass)' : 'var(--color-warn)'}
+              />
+              <Stat
+                label="Reachable"
+                value={row?.last_check_ok === true ? 'Yes' : row?.last_check_ok === false ? 'No' : 'Unknown'}
+              />
+              <Stat label="Last seen" value={timeAgo(row?.last_seen_at)} />
             </StatRow>
-          )}
-        </Card>
-        <Card title="Health">
-          <StatRow columns={2}>
-            <Stat
-              label="Trust"
-              value={row ? (row.trust_verified ? 'Verified' : 'Pending') : '—'}
-              tone={row?.trust_verified ? 'var(--color-pass)' : 'var(--color-warn)'}
-            />
-            <Stat
-              label="Reachable"
-              value={row?.last_check_ok === true ? 'Yes' : row?.last_check_ok === false ? 'No' : 'Unknown'}
-            />
-            <Stat label="Last seen" value={timeAgo(row?.last_seen_at)} />
-          </StatRow>
-        </Card>
-        <Card title="Recent activity">
-          {activity.isError ? null : activity.isPending ? (
-            <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>Loading…</p>
-          ) : (
-            <ActivityList rows={activity.data} onOpen={() => navigate(`/switches/${switchId}/audit`)} />
-          )}
-        </Card>
-        <div style={{ gridColumn: '1 / -1' }}>
+          </Card>
+        </div>
+        <div className="wide" style={{ minWidth: 0 }}>
           <Card
             title="Traffic over time"
             info="All of this switch's interfaces added together: bits (or packets) per second received (In) and sent (Out). A frame crossing the switch counts once in and once out. Hover the graph for exact values."
@@ -135,7 +123,7 @@ export function SwitchHome() {
             <SwitchTraffic switchId={switchId} />
           </Card>
         </div>
-      </div>
+      </WidgetGrid>
     </AppShell>
   );
 }

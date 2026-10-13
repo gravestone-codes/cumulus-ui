@@ -3,7 +3,8 @@
  * registry — the UI can only add/remove known ids, so a client can never
  * inject an unknown widget. Rows are keyed by user_sub: dashboards are
  * personal, never shared. Per-widget config (sort, device filter) rides
- * along as opaque JSON the widget owns.
+ * along as opaque JSON the widget owns. `seen` records the catalog a user
+ * was last offered, so widgets shipped later appear once, then obey removal.
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -19,14 +20,31 @@ export const WIDGET_CATALOG = [
   'recent-activity',
   'traffic',
   'interfaces-by-device',
+  'health',
+  'resources',
+  'port-status',
+  'interface-errors',
+  'top-talkers',
+  'environment',
+  'software',
 ] as const;
 export type WidgetId = (typeof WIDGET_CATALOG)[number];
 
-const DEFAULT_WIDGETS: Array<{ id: WidgetId }> = [
-  { id: 'fleet-stats' },
-  { id: 'reachability' },
-  { id: 'traffic' },
-];
+const DEFAULT_WIDGETS: Array<{ id: WidgetId }> = (
+  [
+    'fleet-stats',
+    'health',
+    'reachability',
+    'resources',
+    'port-status',
+    'traffic',
+    'interface-errors',
+    'top-talkers',
+    'environment',
+    'software',
+    'recent-activity',
+  ] as const
+).map((id) => ({ id }));
 
 /** Retired ids map forward so existing prefs keep working across renames. */
 const RETIRED_IDS: Record<string, WidgetId> = {
@@ -43,11 +61,12 @@ const PrefsBody = z.object({ widgets: z.array(WidgetEntry).max(20) });
 export type DashboardPrefs = { widgets: Array<{ id: WidgetId; config?: Record<string, unknown> }> };
 
 export async function getDashboardPrefs(userSub: string): Promise<DashboardPrefs> {
-  const { rows } = await db().query<{ widgets: DashboardPrefs['widgets'] }>(
-    'SELECT widgets FROM user_dashboard_widgets WHERE user_sub = $1',
+  const { rows } = await db().query<{ widgets: DashboardPrefs['widgets']; seen: string[] }>(
+    'SELECT widgets, seen FROM user_dashboard_widgets WHERE user_sub = $1',
     [userSub],
   );
   const widgets = rows[0]?.widgets;
+  const offered = new Set(rows[0]?.seen ?? []);
   if (!Array.isArray(widgets) || widgets.length === 0) return { widgets: DEFAULT_WIDGETS };
   const seen = new Set<string>();
   const known = widgets.flatMap((w) => {
@@ -57,7 +76,10 @@ export async function getDashboardPrefs(userSub: string): Promise<DashboardPrefs
     seen.add(mapped);
     return [{ ...w, id: mapped }];
   });
-  return { widgets: known.length > 0 ? known : DEFAULT_WIDGETS };
+  if (known.length === 0) return { widgets: DEFAULT_WIDGETS };
+  // Defaults shipped after the last save join once; ids already offered stay as the user left them.
+  const fresh = DEFAULT_WIDGETS.filter((w) => !offered.has(w.id) && !known.some((k) => k.id === w.id));
+  return { widgets: [...known, ...fresh] };
 }
 
 export async function dashboardRoutes(app: FastifyInstance, deps: { cfg: AuthConfig }): Promise<void> {
@@ -77,9 +99,9 @@ export async function dashboardRoutes(app: FastifyInstance, deps: { cfg: AuthCon
       return problem(reply, 400, 'Bad Request', 'unknown widget or bad shape', request.url);
     const widgets = parsed.data.widgets.length > 0 ? parsed.data.widgets : DEFAULT_WIDGETS;
     await db().query(
-      `INSERT INTO user_dashboard_widgets (user_sub, widgets, updated_at) VALUES ($1, $2::jsonb, now())
-       ON CONFLICT (user_sub) DO UPDATE SET widgets = EXCLUDED.widgets, updated_at = now()`,
-      [who.sub, JSON.stringify(widgets)],
+      `INSERT INTO user_dashboard_widgets (user_sub, widgets, seen, updated_at) VALUES ($1, $2::jsonb, $3, now())
+       ON CONFLICT (user_sub) DO UPDATE SET widgets = EXCLUDED.widgets, seen = EXCLUDED.seen, updated_at = now()`,
+      [who.sub, JSON.stringify(widgets), [...WIDGET_CATALOG]],
     );
     return { widgets };
   });

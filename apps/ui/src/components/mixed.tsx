@@ -114,7 +114,7 @@ export function MixedValue({
             style={{
               position: 'fixed',
               top: Math.min(rect.bottom + 6, window.innerHeight - 260),
-              left: Math.min(rect.left, window.innerWidth - 300),
+              left: Math.max(8, Math.min(rect.left, window.innerWidth - 300)),
               width: 280,
               zIndex: 70,
               background: 'var(--color-surface)',

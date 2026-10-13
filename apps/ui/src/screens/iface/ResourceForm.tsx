@@ -280,7 +280,7 @@ export function ResourceForm({
     />
   ) : (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20 }}>
+      <div className="form-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 20 }}>
         {resolved.map(renderField)}
       </div>
       {warning?.(shared)}

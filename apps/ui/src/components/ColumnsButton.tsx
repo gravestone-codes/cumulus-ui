@@ -65,7 +65,7 @@ export default function ColumnsButton<K extends string>({
   const hit = (f: { key: string; label: string }) =>
     !q || f.label.toLowerCase().includes(q) || f.key.toLowerCase().includes(q);
   const more = available.filter(hit);
-  const left = rect ? Math.min(rect.right - PANEL_W, window.innerWidth - PANEL_W - 8) : 0;
+  const left = rect ? Math.max(8, Math.min(rect.right - PANEL_W, window.innerWidth - PANEL_W - 8)) : 0;
 
   return (
     <>
@@ -240,7 +240,13 @@ export default function ColumnsButton<K extends string>({
               {more.map((f) => (
                 <li
                   key={f.key}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 8, padding: '6px 8px' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    borderRadius: 8,
+                    padding: '6px 8px',
+                  }}
                 >
                   <input
                     type="checkbox"

@@ -185,3 +185,189 @@ export function packets(v: number): string {
   if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
   return String(Math.round(v));
 }
+
+/** Meter: a labelled 0–100% bar; warn past 80, fail past 90 (utilization reads). */
+export function Meter({ label, value }: { label: string; value: number | undefined }) {
+  const pct = value === undefined ? 0 : Math.max(0, Math.min(100, value));
+  const tone =
+    value === undefined
+      ? 'var(--color-border)'
+      : pct > 90
+        ? 'var(--color-fail)'
+        : pct > 80
+          ? 'var(--color-warn)'
+          : 'var(--color-pass)';
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '38px minmax(0, 1fr) 44px',
+        alignItems: 'center',
+        gap: 8,
+      }}
+    >
+      <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{label}</span>
+      <span
+        role="meter"
+        aria-label={label}
+        aria-valuenow={value === undefined ? undefined : Math.round(pct)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        style={{ height: 6, borderRadius: 99, background: 'var(--color-surface-2)', overflow: 'hidden' }}
+      >
+        <span
+          style={{ display: 'block', height: '100%', width: `${pct}%`, background: tone, borderRadius: 99 }}
+        />
+      </span>
+      <span style={{ fontSize: 12, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+        {value === undefined ? '—' : `${Math.round(pct)}%`}
+      </span>
+    </div>
+  );
+}
+
+/** StackBar: proportional segments (e.g. ports up/down/admin-down) in one row. */
+export function StackBar({ parts }: { parts: Array<{ label: string; value: number; color: string }> }) {
+  const total = parts.reduce((n, p) => n + p.value, 0);
+  return (
+    <span
+      role="img"
+      aria-label={parts.map((p) => `${p.label} ${p.value}`).join(', ')}
+      style={{
+        display: 'flex',
+        height: 8,
+        borderRadius: 99,
+        overflow: 'hidden',
+        background: 'var(--color-surface-2)',
+        gap: total > 0 ? 2 : 0,
+      }}
+    >
+      {total > 0 &&
+        parts
+          .filter((p) => p.value > 0)
+          .map((p) => (
+            <span
+              key={p.label}
+              style={{ flex: p.value, background: p.color }}
+              title={`${p.label}: ${p.value}`}
+            />
+          ))}
+    </span>
+  );
+}
+
+/** Legend: colour dot + label + count, wraps on narrow cards. */
+export function Legend({
+  items,
+}: {
+  items: Array<{ label: string; value?: number | string; color: string }>;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '6px 14px',
+        fontSize: 12,
+        color: 'var(--color-muted)',
+      }}
+    >
+      {items.map((i) => (
+        <span key={i.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 99, background: i.color }} />
+          {i.label}
+          {i.value !== undefined && (
+            <strong style={{ color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' }}>
+              {i.value}
+            </strong>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Byte totals: 1536 → 1.5 KB, binary steps, one decimal. */
+export function bytes(v: number): string {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  let n = v;
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) {
+    n /= 1024;
+    i += 1;
+  }
+  return `${i === 0 ? Math.round(n) : n.toFixed(1)} ${units[i]}`;
+}
+
+/** MiniTable: compact read-only rows inside a card (top-N lists); rows may link. */
+export function MiniTable<T>({
+  cols,
+  rows,
+  rowKey,
+  onRow,
+}: {
+  cols: Array<{ label: string; align?: 'right'; cell: (row: T) => ReactNode }>;
+  rows: T[];
+  rowKey: (row: T) => string;
+  onRow?: (row: T) => void;
+}) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <thead>
+          <tr>
+            {cols.map((c) => (
+              <th
+                key={c.label}
+                style={{
+                  textAlign: c.align ?? 'left',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: 'var(--color-muted)',
+                  padding: '0 8px 8px 0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr
+              key={rowKey(r)}
+              onClick={onRow ? () => onRow(r) : undefined}
+              style={onRow ? { cursor: 'pointer' } : undefined}
+            >
+              {cols.map((c) => (
+                <td
+                  key={c.label}
+                  style={{
+                    textAlign: c.align ?? 'left',
+                    padding: '7px 8px 7px 0',
+                    borderTop: '1px solid var(--color-border)',
+                    fontVariantNumeric: 'tabular-nums',
+                    whiteSpace: 'nowrap',
+                    maxWidth: 220,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {c.cell(r)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Muted one-liner for card empty/loading states. */
+export function Quiet({ children }: { children: ReactNode }) {
+  return <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>{children}</p>;
+}

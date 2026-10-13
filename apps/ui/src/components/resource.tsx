@@ -181,7 +181,7 @@ export function ValueGrid({ items }: { items: Array<{ label: string; value: Reac
       style={{
         margin: 0,
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
         gap: '28px 32px',
       }}
     >

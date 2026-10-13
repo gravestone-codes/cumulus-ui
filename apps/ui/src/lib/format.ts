@@ -48,7 +48,10 @@ export function displayValue(raw: unknown): string {
  * definition and whose oper-status is always `unknown`.
  */
 export function ifaceState(row: unknown): string | undefined {
-  const s = firstDefined(row, 'link/state', 'link/oper-status');
+  // NVUE renders link/state as a one-key tag object (`{ up: {} }`), oper-status as text.
+  const tag = getPath(row, 'link/state');
+  const tagged = typeof tag === 'object' && tag !== null ? Object.keys(tag)[0] : undefined;
+  const s = tagged ?? firstDefined(row, 'link/state', 'link/oper-status');
   if (s && s !== 'unknown') return s;
   if (getPath(row, 'type') === 'loopback') return 'up';
   return s;

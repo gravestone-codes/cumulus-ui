@@ -474,6 +474,25 @@ const NAV_ICONS: Record<NavIcon, ReactNode> = {
   ),
 };
 
+/** Phones and narrow tablets: the rail turns into a drawer behind a top bar. */
+const MOBILE_QUERY = '(max-width: 768px)';
+
+/** Live match for the mobile breakpoint (one source with the CSS media query). */
+export function useIsMobile(): boolean {
+  const [mobile, setMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY);
+    const on = () => setMobile(mq.matches);
+    mq.addEventListener('change', on);
+    on();
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return mobile;
+}
+
+/* Drawer state AppShell hands its rail: navigating from the drawer closes it. */
+const DrawerCtx = createContext<{ open: boolean; close: () => void }>({ open: false, close: () => {} });
+
 /* Pinned rail preference: collapse state survives reloads, per rail. */
 export function usePinnedRail(key: string): [boolean, () => void] {
   const [collapsed, setCollapsed] = useState(() => {
@@ -508,7 +527,7 @@ export function NavRail({
   onNav,
   user,
   onLogout,
-  collapsed = false,
+  collapsed: pinned = false,
   onToggleCollapse,
 }: {
   switchName?: string;
@@ -523,8 +542,16 @@ export function NavRail({
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }) {
+  const mobile = useIsMobile();
+  const drawer = useContext(DrawerCtx);
+  // The drawer always shows labels; the pinned icon-only rail is a desktop choice.
+  const collapsed = pinned && !mobile;
+  const go = (to: string) => {
+    drawer.close();
+    onNav(to);
+  };
   function ToggleButton() {
-    if (!onToggleCollapse) return null;
+    if (!onToggleCollapse || mobile) return null;
     return (
       <button
         type="button"
@@ -549,6 +576,8 @@ export function NavRail({
   return (
     <nav
       aria-label="Primary"
+      className="nav-rail"
+      data-open={drawer.open}
       style={{
         width: collapsed ? 72 : 220,
         flexShrink: 0,
@@ -565,7 +594,7 @@ export function NavRail({
       {back && !collapsed && (
         <button
           type="button"
-          onClick={() => onNav(back.to)}
+          onClick={() => go(back.to)}
           style={{
             textAlign: 'left',
             background: 'transparent',
@@ -647,7 +676,7 @@ export function NavRail({
           type="button"
           disabled={item.disabled}
           title={collapsed ? item.label : undefined}
-          onClick={() => onNav(item.to)}
+          onClick={() => go(item.to)}
           style={{
             textAlign: 'left',
             background: active === item.to ? 'var(--color-surface-2)' : 'transparent',
@@ -676,7 +705,7 @@ export function NavRail({
         </button>
       ))}
       <span style={{ flex: 1 }} />
-      {user && <UserChip user={user} collapsed={collapsed} onNav={onNav} onLogout={onLogout} />}
+      {user && <UserChip user={user} collapsed={collapsed} onNav={go} onLogout={onLogout} />}
     </nav>
   );
 }
@@ -1432,8 +1461,17 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
 }
 
 /* AppShell: rail + content column (flex, so EmptyState truly centers).
-   Domain screens mount inside, never beside. */
+   Domain screens mount inside, never beside. On phones the rail becomes a
+   drawer opened from a slim top bar; Escape or the backdrop closes it. */
 export function AppShell({ rail, children }: { rail: ReactNode; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
   return (
     <div
       style={{
@@ -1443,21 +1481,54 @@ export function AppShell({ rail, children }: { rail: ReactNode; children: ReactN
         color: 'var(--color-text)',
       }}
     >
-      {rail}
-      <main
-        style={{
-          flex: 1,
-          width: '100%',
-          padding: 28,
-          maxWidth: 1100,
-          margin: '0 auto',
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-        }}
-      >
-        {children}
-      </main>
+      <DrawerCtx.Provider value={{ open, close }}>{rail}</DrawerCtx.Provider>
+      {open && <div className="drawer-backdrop" role="presentation" onClick={close} />}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="mobile-bar">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Open navigation"
+            aria-expanded={open}
+            style={{
+              display: 'inline-grid',
+              placeItems: 'center',
+              width: 36,
+              height: 36,
+              background: 'transparent',
+              border: '1px solid var(--color-border)',
+              borderRadius: 8,
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 7h16M4 12h16M4 17h16"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>Cumulus</span>
+        </div>
+        <main
+          className="app-main"
+          style={{
+            flex: 1,
+            width: '100%',
+            padding: 28,
+            maxWidth: 1100,
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+          }}
+        >
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

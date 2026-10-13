@@ -84,6 +84,7 @@ export function ConfigTab({
 
   return (
     <div
+      className="split-index"
       style={{ display: 'grid', gridTemplateColumns: '180px minmax(0, 1fr)', gap: 20, alignItems: 'start' }}
     >
       <nav aria-label="Config sections" style={{ position: 'sticky', top: 16, display: 'grid', gap: 2 }}>

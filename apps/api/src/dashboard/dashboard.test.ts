@@ -49,8 +49,16 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
       expect(fresh.status).toBe(200);
       expect(fresh.body.widgets.map((w: { id: string }) => w.id)).toEqual([
         'fleet-stats',
+        'health',
         'reachability',
+        'resources',
+        'port-status',
         'traffic',
+        'interface-errors',
+        'top-talkers',
+        'environment',
+        'software',
+        'recent-activity',
       ]);
 
       const saved = await api
@@ -64,7 +72,7 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
       expect(reread.body.widgets).toEqual([{ id: 'recent-activity' }]);
 
       const bobPrefs = await api.get('/api/v1/me/dashboard').set('Cookie', bob);
-      expect(bobPrefs.body.widgets).toHaveLength(3);
+      expect(bobPrefs.body.widgets).toHaveLength(11);
 
       const bad = await api
         .put('/api/v1/me/dashboard')
@@ -74,15 +82,47 @@ describe.skipIf(!LIVE)('personal dashboard prefs', () => {
 
       const empty = await api.put('/api/v1/me/dashboard').set('Cookie', alice).send({ widgets: [] });
       expect(empty.status).toBe(200);
-      expect(empty.body.widgets).toHaveLength(3);
+      expect(empty.body.widgets).toHaveLength(11);
 
       await pool.query(
-        `INSERT INTO user_dashboard_widgets (user_sub, widgets) VALUES ('qd-bob', $1::jsonb)
-         ON CONFLICT (user_sub) DO UPDATE SET widgets = EXCLUDED.widgets`,
-        [JSON.stringify([{ id: 'fleet-health' }, { id: 'needs-attention' }, { id: 'nope' }])],
+        `INSERT INTO user_dashboard_widgets (user_sub, widgets, seen) VALUES ('qd-bob', $1::jsonb, $2)
+         ON CONFLICT (user_sub) DO UPDATE SET widgets = EXCLUDED.widgets, seen = EXCLUDED.seen`,
+        [
+          JSON.stringify([{ id: 'fleet-health' }, { id: 'needs-attention' }, { id: 'nope' }]),
+          [
+            'fleet-stats',
+            'health',
+            'reachability',
+            'resources',
+            'port-status',
+            'traffic',
+            'interface-errors',
+            'top-talkers',
+            'environment',
+            'software',
+            'recent-activity',
+          ],
+        ],
       );
       const migrated = await api.get('/api/v1/me/dashboard').set('Cookie', bob);
       expect(migrated.body.widgets.map((w: { id: string }) => w.id)).toEqual(['fleet-stats']);
+
+      // A save from before new widgets shipped: unseen defaults join once, after the user's own.
+      await pool.query(`UPDATE user_dashboard_widgets SET seen = $1 WHERE user_sub = 'qd-bob'`, [
+        ['fleet-stats', 'reachability', 'traffic'],
+      ]);
+      const grown = await api.get('/api/v1/me/dashboard').set('Cookie', bob);
+      expect(grown.body.widgets.map((w: { id: string }) => w.id)).toEqual([
+        'fleet-stats',
+        'health',
+        'resources',
+        'port-status',
+        'interface-errors',
+        'top-talkers',
+        'environment',
+        'software',
+        'recent-activity',
+      ]);
     } finally {
       await pool.query(`DELETE FROM sessions WHERE user_sub IN ('qd-alice', 'qd-bob')`);
       await pool.query(`DELETE FROM user_roles WHERE user_sub IN ('qd-alice', 'qd-bob')`);
