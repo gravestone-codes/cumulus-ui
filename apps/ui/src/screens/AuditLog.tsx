@@ -56,7 +56,9 @@ export function AuditLog() {
         trail={[{ label: switchId, to: `/switches/${switchId}` }, { label: 'Audit Log' }]}
         onNav={navigate}
       />
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 12px' }}>Audit Log</h1>
+      <div className="list-head">
+        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>Audit Log</h1>
+      </div>
       {audit.isError && <Alert tone="fail">Could not load audit: {audit.error.message}</Alert>}
       {!audit.isError && (
         <DataTable

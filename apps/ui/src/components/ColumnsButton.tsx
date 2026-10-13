@@ -1,7 +1,9 @@
 /**
  * ColumnsButton: the customize-columns trigger + portal panel. Checkboxes
- * show/hide, arrows reorder (no drag), Reset restores the catalog. Ported
- * from GRG's ColumnCustomizeButton; portal keeps it clear of table overflow.
+ * show/hide, arrows reorder (no drag), Reset restores the catalog. Schema
+ * tables list their unpicked fields below (`available`), so one menu both
+ * picks what loads and arranges what shows; search appears past 7 entries.
+ * Ported from GRG's ColumnCustomizeButton; portal keeps it clear of overflow.
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -15,14 +17,20 @@ export default function ColumnsButton<K extends string>({
   onToggle,
   onMove,
   onReset,
+  available = [],
+  onAdd,
 }: {
   catalog: ColumnCatalogEntry<K>[];
   prefs: ColumnPrefs<K>;
   onToggle: (key: K) => void;
   onMove: (key: K, dir: -1 | 1) => void;
   onReset: () => void;
+  /** Schema fields not loaded yet; checking one adds it as a column. */
+  available?: Array<{ key: string; label: string }>;
+  onAdd?: (key: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const [rect, setRect] = useState<DOMRect | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -47,11 +55,16 @@ export default function ColumnsButton<K extends string>({
   function toggleOpen(e: React.MouseEvent) {
     e.stopPropagation();
     if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+    setQuery('');
     setOpen((o) => !o);
   }
 
   const byKey = new Map(catalog.map((c) => [c.key, c]));
   const fields = prefs.order.map((k) => byKey.get(k)).filter((f): f is ColumnCatalogEntry<K> => !!f);
+  const q = query.trim().toLowerCase();
+  const hit = (f: { key: string; label: string }) =>
+    !q || f.label.toLowerCase().includes(q) || f.key.toLowerCase().includes(q);
+  const more = available.filter(hit);
   const left = rect ? Math.min(rect.right - PANEL_W, window.innerWidth - PANEL_W - 8) : 0;
 
   return (
@@ -136,10 +149,20 @@ export default function ColumnsButton<K extends string>({
                 Reset
               </button>
             </div>
+            {fields.length + available.length > 7 && (
+              <input
+                aria-label="Search columns"
+                placeholder="Search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="select-search"
+              />
+            )}
             <ul
               style={{ listStyle: 'none', margin: '4px 0 0', padding: 0, maxHeight: 320, overflowY: 'auto' }}
             >
               {fields.map((f, i) => {
+                if (!hit(f)) return null;
                 const visible = !prefs.hidden.includes(f.key);
                 return (
                   <li
@@ -198,6 +221,48 @@ export default function ColumnsButton<K extends string>({
                   </li>
                 );
               })}
+              {more.length > 0 && (
+                <li
+                  style={{
+                    borderTop: '1px solid var(--color-border)',
+                    margin: '6px 8px 2px',
+                    padding: '8px 0 2px',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: 'var(--color-muted)',
+                  }}
+                >
+                  More fields
+                </li>
+              )}
+              {more.map((f) => (
+                <li
+                  key={f.key}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 8, padding: '6px 8px' }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={false}
+                    onChange={() => onAdd?.(f.key)}
+                    aria-label={`Show ${f.label}`}
+                  />
+                  <span
+                    title={f.key}
+                    style={{
+                      flex: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      fontSize: 14,
+                      color: 'var(--color-muted)',
+                    }}
+                  >
+                    {f.label}
+                  </span>
+                </li>
+              ))}
             </ul>
           </div>,
           document.body,

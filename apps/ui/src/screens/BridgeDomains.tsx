@@ -10,7 +10,6 @@ import { Breadcrumb, Button } from '../components/ui.js';
 import { ResourceList, ViewSwitcher } from '../components/resource.js';
 import { type GridColumn } from '../components/DataTable.js';
 import { MergedList, schemaMergedColumns } from '../components/MergedList.js';
-import { FieldPicker } from '../components/FieldPicker.js';
 import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { CreateFlow } from './iface/CreateFlow.js';
 import { ScopeShell } from './iface/ScopeShell.js';
@@ -42,17 +41,13 @@ export function BridgeDomains() {
   const { leaves } = useSchemaLeaves(BRIDGE_SCHEMA);
   const { checked, setChecked } = useSchemaFields(fieldKey, leaves, BRIDGE_FIELDS);
   const [view, setView] = useState<string | undefined>(undefined);
-  const include = checked.length > 0 ? toIncludePatterns('/bridge/domain', checked) : undefined;
+  const include = checked.length > 0 && !view ? toIncludePatterns('/bridge/domain', checked) : undefined;
   const list = usePerSwitch<Record<string, Obj>>(scope, '/bridge/domain', {
     rev: 'applied',
     ...(include ? { include } : {}),
     ...(view ? { view } : {}),
     enabled: scope.kind === 'group',
   });
-  const picker =
-    leaves.length > 0 ? (
-      <FieldPicker leaves={leaves} checked={checked} defaults={BRIDGE_FIELDS} onChange={setChecked} />
-    ) : null;
   const [creating, setCreating] = useState(false);
   const newButton = (
     <Button auto variant="secondary" onClick={() => setCreating(true)}>
@@ -91,11 +86,11 @@ export function BridgeDomains() {
           emptyIcon="bridge"
           actions={
             <>
-              {picker}
-              <ViewSwitcher path="/bridge/domain" value={view} onChange={setView} />
               {newButton}
+              <ViewSwitcher path="/bridge/domain" value={view} onChange={setView} />
             </>
           }
+          fields={{ leaves, checked, defaults: BRIDGE_FIELDS, onChange: setChecked }}
           onOpen={(name) => navigate(`${base}/bridge/${encodeURIComponent(name)}`)}
           onOpenSwitch={(sw, name) =>
             navigate(`/switches/${encodeURIComponent(sw)}/bridge/${encodeURIComponent(name)}`)

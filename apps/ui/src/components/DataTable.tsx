@@ -17,6 +17,18 @@ import {
 } from '../lib/table.js';
 import ColumnsButton from './ColumnsButton.js';
 import { RowMenu, SelectMenu, Spinner, EmptyState, type NavIcon, type RowMenuItem } from './ui.js';
+import type { SchemaLeaf } from '../lib/schema.js';
+
+/** Schema field picking (roadmap 2.1/R7): picked leaves load via `?include` and show as columns. */
+export interface FieldPick {
+  /** Every pickable schema leaf. */
+  leaves: SchemaLeaf[];
+  /** Picked leaf paths (= schema column keys). */
+  checked: string[];
+  /** Domain defaults for Reset. */
+  defaults: string[];
+  onChange: (paths: string[]) => void;
+}
 
 export interface GridColumn<T> {
   key: string;
@@ -56,6 +68,7 @@ export function DataTable<T extends object>({
   actionsLabel = 'Row actions',
   subRows,
   rowKey,
+  fields,
 }: {
   cols: GridColumn<T>[];
   rows: T[];
@@ -71,6 +84,8 @@ export function DataTable<T extends object>({
   subRows?: (row: T) => T[] | undefined;
   /** Stable row identity; required for expansion to survive sorting and paging. */
   rowKey?: (row: T) => string;
+  /** Schema-driven tables: the columns menu also picks which fields load. */
+  fields?: FieldPick;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const toggleRow = (key: string) =>
@@ -111,6 +126,24 @@ export function DataTable<T extends object>({
   );
 
   const pagination = usePagination(filtered, `${storageKey}.page`);
+  const menuCol = !!actions || !!fields;
+  // One menu: unchecking a picked field stops loading it; hidden ones just unhide.
+  const onToggle = (key: string) =>
+    fields && fields.checked.includes(key) && !prefs.hidden.includes(key)
+      ? fields.onChange(fields.checked.filter((p) => p !== key))
+      : toggle(key);
+  const onAdd = (key: string) => {
+    if (!fields) return;
+    if (prefs.hidden.includes(key)) toggle(key);
+    fields.onChange([...fields.checked, key]);
+  };
+  const onReset = () => {
+    reset();
+    fields?.onChange(fields.defaults);
+  };
+  const available = fields
+    ? fields.leaves.filter((l) => !byKey.has(l.path)).map((l) => ({ key: l.path, label: l.label }))
+    : [];
 
   if (loading) return <Spinner label="Loading table" />;
   if (rows.length === 0) {
@@ -192,14 +225,16 @@ export function DataTable<T extends object>({
                   </th>
                 );
               })}
-              {actions && (
+              {menuCol && (
                 <th style={{ ...thStyle, textAlign: 'right', width: 80 }}>
                   <ColumnsButton
                     catalog={catalog}
                     prefs={prefs}
-                    onToggle={toggle}
+                    onToggle={onToggle}
                     onMove={move}
-                    onReset={reset}
+                    onReset={onReset}
+                    available={available}
+                    onAdd={onAdd}
                   />
                 </th>
               )}
@@ -209,7 +244,7 @@ export function DataTable<T extends object>({
             {pagination.pageItems.length === 0 && (
               <tr>
                 <td
-                  colSpan={visibleKeys.length + (actions ? 1 : 0)}
+                  colSpan={visibleKeys.length + (menuCol ? 1 : 0)}
                   style={{
                     ...tdStyle,
                     textAlign: 'center',
@@ -271,9 +306,9 @@ export function DataTable<T extends object>({
                     style={onRowClick ? { cursor: 'pointer' } : undefined}
                   >
                     {cells(row, false)}
-                    {actions && (
+                    {menuCol && (
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
-                        <RowMenu label={actionsLabel} items={actions(row)} />
+                        {actions && <RowMenu label={actionsLabel} items={actions(row)} />}
                       </td>
                     )}
                   </tr>
@@ -286,7 +321,7 @@ export function DataTable<T extends object>({
                         style={onRowClick ? { cursor: 'pointer' } : undefined}
                       >
                         {cells(kid, true)}
-                        {actions && <td style={tdStyle} />}
+                        {menuCol && <td style={tdStyle} />}
                       </tr>
                     ))}
                 </Fragment>

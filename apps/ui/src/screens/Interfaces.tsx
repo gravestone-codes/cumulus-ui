@@ -11,7 +11,6 @@ import { Badge, Breadcrumb, Button, type RowMenuItem } from '../components/ui.js
 import { ResourceList, ViewSwitcher } from '../components/resource.js';
 import { type GridColumn } from '../components/DataTable.js';
 import { holdersOf, MergedList, schemaMergedColumns, type MergedRow } from '../components/MergedList.js';
-import { FieldPicker } from '../components/FieldPicker.js';
 import { ifaceState } from '../lib/format.js';
 import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { ScopeShell } from './iface/ScopeShell.js';
@@ -58,7 +57,7 @@ export function Interfaces() {
   const { checked, setChecked } = useSchemaFields(fieldKey, leaves, IFACE_FIELDS);
   const [view, setView] = useState<string | undefined>(undefined);
   const include =
-    checked.length > 0 ? toIncludePatterns('/interface', [...checked, ...STATE_LEAVES]) : undefined;
+    checked.length > 0 && !view ? toIncludePatterns('/interface', [...checked, ...STATE_LEAVES]) : undefined;
   const list = usePerSwitch<Record<string, Obj>>(
     scope,
     '/interface',
@@ -68,11 +67,6 @@ export function Interfaces() {
   const [deleting, setDeleting] = useState<{ name: string; members: string[] } | null>(null);
 
   const existing = Object.fromEntries(list.members.map((sw) => [sw, Object.keys(list.objects[sw] ?? {})]));
-
-  const picker =
-    leaves.length > 0 ? (
-      <FieldPicker leaves={leaves} checked={checked} defaults={IFACE_FIELDS} onChange={setChecked} />
-    ) : null;
 
   const viewPicker =
     scope.kind === 'group' ? <ViewSwitcher path="/interface" value={view} onChange={setView} /> : null;
@@ -128,11 +122,11 @@ export function Interfaces() {
           emptyIcon="interfaces"
           actions={
             <>
-              {picker}
-              {viewPicker}
               {newButton}
+              {viewPicker}
             </>
           }
+          fields={{ leaves, checked, defaults: IFACE_FIELDS, onChange: setChecked }}
           onOpen={(name) => navigate(`${base}/interfaces/${name}`)}
           onOpenSwitch={(sw, name) => navigate(`/switches/${sw}/interfaces/${name}`)}
           rowActions={(r, holders): RowMenuItem[] => [

@@ -14,7 +14,6 @@ import { Alert, Button, LineDropdown, ReconnectModal, Spinner, Tabs, type NavIco
 import { DataTable } from './DataTable.js';
 import type { GridColumn } from './DataTable.js';
 import type { RowMenuItem } from './ui.js';
-import { FieldPicker } from './FieldPicker.js';
 import { PresenceBanner } from './presence.js';
 
 /* ViewSwitcher: the manifest's view names for a collection path, as a dropdown. */
@@ -127,7 +126,7 @@ export function ResourceDetail({
   }
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      <div className="list-head" style={{ gap: 12 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{id}</h1>
         {group && !read.loading && (
           <span
@@ -262,8 +261,9 @@ export function ResourceList<T extends object>({
   const [view, setView] = useState<string | undefined>(undefined);
   const { leaves, loading: schemaLoading } = useSchemaLeaves(schema ? pathTemplate : undefined, schemaMethod);
   const { checked, setChecked } = useSchemaFields(storageKey, schema ? leaves : [], defaultFields ?? []);
+  // NVUE rejects `include` alongside `view`: a view is its own field set.
   const include =
-    schema && checked.length > 0
+    schema && checked.length > 0 && !view
       ? toIncludePatterns(path, [...checked, ...(alwaysInclude ?? [])])
       : undefined;
   const list = useQuery({
@@ -297,14 +297,6 @@ export function ResourceList<T extends object>({
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{title}</h1>
         <span style={{ flex: 1 }} />
         {actions}
-        {schema && leaves.length > 0 && (
-          <FieldPicker
-            leaves={leaves}
-            checked={checked}
-            defaults={defaultFields ?? []}
-            onChange={setChecked}
-          />
-        )}
         <ViewSwitcher path={path} value={view} onChange={setView} />
       </div>
       {list.isError ? (
@@ -318,6 +310,11 @@ export function ResourceList<T extends object>({
           storageKey={storageKey}
           onRowClick={onSelect ? (row) => onSelect(rowId(row)) : undefined}
           actions={rowMenu}
+          fields={
+            schema && leaves.length > 0
+              ? { leaves, checked, defaults: defaultFields ?? [], onChange: setChecked }
+              : undefined
+          }
         />
       )}
       {list.data?.cached && (

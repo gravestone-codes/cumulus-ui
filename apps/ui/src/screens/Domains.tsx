@@ -11,7 +11,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Breadcrumb, Button, type RowMenuItem } from '../components/ui.js';
 import { ResourceList, ViewSwitcher } from '../components/resource.js';
 import { MergedList, schemaMergedColumns } from '../components/MergedList.js';
-import { FieldPicker } from '../components/FieldPicker.js';
 import { domainOf, singularOf } from '../lib/domains.js';
 import { toIncludePatterns, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { CreateFlow } from './iface/CreateFlow.js';
@@ -39,7 +38,7 @@ function DomainList() {
   const { leaves } = useSchemaLeaves(def?.item, def && !def.editable ? 'GET' : 'PATCH');
   const { checked, setChecked } = useSchemaFields(fieldKey, leaves, def?.fields ?? []);
   const [view, setView] = useState<string | undefined>(undefined);
-  const include = def && checked.length > 0 ? toIncludePatterns(def.collection, checked) : undefined;
+  const include = def && checked.length > 0 && !view ? toIncludePatterns(def.collection, checked) : undefined;
   const list = usePerSwitch<Record<string, Obj>>(scope, def?.collection ?? '/', {
     ...(def?.rev ? { rev: def.rev } : {}),
     ...(include ? { include } : {}),
@@ -62,10 +61,6 @@ function DomainList() {
 
   const objects = list.objects;
 
-  const picker =
-    leaves.length > 0 ? (
-      <FieldPicker leaves={leaves} checked={checked} defaults={def.fields} onChange={setChecked} />
-    ) : null;
   const viewPicker = <ViewSwitcher path={def.collection} value={view} onChange={setView} />;
   const newButton = def.creatable ? (
     <Button auto variant="secondary" onClick={() => setCreating(true)} disabled={list.loading}>
@@ -123,11 +118,11 @@ function DomainList() {
           emptyIcon="object"
           actions={
             <>
-              {picker}
-              {viewPicker}
               {newButton}
+              {viewPicker}
             </>
           }
+          fields={{ leaves, checked, defaults: def.fields, onChange: setChecked }}
           onOpen={openDetail}
           onOpenSwitch={(sw, name) => navigate(`/switches/${sw}/${def.key}/${encodeURIComponent(name)}`)}
           rowActions={(r, holders): RowMenuItem[] => [

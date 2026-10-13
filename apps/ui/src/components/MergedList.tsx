@@ -8,7 +8,7 @@
 import { useState, type ReactNode } from 'react';
 import { Button, EmptyState, ReconnectModal, Spinner, type NavIcon, type RowMenuItem } from './ui.js';
 import { ReadError } from './resource.js';
-import { DataTable, type GridColumn } from './DataTable.js';
+import { DataTable, type FieldPick, type GridColumn } from './DataTable.js';
 import { MixedValue } from './mixed.js';
 import { mergeValues } from '../lib/merge.js';
 import { displayValue, getPath } from '../lib/format.js';
@@ -76,6 +76,7 @@ export function MergedList({
   onOpenSwitch,
   rowActions,
   emptyIcon,
+  fields,
 }: {
   /** Group scope: presence column, per-switch sub-rows, drift filter. */
   group: boolean;
@@ -102,6 +103,8 @@ export function MergedList({
   rowActions?: (row: MergedRow, holders: string[]) => RowMenuItem[];
   /** Centered empty-state icon (icon + text, centered both axes). */
   emptyIcon?: NavIcon;
+  /** Schema field picking, folded into the table's columns menu. */
+  fields?: FieldPick;
 }) {
   const [driftOnly, setDriftOnly] = useState(false);
   const [reconnect, setReconnect] = useState<string | null>(null);
@@ -203,6 +206,7 @@ export function MergedList({
           }
           empty={<EmptyState icon={emptyIcon} text={`No ${noun}.`} />}
           actions={rowActions ? (r) => rowActions(r, holders(r)) : undefined}
+          fields={fields}
         />
       )}
       {reconnect && (
