@@ -41,8 +41,10 @@ function yamlScalar(v: unknown): string {
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);
   if (v === null || v === undefined) return 'null';
   const s = String(v);
+  // Plain when YAML reads it back unchanged: inner spaces are fine, `: ` / ` #` / edges are not.
   // Strings that would read back as numbers or keywords keep quotes, as the CLI prints them.
-  if (YAML_PLAIN.test(s) && !YAML_RESERVED.test(s) && Number.isNaN(Number(s))) return s;
+  const plain = /^[A-Za-z0-9_./][\w./:@+ -]*$/.test(s) && !/(: | #|\s$)/.test(s);
+  if (plain && !YAML_RESERVED.test(s) && Number.isNaN(Number(s))) return s;
   return `'${s.replace(/'/g, "''")}'`;
 }
 

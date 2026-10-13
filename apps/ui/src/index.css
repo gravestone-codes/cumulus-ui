@@ -367,6 +367,10 @@ body {
     .split-index > nav {
       position: static !important;
     }
+    /* Wide stat rows (counters) wrap to two-up tiles instead of crushing seven columns. */
+    .stat-row-wide {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
   }
   /* Dashboard tiles: as many 320px columns as fit, one full-width column on phones. */
   .widget-grid {

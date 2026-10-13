@@ -37,13 +37,14 @@ describe('toCommands', () => {
 
 describe('toYaml', () => {
   it('renders nested maps, empty members and quoted scalars', () => {
-    expect(toYaml({ a: { b: 1, c: {}, d: '25.0', e: 'on', f: 'two words' } })).toEqual([
+    expect(toYaml({ a: { b: 1, c: {}, d: '25.0', e: 'on', f: 'two words', g: 'a: b' } })).toEqual([
       'a:',
       '  b: 1',
       '  c: {}',
       "  d: '25.0'",
       '  e: on',
-      "  f: 'two words'",
+      '  f: two words',
+      "  g: 'a: b'",
     ]);
   });
 

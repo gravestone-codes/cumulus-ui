@@ -134,7 +134,11 @@ export function Stat({
           fontVariantNumeric: 'tabular-nums',
           margin: 0,
           color: tone ?? 'var(--color-text)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
         }}
+        title={value}
       >
         {value}
       </p>
@@ -165,6 +169,7 @@ export function StatRow({ children, columns }: { children: ReactNode[]; columns?
   const n = columns ?? 0;
   return (
     <div
+      className={n > 3 ? 'stat-row-wide' : undefined}
       style={{
         display: 'grid',
         gridTemplateColumns: n > 0 ? `repeat(${n}, minmax(0, 1fr))` : 'repeat(auto-fit, minmax(110px, 1fr))',
