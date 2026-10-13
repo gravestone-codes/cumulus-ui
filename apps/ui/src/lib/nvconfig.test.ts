@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cliToken, configYaml, diffCommands, toCommands, toYaml } from './nvconfig.js';
+import { cliToken, configYaml, diffCommands, toCommands, toYaml, yamlTokens } from './nvconfig.js';
 
 const tree = {
   interface: {
@@ -76,5 +76,47 @@ describe('diffCommands', () => {
       { op: '-', line: 'b' },
       { op: '+', line: 'd' },
     ]);
+  });
+});
+
+describe('yamlTokens', () => {
+  const kinds = (line: string) => yamlTokens(line).map((t) => [t.text, t.kind]);
+  it('splits keys, punctuation and typed scalars; tokens rebuild the line', () => {
+    expect(kinds('- set:')).toEqual([
+      ['- ', 'punct'],
+      ['set', 'key'],
+      [':', 'punct'],
+    ]);
+    expect(kinds('      mtu: 9216')).toEqual([
+      ['      ', 'text'],
+      ['mtu', 'key'],
+      [':', 'punct'],
+      [' ', 'text'],
+      ['9216', 'number'],
+    ]);
+    expect(kinds("    description: 'Just a description'").slice(-1)).toEqual([
+      ["'Just a description'", 'string'],
+    ]);
+    expect(kinds('    enable: on').slice(-1)).toEqual([['on', 'text']]);
+    expect(kinds('    flag: true').slice(-1)).toEqual([['true', 'keyword']]);
+    expect(kinds('    up: {}').slice(-1)).toEqual([['{}', 'punct']]);
+    // Plain keys may hold colons (IPv6); the key ends at the last ":" before space or end.
+    expect(kinds('        fe80::1/64: {}').slice(1, 3)).toEqual([
+      ['fe80::1/64', 'key'],
+      [':', 'punct'],
+    ]);
+    expect(kinds("        '10': {}").slice(1, 2)).toEqual([["'10'", 'key']]);
+    expect(kinds('      - swp1')).toEqual([
+      ['      ', 'text'],
+      ['- ', 'punct'],
+      ['swp1', 'text'],
+    ]);
+    for (const line of ['- header:', "  x: 'a: b'", '      - swp1', '    a:  spaced  ']) {
+      expect(
+        yamlTokens(line)
+          .map((t) => t.text)
+          .join(''),
+      ).toBe(line);
+    }
   });
 });

@@ -29,6 +29,11 @@
   --color-series-6: #008300;
   --color-series-7: #9085e9;
   --color-series-8: #e66767;
+  /* Code highlighting (YAML): keys cool, strings green, numbers warm, keywords violet. */
+  --code-key: #7cb3f0;
+  --code-string: #8fcf9c;
+  --code-number: #e8a25e;
+  --code-keyword: #b9a6f2;
   color-scheme: dark;
 }
 

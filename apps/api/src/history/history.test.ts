@@ -162,6 +162,32 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
       expect(agg.body.points.length).toBeGreaterThan(0);
       expect(agg.body.points[0]).toHaveProperty('in');
       expect(agg.body.points[0]).toHaveProperty('out');
+      expect(agg.body.earliest).toBeTruthy();
+
+      // Switch-wide custom windows and comparisons, same bounds as a port.
+      const aggCustom = await api
+        .get(
+          `/api/v1/switches/sh1/traffic?from=${encodeURIComponent(dayAgo)}&to=${encodeURIComponent(now.toISOString())}&metric=bytes`,
+        )
+        .set('Cookie', cookie);
+      expect(aggCustom.status).toBe(200);
+      expect(aggCustom.body.points.length).toBeGreaterThan(0);
+      const aggOld = await api
+        .get(
+          `/api/v1/switches/sh1/traffic?from=${encodeURIComponent(oldFrom)}&to=${encodeURIComponent(oldTo)}&metric=bytes`,
+        )
+        .set('Cookie', cookie);
+      expect(aggOld.status).toBe(200);
+      expect(aggOld.body.points.length).toBeGreaterThan(0);
+      const aggFlipped = await api
+        .get(
+          `/api/v1/switches/sh1/traffic?from=${encodeURIComponent(now.toISOString())}&to=${encodeURIComponent(dayAgo)}`,
+        )
+        .set('Cookie', cookie);
+      expect(aggFlipped.status).toBe(400);
+      const aggCoverage = await api.get('/api/v1/switches/sh1/traffic/coverage').set('Cookie', cookie);
+      expect(aggCoverage.status).toBe(200);
+      expect(aggCoverage.body.spans.length).toBeGreaterThan(0);
 
       const flipped = await api
         .get(
@@ -226,6 +252,12 @@ describe.skipIf(!LIVE)('history endpoint + rollup', () => {
       const first = cov.body.spans[0];
       expect(Date.parse(first.from)).toBeLessThanOrEqual(base - 10 * 60_000);
       expect((Date.parse(first.to) - Date.parse(first.from)) % 3600_000).toBe(0);
+      expect(await api.get('/api/v1/switches/sh2/traffic/coverage').set('Cookie', nobody)).toMatchObject({
+        status: 403,
+      });
+      expect(await api.get('/api/v1/switches/sh2/traffic').set('Cookie', nobody)).toMatchObject({
+        status: 403,
+      });
     } finally {
       await pool.query(`DELETE FROM interface_samples WHERE switch_id = 'sh2'`);
       await pool.query(`DELETE FROM sessions WHERE user_sub IN ('qh-admin', 'qh-nobody')`);

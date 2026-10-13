@@ -8,6 +8,7 @@ import {
   parseMacs,
   parseNeighbors,
   parseRoutes,
+  protocolCounts,
 } from './troubleshoot.js';
 
 describe('parseRoutes', () => {
@@ -57,6 +58,19 @@ describe('parseRoutes', () => {
       {},
     );
     expect(rows[0]?.via).toBe('10.0.0.1 swp1');
+  });
+
+  it('tags rows with their VRF and counts protocols busiest first', () => {
+    const entry = (protocol: string) => ({ 'route-entry': { '1': { protocol } } });
+    const rows = [
+      ...parseRoutes({ '10.0.0.0/8': entry('ospf'), '10.1.0.0/16': entry('ospf') }, {}, 'blue'),
+      ...parseRoutes({ '0.0.0.0/0': entry('bgp') }, {}),
+    ];
+    expect(rows.map((r) => r.vrf)).toEqual(['blue', 'blue', 'default']);
+    expect(protocolCounts(rows)).toEqual([
+      { protocol: 'ospf', count: 2 },
+      { protocol: 'bgp', count: 1 },
+    ]);
   });
 });
 

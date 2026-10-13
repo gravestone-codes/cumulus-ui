@@ -79,6 +79,38 @@ export function toYaml(value: unknown, indent = 0): string[] {
   return [`${pad}${yamlScalar(value)}`];
 }
 
+export type YamlTokenKind = 'key' | 'string' | 'number' | 'keyword' | 'punct' | 'text';
+
+const YAML_LINE = /^(\s*)((?:- )*)(?:('(?:[^']|'')*'|[^\s'-][^]*?|-[^\s][^]*?):(?=\s|$))?(.*)$/;
+
+function scalarKind(v: string): YamlTokenKind {
+  if (/^'.*'$/.test(v) || /^".*"$/.test(v)) return 'string';
+  if (YAML_RESERVED.test(v)) return 'keyword';
+  if (v !== '' && !Number.isNaN(Number(v))) return 'number';
+  if (v === '{}' || v === '[]') return 'punct';
+  return 'text';
+}
+
+/** One YAML line split into coloured tokens (block style as toYaml prints it); concatenation is the line. */
+export function yamlTokens(line: string): Array<{ text: string; kind: YamlTokenKind }> {
+  const m = YAML_LINE.exec(line);
+  if (!m) return [{ text: line, kind: 'text' }];
+  const [, pad = '', dashes = '', key, rest = ''] = m;
+  const out: Array<{ text: string; kind: YamlTokenKind }> = [];
+  if (pad) out.push({ text: pad, kind: 'text' });
+  if (dashes) out.push({ text: dashes, kind: 'punct' });
+  if (key !== undefined) {
+    out.push({ text: key, kind: 'key' }, { text: ':', kind: 'punct' });
+    const value = rest.trimStart();
+    const lead = rest.slice(0, rest.length - value.length);
+    if (lead) out.push({ text: lead, kind: 'text' });
+    if (value) out.push({ text: value, kind: scalarKind(value.trim()) });
+  } else if (rest) {
+    out.push({ text: rest, kind: scalarKind(rest.trim()) });
+  }
+  return out;
+}
+
 /** A revision read with `filled=false` carries `header` (model, release, rev-id) beside the config. */
 export function splitHeader(tree: unknown): { header?: Tree; set: Tree } {
   if (!isObj(tree)) return { set: {} };

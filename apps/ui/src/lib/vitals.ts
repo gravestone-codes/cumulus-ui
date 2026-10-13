@@ -26,13 +26,29 @@ export interface Sensor {
   crit?: number;
 }
 
+/** Byte counts from `/system/memory` (Physical or Swap), as NVUE reports them. */
+export interface MemoryUse {
+  total?: number;
+  used?: number;
+  free?: number;
+  /** Buffers + page cache (Physical only): reclaimable, counted apart from used. */
+  cache?: number;
+}
+
 export interface Vitals {
   hostname?: string;
   version?: string;
+  build?: string;
+  kernel?: string;
+  baseOs?: string;
   uptime?: number;
   cpu?: number;
+  cpuCores?: number;
+  cpuModel?: string;
   memory?: number;
   memoryText?: string;
+  physical: MemoryUse;
+  swap: MemoryUse;
   health?: { ok: boolean; status: string; issues: HealthIssue[] };
   sensors: Sensor[];
 }
@@ -88,16 +104,35 @@ export function parseVitals(parts: {
       crit: num(getPath(t, 'crit')),
     };
   });
+  const text = (o: unknown, path: string) => {
+    const v = getPath(o, path);
+    return typeof v === 'string' && v !== '' && v !== 'N/A' ? v : undefined;
+  };
+  const mem = (kind: 'Physical' | 'Swap'): MemoryUse => {
+    const m = (k: string) => num(getPath(parts.memory, `${kind}/${k}`));
+    const buffer = m('buffer');
+    const cache = m('cache');
+    return {
+      total: m('total'),
+      used: m('used'),
+      free: m('free'),
+      cache: buffer === undefined && cache === undefined ? undefined : (buffer ?? 0) + (cache ?? 0),
+    };
+  };
   return {
-    hostname: typeof sys['hostname'] === 'string' ? sys['hostname'] : undefined,
-    version:
-      typeof getPath(sys, 'version/product-release') === 'string'
-        ? (getPath(sys, 'version/product-release') as string)
-        : undefined,
+    hostname: text(sys, 'hostname'),
+    version: text(sys, 'version/product-release'),
+    build: text(sys, 'version/image/build-id'),
+    kernel: text(sys, 'version/kernel'),
+    baseOs: text(sys, 'version/base-os'),
     uptime: num(sys['uptime']),
     cpu: num(getPath(parts.cpu, 'utilization')),
+    cpuCores: num(getPath(parts.cpu, 'core-count')),
+    cpuModel: text(parts.cpu, 'model'),
     memory: num(getPath(parts.memory, 'Physical/utilization')),
     memoryText: typeof sys['system-memory'] === 'string' ? sys['system-memory'] : undefined,
+    physical: mem('Physical'),
+    swap: mem('Swap'),
     health: status ? { ok: status.toLowerCase() === 'ok', status, issues } : undefined,
     sensors,
   };

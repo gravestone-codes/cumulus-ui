@@ -27,6 +27,7 @@ import type { SwitchRow } from '../../lib/api.js';
 import { Badge } from '../../components/ui.js';
 import {
   Card,
+  Facts,
   Legend,
   Meter,
   MiniTable,
@@ -34,12 +35,13 @@ import {
   Stat,
   StatRow,
   StackBar,
+  SubHead,
   bytes,
   packets,
 } from '../../components/cards.js';
 import { ActivityList } from '../../components/activity.js';
 import { DataTable } from '../../components/DataTable.js';
-import { usePorts, useVitals, uptimeText, type PortRow } from '../../lib/vitals.js';
+import { usePorts, useVitals, uptimeText, type PortRow, type Vitals } from '../../lib/vitals.js';
 
 const nameOf = (switches: SwitchRow[], id: string) => switches.find((s) => s.id === id)?.display_name || id;
 
@@ -384,6 +386,7 @@ function ResourcesCard({ switches }: { switches: SwitchRow[] }) {
   const v = useVitals(ids);
   if (switches.length === 0) return <Quiet>No switches yet.</Quiet>;
   if (v.loading) return <Quiet>Loading…</Quiet>;
+  if (ids.length === 1) return <SwitchResources x={v.byId[ids[0] ?? '']} />;
   return (
     <div style={{ display: 'grid', gap: 14 }}>
       {ids.map((id) => {
@@ -398,12 +401,55 @@ function ResourcesCard({ switches }: { switches: SwitchRow[] }) {
             )}
             <Meter label="CPU" value={x?.cpu} />
             <Meter label="Mem" value={x?.memory} />
-            {ids.length === 1 && x?.memoryText && (
-              <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{x.memoryText}</span>
-            )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+const pctText = (n: number | undefined) =>
+  n === undefined ? '—' : `${n < 10 ? n.toFixed(1) : Math.round(n)}%`;
+const bytesText = (n: number | undefined) => (n === undefined ? '—' : bytes(n));
+
+/** One switch's CPU and memory: a section each — reading, bar, then the sizes behind it. */
+function SwitchResources({ x }: { x: Vitals | undefined }) {
+  const swap = x?.swap;
+  return (
+    <div style={{ display: 'grid', gap: 22 }}>
+      <section style={{ display: 'grid', gap: 10 }}>
+        <SubHead title="CPU" value={pctText(x?.cpu)} />
+        <Meter label="CPU utilization" value={x?.cpu} bare />
+        <Facts
+          items={[
+            { label: 'Model', value: x?.cpuModel ?? '—' },
+            { label: 'Cores', value: x?.cpuCores === undefined ? '—' : String(x.cpuCores) },
+            { label: 'Used', value: pctText(x?.cpu) },
+            { label: 'Free', value: pctText(x?.cpu === undefined ? undefined : 100 - x.cpu) },
+          ]}
+        />
+      </section>
+      <section style={{ display: 'grid', gap: 10 }}>
+        <SubHead title="Memory" value={pctText(x?.memory)} />
+        <Meter label="Memory utilization" value={x?.memory} bare />
+        <Facts
+          items={[
+            { label: 'Total', value: bytesText(x?.physical.total) },
+            { label: 'Used', value: bytesText(x?.physical.used) },
+            { label: 'Buffers & cache', value: bytesText(x?.physical.cache) },
+            { label: 'Free', value: bytesText(x?.physical.free) },
+            {
+              label: 'Swap',
+              value:
+                swap?.total === undefined
+                  ? '—'
+                  : swap.total === 0
+                    ? 'none'
+                    : `${bytesText(swap.used)} of ${bytesText(swap.total)}`,
+            },
+          ]}
+        />
+      </section>
     </div>
   );
 }
@@ -582,11 +628,16 @@ function SoftwareCard({ switches }: { switches: SwitchRow[] }) {
   if (ids.length === 1) {
     const x = v.byId[ids[0] ?? ''];
     return (
-      <StatRow columns={3}>
-        <Stat label="Release" value={x?.version ?? '—'} />
-        <Stat label="Uptime" value={uptimeText(x?.uptime)} />
-        <Stat label="Hostname" value={x?.hostname ?? '—'} />
-      </StatRow>
+      <Facts
+        items={[
+          { label: 'Release', value: x?.version ?? '—' },
+          { label: 'Uptime', value: uptimeText(x?.uptime) },
+          { label: 'Hostname', value: x?.hostname ?? '—' },
+          { label: 'Build', value: x?.build ?? '—' },
+          { label: 'Kernel', value: x?.kernel ?? '—' },
+          { label: 'Base OS', value: x?.baseOs ?? '—' },
+        ]}
+      />
     );
   }
   const versions = [...new Set(ids.map((id) => v.byId[id]?.version).filter((x): x is string => !!x))];
@@ -642,7 +693,7 @@ export const WIDGETS: Record<
   resources: {
     title: 'CPU & memory',
     blurb: 'Utilization per switch.',
-    info: 'Current CPU and physical memory utilization. Amber past 80%, red past 90%.',
+    info: 'Current CPU and physical memory utilization, with the CPU model and core count and the memory sizes behind the percentages. Amber past 80%, red past 90%.',
     Component: ResourcesCard,
   },
   'port-status': {

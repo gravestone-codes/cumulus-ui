@@ -201,8 +201,8 @@ export function packets(v: number): string {
   return String(Math.round(v));
 }
 
-/** Meter: a labelled 0–100% bar; warn past 80, fail past 90 (utilization reads). */
-export function Meter({ label, value }: { label: string; value: number | undefined }) {
+/** Meter: a labelled 0–100% bar; warn past 80, fail past 90 (utilization reads). `bare` is the bar alone (a SubHead carries label and reading). */
+export function Meter({ label, value, bare }: { label: string; value: number | undefined; bare?: boolean }) {
   const pct = value === undefined ? 0 : Math.max(0, Math.min(100, value));
   const tone =
     value === undefined
@@ -216,12 +216,12 @@ export function Meter({ label, value }: { label: string; value: number | undefin
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '38px minmax(0, 1fr) 44px',
+        gridTemplateColumns: bare ? 'minmax(0, 1fr)' : '38px minmax(0, 1fr) 44px',
         alignItems: 'center',
         gap: 8,
       }}
     >
-      <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{label}</span>
+      {!bare && <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{label}</span>}
       <span
         role="meter"
         aria-label={label}
@@ -234,9 +234,11 @@ export function Meter({ label, value }: { label: string; value: number | undefin
           style={{ display: 'block', height: '100%', width: `${pct}%`, background: tone, borderRadius: 99 }}
         />
       </span>
-      <span style={{ fontSize: 12, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-        {value === undefined ? '—' : `${Math.round(pct)}%`}
-      </span>
+      {!bare && (
+        <span style={{ fontSize: 12, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+          {value === undefined ? '—' : `${Math.round(pct)}%`}
+        </span>
+      )}
     </div>
   );
 }
@@ -378,6 +380,74 @@ export function MiniTable<T>({
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Facts: one label → value per line, divided by hairlines (identity and spec readouts). */
+export function Facts({
+  items,
+}: {
+  items: Array<{ label: string; value: ReactNode; title?: string; tone?: string }>;
+}) {
+  return (
+    <dl style={{ margin: 0, display: 'grid' }}>
+      {items.map((f, i) => (
+        <div
+          key={f.label}
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            gap: 16,
+            padding: '9px 0',
+            borderTop: i === 0 ? 'none' : '1px solid var(--color-border)',
+            minWidth: 0,
+          }}
+        >
+          <dt style={{ fontSize: 13, color: 'var(--color-muted)', flexShrink: 0 }}>{f.label}</dt>
+          <dd
+            title={f.title ?? (typeof f.value === 'string' ? f.value : undefined)}
+            style={{
+              margin: 0,
+              fontSize: 14,
+              fontWeight: 600,
+              fontVariantNumeric: 'tabular-nums',
+              color: f.tone ?? 'var(--color-text)',
+              textAlign: 'right',
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {f.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Section heading inside a card: small caps label, optional reading on the right. */
+export function SubHead({ title, value }: { title: string; value?: ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+      <h4
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: 'var(--color-muted)',
+          margin: 0,
+        }}
+      >
+        {title}
+      </h4>
+      {value !== undefined && (
+        <span style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+      )}
     </div>
   );
 }

@@ -1,15 +1,35 @@
 /**
  * CodeBlock: read-only monospace lines with a line-number gutter, scrolling
- * inside its own box. Lines may carry a diff tone (+ pass, − fail). Copy and
+ * inside its own box. Lines may carry a diff tone (+ pass, − fail); `yaml`
+ * colours keys, strings, numbers and keywords (lib/nvconfig). Copy and
  * download helpers sit beside it: clipboard API on secure origins, a hidden
  * textarea fallback on plain-HTTP lab deployments.
  */
+import { yamlTokens, type YamlTokenKind } from '../lib/nvconfig.js';
+
+const TOKEN_COLOR: Record<YamlTokenKind, string | undefined> = {
+  key: 'var(--code-key)',
+  string: 'var(--code-string)',
+  number: 'var(--code-number)',
+  keyword: 'var(--code-keyword)',
+  punct: 'var(--color-muted)',
+  text: undefined,
+};
+
 export interface CodeLine {
   text: string;
   tone?: 'add' | 'del';
 }
 
-export function CodeBlock({ lines, maxHeight = '70vh' }: { lines: CodeLine[]; maxHeight?: string | number }) {
+export function CodeBlock({
+  lines,
+  maxHeight = '70vh',
+  language,
+}: {
+  lines: CodeLine[];
+  maxHeight?: string | number;
+  language?: 'yaml';
+}) {
   const gutter = String(lines.length).length;
   return (
     <pre
@@ -64,7 +84,13 @@ export function CodeBlock({ lines, maxHeight = '70vh' }: { lines: CodeLine[]; ma
             }}
           >
             {l.tone === 'add' ? '+ ' : l.tone === 'del' ? '- ' : ''}
-            {l.text}
+            {language === 'yaml' && !l.tone
+              ? yamlTokens(l.text).map((t, j) => (
+                  <span key={j} style={{ color: TOKEN_COLOR[t.kind] }}>
+                    {t.text}
+                  </span>
+                ))
+              : l.text}
           </span>
         </div>
       ))}

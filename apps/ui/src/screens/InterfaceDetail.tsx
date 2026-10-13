@@ -13,7 +13,7 @@ import { Card } from '../components/cards.js';
 import { ResourceDetail } from '../components/resource.js';
 import { presence } from '../lib/merge.js';
 import { getPath } from '../lib/format.js';
-import { InterfaceStats, InterfaceTraffic } from './iface/Traffic.js';
+import { InterfaceStats, TrafficPanel } from './iface/Traffic.js';
 import { GroupTraffic } from './iface/GroupTraffic.js';
 import { CountersCard, PhyCard, TransceiverCard } from './iface/StatsExtras.js';
 import { ConfigTab } from './iface/ConfigTab.js';
@@ -73,7 +73,7 @@ export function InterfaceDetail() {
                 ) : (
                   <>
                     <InterfaceStats switchId={scope.id} path={path} />
-                    <InterfaceTraffic switchId={scope.id} ifaceId={ifaceId} path={path} />
+                    <TrafficPanel switchId={scope.id} ifaceId={ifaceId} />
                   </>
                 )}
                 <CountersCard scope={scope} ifaceId={ifaceId} present={present} />

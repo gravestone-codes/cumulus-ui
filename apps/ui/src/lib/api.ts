@@ -357,14 +357,26 @@ export const api = {
     request<{ spans: Array<{ from: string; to: string }> }>(
       `/api/v1/switches/${encodeURIComponent(switchId)}/interfaces/${encodeURIComponent(iface)}/coverage`,
     ),
-  switchTraffic: (switchId: string, opts: { range?: string; metric?: string } = {}) => {
+  switchTraffic: (
+    switchId: string,
+    opts: { range?: string; metric?: string; from?: string; to?: string } = {},
+  ) => {
     const qs = new URLSearchParams();
     if (opts.range) qs.set('range', opts.range);
     if (opts.metric) qs.set('metric', opts.metric);
-    return request<{ range: string; metric: string; points: Array<{ t: string; in: number; out: number }> }>(
-      `/api/v1/switches/${encodeURIComponent(switchId)}/traffic?${qs}`,
-    );
+    if (opts.from) qs.set('from', opts.from);
+    if (opts.to) qs.set('to', opts.to);
+    return request<{
+      range: string;
+      metric: string;
+      points: Array<{ t: string; in: number; out: number }>;
+      earliest: string | null;
+    }>(`/api/v1/switches/${encodeURIComponent(switchId)}/traffic?${qs}`);
   },
+  switchCoverage: (switchId: string) =>
+    request<{ spans: Array<{ from: string; to: string }> }>(
+      `/api/v1/switches/${encodeURIComponent(switchId)}/traffic/coverage`,
+    ),
   audit: (limit = 8, sw?: string) => {
     const qs = new URLSearchParams({ limit: String(limit) });
     if (sw) qs.set('switch', sw);

@@ -1,5 +1,5 @@
 /**
- * Counter history reads: per-port rates over 1h … 3y. Fresh ranges read
+ * Counter history reads: per-port and switch-wide rates over 1h … 3y. Fresh ranges read
  * raw 60s rows, older ones read hourly buckets; both answer per-second
  * rates so graphs render one series shape. Recent raw readings also seed
  * the live graph so it draws on arrival. Same read grants as live
@@ -28,11 +28,6 @@ const Query = z.object({
   metric: z.enum(HISTORY_METRICS).default('bytes'),
   from: z.string().datetime({ offset: true }).optional(),
   to: z.string().datetime({ offset: true }).optional(),
-});
-
-const TrafficQuery = z.object({
-  range: z.enum(HISTORY_RANGES).default('24h'),
-  metric: z.enum(HISTORY_METRICS).default('bytes'),
 });
 
 const SamplesQuery = z.object({
@@ -137,32 +132,13 @@ export async function historyRoutes(app: FastifyInstance, deps: { cfg: AuthConfi
     if (!parsed.success) return problem(reply, 400, 'Bad Request', 'range/metric invalid', request.url);
     const { range, metric } = parsed.data;
     const [colA, colB] = COLUMNS[metric];
-    // Explicit bounds override the preset (custom ranges, comparisons).
-    // Capped at 3 years + a day so one request can never scan the archive.
-    const MAX_SPAN_MS = rangeSeconds('3y') + 86400_000;
-    let since = new Date(Date.now() - rangeSeconds(range) * 1000);
-    let until = new Date();
-    if (parsed.data.from && parsed.data.to) {
-      since = new Date(parsed.data.from);
-      until = new Date(parsed.data.to);
-      if (!(since < until) || until.getTime() - since.getTime() > MAX_SPAN_MS) {
-        return problem(reply, 400, 'Bad Request', 'from/to invalid or span over 3 years', request.url);
-      }
-    }
-    // Raw rows cover the retention window; anything older lives in hourly
-    // buckets. Long spans and windows wholly past retention read buckets; a
-    // window straddling the cutoff stitches buckets onto raw rows.
-    const cutoff = new Date(Date.now() - RAW_RETENTION_DAYS * 86400_000);
-    const long = until.getTime() - since.getTime() > RAW_RETENTION_DAYS * 86400_000;
-    const points =
-      long || until <= cutoff
-        ? await hourlyPoints(id, iface, since, until, colA, colB)
-        : since < cutoff
-          ? [
-              ...(await hourlyPoints(id, iface, since, cutoff, colA, colB)),
-              ...(await rawPoints(id, iface, cutoff, until, colA, colB)),
-            ]
-          : await rawPoints(id, iface, since, until, colA, colB);
+    const w = windowOf(parsed.data);
+    if (!w) return problem(reply, 400, 'Bad Request', 'from/to invalid or span over 3 years', request.url);
+    const points = await stitched(
+      w,
+      (a, b) => hourlyPoints(id, iface, a, b, colA, colB),
+      (a, b) => rawPoints(id, iface, a, b, colA, colB),
+    );
     return { range, metric, points, earliest: await earliestSample(id, iface) };
   });
 
@@ -197,36 +173,33 @@ export async function historyRoutes(app: FastifyInstance, deps: { cfg: AuthConfi
     return { samples, earliest: await earliestSample(id, iface) };
   });
 
-  // Hours that can draw a rate (raw hours need two readings; hourly buckets
-  // are deltas already), merged into spans so pickers can skip the gaps.
   app.get('/api/v1/switches/:id/interfaces/:iface/coverage', async (request, reply) => {
     const { id, iface } = request.params as { id: string; iface: string };
     if (await denyCounterRead(request, reply, cfg, id)) return reply;
-    const { rows } = await db().query<{ h: Date }>(
-      `SELECT h FROM (
-         SELECT date_trunc('hour', ts) AS h FROM interface_samples
-         WHERE switch_id = $1 AND iface = $2 GROUP BY 1 HAVING count(*) >= 2
-         UNION
-         SELECT hour FROM interface_samples_hourly WHERE switch_id = $1 AND iface = $2
-       ) x ORDER BY h`,
-      [id, iface],
-    );
-    return { spans: mergeHours(rows.map((r) => new Date(r.h).getTime())) };
+    return { spans: await coverage(id, iface) };
+  });
+
+  app.get('/api/v1/switches/:id/traffic/coverage', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    if (await denyCounterRead(request, reply, cfg, id)) return reply;
+    return { spans: await coverage(id) };
   });
 
   app.get('/api/v1/switches/:id/traffic', async (request, reply) => {
     const { id } = request.params as { id: string };
     if (await denyCounterRead(request, reply, cfg, id)) return reply;
-    const parsed = TrafficQuery.safeParse(request.query);
+    const parsed = Query.safeParse(request.query);
     if (!parsed.success) return problem(reply, 400, 'Bad Request', 'range/metric invalid', request.url);
     const { range, metric } = parsed.data;
     const [colA, colB] = COLUMNS[metric];
-    const since = new Date(Date.now() - rangeSeconds(range) * 1000);
-    const useHourly = rangeSeconds(range) > 7 * 86400;
-    const points = useHourly
-      ? await hourlyTraffic(id, since, colA, colB)
-      : await rawTraffic(id, since, colA, colB);
-    return { range, metric, points };
+    const w = windowOf(parsed.data);
+    if (!w) return problem(reply, 400, 'Bad Request', 'from/to invalid or span over 3 years', request.url);
+    const points = await stitched(
+      w,
+      (a, b) => hourlyTraffic(id, a, b, colA, colB),
+      (a, b) => rawTraffic(id, a, b, colA, colB),
+    );
+    return { range, metric, points, earliest: await earliestSample(id) };
   });
 }
 
@@ -241,14 +214,69 @@ export function mergeHours(hours: number[]): Array<{ from: string; to: string }>
   return spans.map((s) => ({ from: new Date(s.from).toISOString(), to: new Date(s.to).toISOString() }));
 }
 
-/** When this port's history begins (raw or hourly), so the UI can say why older windows are empty. */
-async function earliestSample(switchId: string, iface: string): Promise<string | null> {
+/**
+ * The window a history read covers: the preset back from now, or explicit
+ * bounds (custom ranges, comparisons) capped at 3 years + a day so one
+ * request can never scan the archive. Null when the bounds are invalid.
+ */
+function windowOf(q: z.infer<typeof Query>): { since: Date; until: Date } | null {
+  if (!(q.from && q.to))
+    return { since: new Date(Date.now() - rangeSeconds(q.range) * 1000), until: new Date() };
+  const since = new Date(q.from);
+  const until = new Date(q.to);
+  const MAX_SPAN_MS = rangeSeconds('3y') + 86400_000;
+  return since < until && until.getTime() - since.getTime() <= MAX_SPAN_MS ? { since, until } : null;
+}
+
+/**
+ * Raw rows cover the retention window; anything older lives in hourly
+ * buckets. Long spans and windows wholly past retention read buckets; a
+ * window straddling the cutoff stitches buckets onto raw rows.
+ */
+async function stitched(
+  { since, until }: { since: Date; until: Date },
+  hourly: (a: Date, b: Date) => Promise<HistoryPoint[]>,
+  raw: (a: Date, b: Date) => Promise<HistoryPoint[]>,
+): Promise<HistoryPoint[]> {
+  const cutoff = new Date(Date.now() - RAW_RETENTION_DAYS * 86400_000);
+  const long = until.getTime() - since.getTime() > RAW_RETENTION_DAYS * 86400_000;
+  if (long || until <= cutoff) return hourly(since, until);
+  if (since < cutoff) return [...(await hourly(since, cutoff)), ...(await raw(cutoff, until))];
+  return raw(since, until);
+}
+
+/** Port filter for switch-wide reads (no iface) vs one port. */
+const ifaceClause = (iface?: string) => (iface === undefined ? '' : ' AND iface = $2');
+const ifaceArgs = (switchId: string, iface?: string) =>
+  iface === undefined ? [switchId] : [switchId, iface];
+
+/**
+ * Hours that can draw a rate (raw hours need two readings; hourly buckets
+ * are deltas already), merged into spans so pickers can skip the gaps.
+ */
+async function coverage(switchId: string, iface?: string): Promise<Array<{ from: string; to: string }>> {
+  const f = ifaceClause(iface);
+  const { rows } = await db().query<{ h: Date }>(
+    `SELECT h FROM (
+       SELECT date_trunc('hour', ts) AS h FROM interface_samples
+       WHERE switch_id = $1${f} GROUP BY 1 HAVING count(DISTINCT ts) >= 2
+       UNION
+       SELECT hour FROM interface_samples_hourly WHERE switch_id = $1${f}
+     ) x ORDER BY h`,
+    ifaceArgs(switchId, iface),
+  );
+  return mergeHours(rows.map((r) => new Date(r.h).getTime()));
+}
+
+/** When history begins (raw or hourly) for a port, or any port without `iface`. */
+async function earliestSample(switchId: string, iface?: string): Promise<string | null> {
+  const f = ifaceClause(iface);
   const { rows } = await db().query<{ t: Date | null }>(
     `SELECT LEAST(
-       (SELECT min(ts) FROM interface_samples WHERE switch_id = $1 AND iface = $2),
-       (SELECT min(hour) FROM interface_samples_hourly WHERE switch_id = $1 AND iface = $2)
+       (SELECT min(ts) FROM interface_samples WHERE switch_id = $1${f}),
+       (SELECT min(hour) FROM interface_samples_hourly WHERE switch_id = $1${f})
      ) AS t`,
-    [switchId, iface],
+    ifaceArgs(switchId, iface),
   );
   const t = rows[0]?.t;
   return t ? new Date(t).toISOString() : null;
@@ -303,6 +331,7 @@ async function hourlyPoints(
 async function rawTraffic(
   switchId: string,
   since: Date,
+  until: Date,
   colA: string,
   colB: string,
 ): Promise<HistoryPoint[]> {
@@ -311,13 +340,13 @@ async function rawTraffic(
        SELECT ts,
          ${colA} AS ca, LAG(${colA}) OVER (PARTITION BY iface ORDER BY ts) AS pa,
          ${colB} AS cb, LAG(${colB}) OVER (PARTITION BY iface ORDER BY ts) AS pb
-       FROM interface_samples WHERE switch_id = $1 AND ts >= $2
+       FROM interface_samples WHERE switch_id = $1 AND ts >= $2 AND ts <= $3
      )
      SELECT ts,
        SUM(CASE WHEN pa IS NULL THEN 0 WHEN ca >= pa THEN ca - pa ELSE ca END) AS a,
        SUM(CASE WHEN pb IS NULL THEN 0 WHEN cb >= pb THEN cb - pb ELSE cb END) AS b
      FROM d GROUP BY ts ORDER BY ts`,
-    [switchId, since],
+    [switchId, since, until],
   );
   const pts: HistoryPoint[] = [];
   for (let i = 1; i < rows.length; i++) {
@@ -339,13 +368,15 @@ async function rawTraffic(
 async function hourlyTraffic(
   switchId: string,
   since: Date,
+  until: Date,
   colA: string,
   colB: string,
 ): Promise<HistoryPoint[]> {
   const { rows } = await db().query<{ hour: Date; a: string; b: string }>(
     `SELECT hour, SUM(${colA}) AS a, SUM(${colB}) AS b FROM interface_samples_hourly
-     WHERE switch_id = $1 AND hour >= $2 GROUP BY hour ORDER BY hour`,
-    [switchId, since],
+     WHERE switch_id = $1 AND hour >= date_trunc('hour', $2::timestamptz) AND hour < $3
+     GROUP BY hour ORDER BY hour`,
+    [switchId, since, until],
   );
   const pts: HistoryPoint[] = rows.map((r) => ({
     t: new Date(r.hour).toISOString(),

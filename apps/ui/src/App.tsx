@@ -3,7 +3,7 @@
  * Gate decides the landing: uninitialized → /setup, anonymous → /login.
  */
 import { useEffect, useState } from 'react';
-import { createBrowserRouter, Navigate, RouterProvider, useNavigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider, useNavigate, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { api } from './lib/api.js';
 import { ToastProvider } from './components/ui.js';
@@ -25,7 +25,6 @@ import { Groups } from './screens/Groups.js';
 import { GroupHome } from './screens/GroupHome.js';
 import { Settings } from './screens/Settings.js';
 import { Troubleshoot } from './screens/Troubleshoot.js';
-import { ConfigView } from './screens/ConfigView.js';
 
 const queryClient = new QueryClient();
 
@@ -36,6 +35,12 @@ function useSession() {
     retry: false,
     staleTime: 60_000,
   });
+}
+
+/** Config moved into Troubleshoot; old links land on its tab. */
+function ConfigRedirect() {
+  const { switchId = '' } = useParams();
+  return <Navigate to={`/switches/${encodeURIComponent(switchId)}/troubleshoot?tab=config`} replace />;
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -211,7 +216,7 @@ const router = createBrowserRouter([
     path: '/switches/:switchId/config',
     element: (
       <RequireAuth>
-        <ConfigView />
+        <ConfigRedirect />
       </RequireAuth>
     ),
   },

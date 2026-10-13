@@ -2,21 +2,22 @@
  * Troubleshoot: the switch's live forwarding and neighbor state, not its
  * config — routes (with a "which route would carry this IP" lookup and
  * per-route next hops), ARP/ND, MAC table, LLDP, BGP sessions and port
- * health. Each tab reads only while open; per-member tables arrive in one
- * backend fan-out (`/collect`). Empty is said plainly, never as an error.
+ * health — plus the running config as `nv config show` prints it. Each tab
+ * reads only while open; per-member tables arrive in one backend fan-out
+ * (`/collect`). Empty is said plainly, never as an error.
  */
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import {
   Alert,
   Badge,
   Breadcrumb,
   Button,
+  FilterLine,
   Hint,
   Modal,
-  SelectMenu,
   Spinner,
   Tabs,
 } from '../components/ui.js';
@@ -33,11 +34,14 @@ import {
   parseMacs,
   parseNeighbors,
   parseRoutes,
+  protocolCounts,
   type RouteRow,
 } from '../lib/troubleshoot.js';
+import { ReadToolbar } from '../components/ReadToolbar.js';
+import { ConfigTab } from './ConfigTab.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 
-type Tab = 'routes' | 'arp' | 'mac' | 'lldp' | 'bgp' | 'ports';
+type Tab = 'routes' | 'arp' | 'mac' | 'lldp' | 'bgp' | 'ports' | 'config';
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'routes', label: 'Routes' },
   { id: 'arp', label: 'ARP / ND' },
@@ -45,14 +49,11 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'lldp', label: 'LLDP' },
   { id: 'bgp', label: 'BGP' },
   { id: 'ports', label: 'Port health' },
+  { id: 'config', label: 'Config' },
 ];
 
 const OP = { rev: 'operational' } as const;
 const FRESH = 15_000;
-
-/** A 404 from NVUE on a table read means "nothing there" (no routes, no entries). */
-const isMissing = (err: Error | null) =>
-  !!err && /→ 404|not found|does not exist|No .* found/i.test(err.message);
 
 export function Troubleshoot() {
   const { switchId = '' } = useParams();
@@ -68,7 +69,7 @@ export function Troubleshoot() {
       <div className="list-head" style={{ gap: 12 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>
           Troubleshoot
-          <Hint text="Live operational state read from the switch right now — what it is forwarding and who it sees, not what is configured. Each tab reads when opened; Refresh re-reads." />
+          <Hint text="Live operational state read from the switch right now — what it is forwarding and who it sees — plus the configuration as the CLI prints it. Each tab reads when opened; Refresh re-reads." />
         </h1>
       </div>
       <Tabs tabs={TABS} active={tab} onChange={(id) => setParams({ tab: id }, { replace: true })} />
@@ -78,25 +79,8 @@ export function Troubleshoot() {
       {tab === 'lldp' && <LldpTab switchId={switchId} />}
       {tab === 'bgp' && <BgpTab switchId={switchId} />}
       {tab === 'ports' && <PortsTab switchId={switchId} />}
+      {tab === 'config' && <ConfigTab switchId={switchId} />}
     </ScopeShell>
-  );
-}
-
-/** Toolbar row: filters on the left, read age + Refresh on the right. */
-function Toolbar({ children, q }: { children?: ReactNode; q: UseQueryResult<unknown> }) {
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-      {children}
-      <span style={{ flex: 1 }} />
-      {q.dataUpdatedAt > 0 && (
-        <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>
-          read {timeAgo(new Date(q.dataUpdatedAt).toISOString())}
-        </span>
-      )}
-      <Button auto variant="secondary" disabled={q.isFetching} onClick={() => q.refetch()}>
-        {q.isFetching ? 'Reading…' : 'Refresh'}
-      </Button>
-    </div>
   );
 }
 
@@ -122,64 +106,90 @@ const stateTone = (s: string): 'pass' | 'warn' | 'fail' | 'muted' =>
         ? 'warn'
         : 'muted';
 
+type Afi = 'ipv4' | 'ipv6';
+const AFI_LABEL: Record<Afi, string> = { ipv4: 'IPv4', ipv6: 'IPv6' };
+
+/**
+ * Routes across every VRF in one fan-out read, filtered here by VRF and
+ * protocol — the options come from what the switch returned (BGP, OSPF,
+ * static, connected, kernel…), so new VRFs and protocols appear unprompted.
+ */
 function RoutesTab({ switchId }: { switchId: string }) {
-  const [vrf, setVrf] = useState('default');
-  const [afi, setAfi] = useState<'ipv4' | 'ipv6'>('ipv4');
+  const [vrf, setVrf] = useState('');
+  const [afi, setAfi] = useState<Afi>('ipv4');
+  const [proto, setProto] = useState('');
   const [lookup, setLookup] = useState('');
   const [open, setOpen] = useState<RouteRow | null>(null);
-  const vrfs = useQuery({
-    queryKey: ['resource', switchId, '/vrf', undefined, 'operational'],
-    queryFn: () => api.query<Record<string, unknown>>(switchId, '/vrf', OP),
-    staleTime: 60_000,
-    retry: false,
-  });
   const routes = useQuery({
-    queryKey: ['rib', switchId, vrf, afi],
+    queryKey: ['rib', switchId, afi],
     queryFn: async () => {
       const [rib, nh] = await Promise.all([
-        api
-          .query(switchId, `/vrf/${encodeURIComponent(vrf)}/router/rib/${afi}/route`, OP)
-          .catch((e: Error) => {
-            if (isMissing(e)) return { data: {} };
-            throw e;
-          }),
+        api.collect<unknown>(switchId, '/vrf', `/vrf/{key}/router/rib/${afi}/route`, { rev: 'operational' }),
         api.query(switchId, '/router/nexthop/rib', OP).catch(() => ({ data: {} })),
       ]);
-      return parseRoutes(rib.data, nh.data);
+      return {
+        vrfs: Object.keys(rib.data),
+        rows: Object.entries(rib.data).flatMap(([v, r]) => parseRoutes(r ?? {}, nh.data, v)),
+        errors: rib.errors,
+      };
     },
     staleTime: FRESH,
     retry: false,
   });
-  const rows = routes.data ?? [];
+  const all = routes.data?.rows ?? [];
+  const vrfNames = routes.data?.vrfs ?? [];
+  const inVrf = vrf ? all.filter((r) => r.vrf === vrf) : all;
+  const rows = proto ? inVrf.filter((r) => r.protocol === proto) : inVrf;
+  const protocols = protocolCounts(inVrf);
+
+  // Longest match per VRF, over everything the RIB installed (protocol filter aside).
   const ip = lookup.trim();
-  const valid = ip !== '' && parseIp(ip)?.v === (afi === 'ipv4' ? 4 : 6);
-  const hit = valid
-    ? longestMatch(
-        ip,
-        rows.filter((r) => r.selected || r.installed).map((r) => r.prefix),
-      )
-    : undefined;
-  const hitRow = rows.find((r) => r.prefix === hit && (r.selected || r.installed));
-  const vrfNames = Object.keys(vrfs.data?.data ?? { default: {} });
+  const parsed = ip === '' ? null : parseIp(ip);
+  const valid = parsed?.v === (afi === 'ipv4' ? 4 : 6);
+  const lookupVrfs = vrf ? [vrf] : vrfNames;
+  const hits = valid
+    ? lookupVrfs.map((v) => {
+        const usable = all.filter((r) => r.vrf === v && (r.selected || r.installed));
+        const prefix = longestMatch(
+          ip,
+          usable.map((r) => r.prefix),
+        );
+        return { vrf: v, row: usable.find((r) => r.prefix === prefix) };
+      })
+    : [];
+  const scopeText = `${vrf ? `VRF ${vrf}` : 'any VRF'}${proto ? ` from ${proto}` : ''}`;
   return (
     <>
-      <Toolbar q={routes}>
-        <SelectMenu
+      <ReadToolbar q={routes}>
+        <FilterLine
           label="VRF"
           value={vrf}
-          options={vrfNames.map((v) => ({ value: v, label: v }))}
+          options={[
+            { value: '', label: `All VRFs (${vrfNames.length})` },
+            ...vrfNames.map((v) => ({ value: v, label: `VRF ${v}` })),
+          ]}
           onChange={setVrf}
           width={150}
         />
-        <SelectMenu
-          label="Family"
+        <FilterLine
+          label="Address family"
           value={afi}
+          options={(['ipv4', 'ipv6'] as const).map((a) => ({ value: a, label: AFI_LABEL[a] }))}
+          onChange={(v) => setAfi(v as Afi)}
+          width={90}
+        />
+        <FilterLine
+          label="Protocol"
+          value={proto}
           options={[
-            { value: 'ipv4', label: 'IPv4' },
-            { value: 'ipv6', label: 'IPv6' },
+            { value: '', label: 'All protocols' },
+            ...protocols.map((p) => ({ value: p.protocol, label: `${p.protocol} (${p.count})` })),
+            ...(proto && !protocols.some((p) => p.protocol === proto)
+              ? [{ value: proto, label: `${proto} (0)` }]
+              : []),
           ]}
-          onChange={(v) => setAfi(v as 'ipv4' | 'ipv6')}
-          width={110}
+          onChange={setProto}
+          width={160}
         />
         <span className="lf" style={{ flex: 1, minWidth: 200, maxWidth: 300 }}>
           <input
@@ -188,34 +198,52 @@ function RoutesTab({ switchId }: { switchId: string }) {
               afi === 'ipv4' ? 'Which route carries… 10.1.2.3' : 'Which route carries… 2001:db8::1'
             }
             value={lookup}
-            onChange={(e) => setLookup(e.target.value)}
+            onChange={(e) => {
+              setLookup(e.target.value);
+              // Typing the other family's address flips the table to it.
+              const v = parseIp(e.target.value)?.v;
+              if (v === 4 && afi !== 'ipv4') setAfi('ipv4');
+              if (v === 6 && afi !== 'ipv6') setAfi('ipv6');
+            }}
           />
         </span>
-      </Toolbar>
+      </ReadToolbar>
+      <PartialErrors errors={routes.data?.errors} />
       {ip !== '' && !routes.isPending && (
-        <div style={{ marginBottom: 16, fontSize: 14 }}>
-          {!valid ? (
-            <span style={{ color: 'var(--color-muted)' }}>
-              Enter an {afi === 'ipv4' ? 'IPv4' : 'IPv6'} address.
-            </span>
-          ) : hitRow ? (
-            <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              <Badge tone="pass">match</Badge>
-              <strong>{ip}</strong> → <strong>{hitRow.prefix}</strong>
-              <span style={{ color: 'var(--color-muted)' }}>
-                via {hitRow.via} · {hitRow.protocol}
-              </span>
-              <Button auto variant="secondary" onClick={() => setOpen(hitRow)}>
-                Next hops
-              </Button>
-            </span>
+        <div style={{ display: 'grid', gap: 8, marginBottom: 16, fontSize: 14 }}>
+          {!parsed ? (
+            <span style={{ color: 'var(--color-muted)' }}>Enter an IPv4 or IPv6 address.</span>
+          ) : !valid ? (
+            <span style={{ color: 'var(--color-muted)' }}>Reading {AFI_LABEL[afi]} routes…</span>
           ) : (
-            <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-              <Badge tone="fail">no route</Badge>
-              <span style={{ color: 'var(--color-muted)' }}>
-                Nothing in VRF {vrf} covers {ip} — the switch would drop it.
-              </span>
-            </span>
+            hits.map((h) =>
+              h.row ? (
+                <span
+                  key={h.vrf}
+                  style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
+                >
+                  <Badge tone="pass">match</Badge>
+                  <span style={{ color: 'var(--color-muted)' }}>VRF {h.vrf}:</span>
+                  <strong>{ip}</strong> → <strong>{h.row.prefix}</strong>
+                  <span style={{ color: 'var(--color-muted)' }}>
+                    via {h.row.via} · {h.row.protocol}
+                  </span>
+                  <Button auto variant="secondary" onClick={() => h.row && setOpen(h.row)}>
+                    Next hops
+                  </Button>
+                </span>
+              ) : (
+                <span
+                  key={h.vrf}
+                  style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
+                >
+                  <Badge tone="fail">no route</Badge>
+                  <span style={{ color: 'var(--color-muted)' }}>
+                    VRF {h.vrf}: nothing covers {ip} — the switch would drop it there.
+                  </span>
+                </span>
+              ),
+            )
           )}
         </div>
       )}
@@ -223,18 +251,19 @@ function RoutesTab({ switchId }: { switchId: string }) {
         <ReadError switchId={switchId} message={routes.error.message} onFixed={() => routes.refetch()} />
       ) : (
         <DataTable<RouteRow>
-          storageKey="cumulus.ts.routes.v1"
+          storageKey="cumulus.ts.routes.v2"
           loading={routes.isPending}
           rows={rows}
-          rowKey={(r) => `${r.prefix}#${r.entry}`}
+          rowKey={(r) => `${r.vrf}/${r.prefix}#${r.entry}`}
           onRowClick={setOpen}
           empty={
             <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>
-              No {afi === 'ipv4' ? 'IPv4' : 'IPv6'} routes in VRF {vrf}.
+              No {AFI_LABEL[afi]} routes in {scopeText}.
             </p>
           }
           cols={[
             { key: 'prefix', label: 'Prefix', always: true, value: (r) => r.prefix },
+            { key: 'vrf', label: 'VRF', value: (r) => r.vrf },
             { key: 'protocol', label: 'Protocol', value: (r) => r.protocol },
             { key: 'via', label: 'Via', value: (r) => r.via },
             {
@@ -262,9 +291,7 @@ function RoutesTab({ switchId }: { switchId: string }) {
           ]}
         />
       )}
-      {open && (
-        <RouteDetail switchId={switchId} vrf={vrf} afi={afi} row={open} onClose={() => setOpen(null)} />
-      )}
+      {open && <RouteDetail switchId={switchId} afi={afi} row={open} onClose={() => setOpen(null)} />}
     </>
   );
 }
@@ -272,17 +299,16 @@ function RoutesTab({ switchId }: { switchId: string }) {
 /** One route's entries and next hops, read on open (the list omits via entries). */
 function RouteDetail({
   switchId,
-  vrf,
   afi,
   row,
   onClose,
 }: {
   switchId: string;
-  vrf: string;
   afi: string;
   row: RouteRow;
   onClose: () => void;
 }) {
+  const vrf = row.vrf;
   const detail = useQuery({
     queryKey: ['rib-route', switchId, vrf, afi, row.prefix],
     queryFn: () =>
@@ -346,7 +372,7 @@ function ArpTab({ switchId }: { switchId: string }) {
   const rows = parseNeighbors(q.data?.data ?? {});
   return (
     <>
-      <Toolbar q={q} />
+      <ReadToolbar q={q} />
       <PartialErrors errors={q.data?.errors} />
       {q.isError ? (
         <ReadError switchId={switchId} message={q.error.message} onFixed={() => q.refetch()} />
@@ -381,7 +407,7 @@ function MacTab({ switchId }: { switchId: string }) {
   const rows = parseMacs(q.data?.data ?? {});
   return (
     <>
-      <Toolbar q={q} />
+      <ReadToolbar q={q} />
       <PartialErrors errors={q.data?.errors} />
       {q.isError ? (
         <ReadError switchId={switchId} message={q.error.message} onFixed={() => q.refetch()} />
@@ -413,7 +439,7 @@ function LldpTab({ switchId }: { switchId: string }) {
   const rows = parseLldp(q.data?.data ?? {});
   return (
     <>
-      <Toolbar q={q} />
+      <ReadToolbar q={q} />
       <PartialErrors errors={q.data?.errors} />
       {q.isError ? (
         <ReadError switchId={switchId} message={q.error.message} onFixed={() => q.refetch()} />
@@ -447,7 +473,7 @@ function BgpTab({ switchId }: { switchId: string }) {
   const up = rows.filter((r) => r.established).length;
   return (
     <>
-      <Toolbar q={q} />
+      <ReadToolbar q={q} />
       <PartialErrors errors={q.data?.errors} />
       {q.isError ? (
         <ReadError switchId={switchId} message={q.error.message} onFixed={() => q.refetch()} />

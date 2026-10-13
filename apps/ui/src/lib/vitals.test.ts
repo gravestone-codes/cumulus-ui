@@ -6,7 +6,14 @@ const system = {
   hostname: 'cumulus',
   uptime: 644735,
   'system-memory': '1.41 GB used / 1.18 GB free / 3.45 GB total',
-  version: { 'product-release': '5.14.0' },
+  platform: 'N/A',
+  version: {
+    'base-os': 'Debian GNU/Linux 12.11',
+    image: { 'build-id': '5.14.0.0068' },
+    kernel: '6.1.0-cl-1-amd64',
+    onie: 'N/A',
+    'product-release': '5.14.0',
+  },
 };
 const health = {
   status: 'Not OK',
@@ -21,8 +28,11 @@ describe('parseVitals', () => {
   it('reads system, load, health and sensors', () => {
     const v = parseVitals({
       system,
-      cpu: { 'core-count': 2, utilization: 0.2 },
-      memory: { Physical: { utilization: 40.86 } },
+      cpu: { 'core-count': 2, model: 'Intel(R) Xeon(R) Gold 6326 CPU @ 2.90GHz', utilization: 0.2 },
+      memory: {
+        Physical: { buffer: 95, cache: 1130, free: 1287, total: 3699, used: 1502, utilization: 40.86 },
+        Swap: { free: 0, total: 0, used: 0, utilization: 0 },
+      },
       health,
       env: {
         'FAN1/1': { state: 'ok', type: 'fan' },
@@ -37,7 +47,14 @@ describe('parseVitals', () => {
       version: '5.14.0',
       uptime: 644735,
       cpu: 0.2,
+      cpuCores: 2,
+      cpuModel: 'Intel(R) Xeon(R) Gold 6326 CPU @ 2.90GHz',
       memory: 40.86,
+      physical: { total: 3699, used: 1502, free: 1287, cache: 1225 },
+      swap: { total: 0, used: 0, free: 0, cache: undefined },
+      build: '5.14.0.0068',
+      kernel: '6.1.0-cl-1-amd64',
+      baseOs: 'Debian GNU/Linux 12.11',
     });
     expect(v.health).toMatchObject({ ok: false, status: 'Not OK' });
     expect(v.health?.issues.map((i) => [i.name, i.ok])).toEqual([
@@ -57,6 +74,7 @@ describe('parseVitals', () => {
     expect(v.memory).toBeUndefined();
     expect(v.health).toBeUndefined();
     expect(v.sensors).toEqual([]);
+    expect(v.physical).toEqual({ total: undefined, used: undefined, free: undefined, cache: undefined });
   });
 });
 

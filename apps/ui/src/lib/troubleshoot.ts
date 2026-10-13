@@ -13,6 +13,7 @@ const str = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ?
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
 
 export interface RouteRow {
+  vrf: string;
   prefix: string;
   entry: string;
   protocol: string;
@@ -28,7 +29,7 @@ export interface RouteRow {
 }
 
 /** `/vrf/{v}/router/rib/{afi}/route` + `/router/nexthop/rib` → one row per route entry. */
-export function parseRoutes(routes: unknown, nexthops: unknown): RouteRow[] {
+export function parseRoutes(routes: unknown, nexthops: unknown, vrf = 'default'): RouteRow[] {
   return Object.entries(isObj(routes) ? routes : {}).flatMap(([prefix, r]) =>
     Object.entries((getPath(r, 'route-entry') as Obj | undefined) ?? {}).map(([entry, e]) => {
       const flags = keys(getPath(e, 'flags'));
@@ -42,6 +43,7 @@ export function parseRoutes(routes: unknown, nexthops: unknown): RouteRow[] {
           .filter(Boolean)
           .join(', ');
       return {
+        vrf,
         prefix,
         entry,
         protocol: str(getPath(e, 'protocol')) ?? '—',
@@ -89,6 +91,15 @@ export function cidrContains(cidr: string, ip: string): boolean {
   if (!Number.isInteger(len) || len < 0 || len > bits) return false;
   const shift = BigInt(bits - len);
   return net.n >> shift === addr.n >> shift;
+}
+
+/** Protocols present in a route set with their entry counts, busiest first (filter options come from data). */
+export function protocolCounts(rows: RouteRow[]): Array<{ protocol: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const r of rows) counts.set(r.protocol, (counts.get(r.protocol) ?? 0) + 1);
+  return [...counts]
+    .map(([protocol, count]) => ({ protocol, count }))
+    .sort((a, b) => b.count - a.count || a.protocol.localeCompare(b.protocol));
 }
 
 /** The most specific prefix holding `ip` (what the RIB would pick), if any. */

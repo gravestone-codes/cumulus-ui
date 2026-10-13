@@ -1053,6 +1053,25 @@ export function Badge({
   return <span className={`badge badge-${tone}`}>{children}</span>;
 }
 
+/* FilterLine: a toolbar filter drawn as an underline (no box), text flush
+   with the column edge so it lines up with tab labels above it. */
+export function FilterLine({
+  width = 150,
+  ...props
+}: {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  width?: number;
+}) {
+  return (
+    <span style={{ display: 'inline-block', width, maxWidth: '100%', flexShrink: 0 }}>
+      <SelectMenu variant="line" {...props} />
+    </span>
+  );
+}
+
 /* SelectMenu: custom dropdown (button + portal menu), never the native
    select. Selected option carries a check; the menu flips upward near the
    viewport bottom. `pill` for toolbars, `line` for forms (full width,

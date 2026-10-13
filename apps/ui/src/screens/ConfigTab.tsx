@@ -1,18 +1,17 @@
 /**
- * Config screen: what `nv config show` (YAML) and `nv config show -o
- * commands` print, for the applied or startup revision, plus the unsaved
- * delta (applied vs startup — what a reboot would lose). One read of `/`
- * per revision; renderings are pure (lib/nvconfig). Copy and download.
+ * Config tab (Troubleshoot): what `nv config show` (YAML) and `nv config
+ * show -o commands` print, for the applied or startup revision, plus the
+ * unsaved delta (applied vs startup — what a reboot would lose). One read
+ * of `/` per revision; renderings are pure (lib/nvconfig). Copy and download.
  */
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { Badge, Breadcrumb, Button, Hint, SelectMenu, Spinner, Tabs, useToast } from '../components/ui.js';
+import { Badge, Button, FilterLine, Spinner, useToast } from '../components/ui.js';
 import { ReadError } from '../components/resource.js';
+import { ReadToolbar } from '../components/ReadToolbar.js';
 import { CodeBlock, copyText, downloadText, type CodeLine } from '../components/CodeBlock.js';
 import { configYaml, diffCommands, toCommands } from '../lib/nvconfig.js';
-import { ScopeShell } from './iface/ScopeShell.js';
 
 type Format = 'commands' | 'yaml' | 'unsaved';
 type Rev = 'applied' | 'startup';
@@ -28,9 +27,8 @@ function useRevision(switchId: string, rev: Rev, filled: boolean, enabled: boole
   });
 }
 
-export function ConfigView() {
-  const { switchId = '' } = useParams();
-  const navigate = useNavigate();
+/** Troubleshoot → Config: format, revision and section as line filters; copy/download beside Refresh. */
+export function ConfigTab({ switchId }: { switchId: string }) {
   const toast = useToast();
   const [format, setFormat] = useState<Format>('commands');
   const [rev, setRev] = useState<Rev>('applied');
@@ -63,59 +61,62 @@ export function ConfigView() {
     .join('\n');
   const loading = shown.isPending || (format === 'unsaved' && startup.isPending);
   const error = shown.error ?? (format === 'unsaved' ? startup.error : null);
+  // Refresh re-reads every revision in view.
+  const reads = format === 'unsaved' ? [applied, startup] : [shown];
 
   return (
-    <ScopeShell scope={{ kind: 'switch', id: switchId }} active="/config">
-      <Breadcrumb
-        trail={[{ label: switchId, to: `/switches/${switchId}` }, { label: 'Config' }]}
-        onNav={navigate}
-      />
-      <div className="list-head" style={{ gap: 12 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>
-          Configuration
-          <Hint text="The switch's own configuration as NVUE stores it. Commands = nv config show -o commands; YAML = nv config show. Unsaved = differences between the running (applied) and startup revisions — what a reboot would lose without nv config save." />
-        </h1>
-        <span style={{ flex: 1 }} />
-        <Button
-          auto
-          variant="secondary"
-          disabled={visible.length === 0}
-          onClick={async () => {
-            const ok = await copyText(text);
-            toast(
-              ok ? 'pass' : 'fail',
-              ok ? `Copied ${visible.length} lines.` : 'Copy blocked by the browser.',
-            );
-          }}
-        >
-          Copy
-        </Button>
-        <Button
-          auto
-          variant="secondary"
-          disabled={visible.length === 0}
-          onClick={() =>
-            downloadText(
-              `${switchId}-${format === 'unsaved' ? 'unsaved' : rev}${format === 'yaml' ? '.yaml' : '.txt'}`,
-              text,
-            )
-          }
-        >
-          Download
-        </Button>
-      </div>
-      <Tabs
-        tabs={[
-          { id: 'commands', label: 'Commands' },
-          { id: 'yaml', label: 'YAML' },
-          { id: 'unsaved', label: 'Unsaved changes' },
-        ]}
-        active={format}
-        onChange={(id) => setFormat(id as Format)}
-      />
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+    <>
+      <ReadToolbar
+        q={{
+          dataUpdatedAt: Math.min(...reads.map((r) => r.dataUpdatedAt)),
+          isFetching: reads.some((r) => r.isFetching),
+          refetch: () => Promise.all(reads.map((r) => r.refetch())).then((all) => all[0]!),
+        }}
+        actions={
+          <>
+            <Button
+              auto
+              variant="secondary"
+              disabled={visible.length === 0}
+              onClick={async () => {
+                const ok = await copyText(text);
+                toast(
+                  ok ? 'pass' : 'fail',
+                  ok ? `Copied ${visible.length} lines.` : 'Copy blocked by the browser.',
+                );
+              }}
+            >
+              Copy
+            </Button>
+            <Button
+              auto
+              variant="secondary"
+              disabled={visible.length === 0}
+              onClick={() =>
+                downloadText(
+                  `${switchId}-${format === 'unsaved' ? 'unsaved' : rev}${format === 'yaml' ? '.yaml' : '.txt'}`,
+                  text,
+                )
+              }
+            >
+              Download
+            </Button>
+          </>
+        }
+      >
+        <FilterLine
+          label="Format"
+          value={format}
+          options={[
+            { value: 'commands', label: 'Commands' },
+            { value: 'yaml', label: 'YAML' },
+            { value: 'unsaved', label: 'Unsaved changes' },
+          ]}
+          onChange={(v) => setFormat(v as Format)}
+          width={160}
+        />
         {format !== 'unsaved' && (
-          <SelectMenu
+          <FilterLine
             label="Revision"
             value={rev}
             options={[
@@ -123,21 +124,21 @@ export function ConfigView() {
               { value: 'startup', label: 'Startup (saved)' },
             ]}
             onChange={(v) => setRev(v as Rev)}
-            width={190}
+            width={170}
           />
         )}
-        <SelectMenu
+        <FilterLine
           label="Section"
           value={section}
           options={[{ value: '', label: 'All sections' }, ...sections.map((s) => ({ value: s, label: s }))]}
           onChange={setSection}
-          width={170}
+          width={140}
         />
         <label className="check-row" style={{ padding: 0 }}>
           <input type="checkbox" checked={defaults} onChange={(e) => setDefaults(e.target.checked)} />
           Include defaults
         </label>
-        <span className="lf" style={{ flex: 1, minWidth: 180, maxWidth: 320 }}>
+        <span className="lf" style={{ flex: 1, minWidth: 160, maxWidth: 260 }}>
           <input
             aria-label="Filter lines"
             placeholder="Filter lines…"
@@ -150,7 +151,7 @@ export function ConfigView() {
             {visible.length.toLocaleString()} line{visible.length === 1 ? '' : 's'}
           </span>
         )}
-      </div>
+      </ReadToolbar>
       {error ? (
         <ReadError switchId={switchId} message={error.message} onFixed={() => shown.refetch()} />
       ) : loading ? (
@@ -165,8 +166,8 @@ export function ConfigView() {
       ) : visible.length === 0 ? (
         <p style={{ fontSize: 14, color: 'var(--color-muted)' }}>No lines match.</p>
       ) : (
-        <CodeBlock lines={visible} />
+        <CodeBlock lines={visible} language={format === 'yaml' ? 'yaml' : undefined} />
       )}
-    </ScopeShell>
+    </>
   );
 }

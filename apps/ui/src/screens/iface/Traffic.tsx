@@ -1,7 +1,8 @@
 /**
  * Single-switch traffic + counters (3A.3/3A.4): live in/out rates from 5s
  * counter reads seeded by the server, history ranges, compare overlays,
- * discards & errors. Group scope composes GroupTraffic instead.
+ * discards & errors — for one port or the whole switch summed. Group scope
+ * composes GroupTraffic instead.
  */
 import { useEffect, useRef, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -118,59 +119,90 @@ const RANGE_MS: Record<HistoryRange, number> = {
   '3y': 3 * 365 * DAY_MS,
 };
 
+/** Cumulative counters in one read: a port object, or every port of `/interface` summed. */
+function readSample(data: Record<string, unknown>, whole: boolean): TrafficSample | null {
+  const objs = whole
+    ? Object.values(data).filter((o): o is Record<string, unknown> => typeof o === 'object' && o !== null)
+    : [data];
+  const total = (...paths: string[]) => {
+    const vals = objs.map((o) => sumOf(o, ...paths)).filter((v): v is number => v !== undefined);
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) : undefined;
+  };
+  const inB = total('link/stats/in-bytes');
+  const outB = total('link/stats/out-bytes');
+  if (inB === undefined || outB === undefined) return null;
+  return {
+    t: Date.now(),
+    inB,
+    outB,
+    inP: total('link/stats/in-pkts'),
+    outP: total('link/stats/out-pkts'),
+    dr: total('link/stats/in-drops', 'link/stats/out-drops'),
+    er: total('link/stats/in-errors', 'link/stats/out-errors'),
+  };
+}
+
 /**
  * Traffic graph: live in/out rates from 5s counter reads, seeded with the
  * server's recent raw readings so it draws on arrival, or history ranges
  * from the backend sampler. Compare lays a second picked period over the
- * view, start on start.
+ * view, start on start. Without `ifaceId` it graphs the whole switch
+ * (every port summed); `embedded` drops the outer spacing and the
+ * discards card for dashboard grids.
  */
-export function InterfaceTraffic({
+export function TrafficPanel({
   switchId,
   ifaceId,
-  path,
+  title = 'Traffic',
+  info = "This port's bits (or packets) per second, received (In) and sent (Out). Compare draws a second period you pick as dashed lines over the view, start lined up with start.",
+  embedded = false,
+  initialRange = 'live',
 }: {
   switchId: string;
-  ifaceId: string;
-  path: string;
+  ifaceId?: string;
+  title?: string;
+  info?: string;
+  embedded?: boolean;
+  /** Dashboards open on history so a glance never starts 5s polling. */
+  initialRange?: RangeSel;
 }) {
+  const path = ifaceId === undefined ? '/interface' : `/interface/${encodeURIComponent(ifaceId)}`;
+  const port = ifaceId ?? '*';
   const [samples, setSamples] = useState<TrafficSample[]>([]);
   const [liveError, setLiveError] = useState<string | null>(null);
   const [seedEarliest, setSeedEarliest] = useState<string | null>(null);
   const tickRef = useRef<() => void>(() => undefined);
+  const [range, setRange] = useState<RangeSel>(initialRange);
+  // The port page always ticks (its discards card is live); embedded only while Live shows.
+  const polling = !embedded || range === 'live';
 
   useEffect(() => {
     let dead = false;
     let fails = 0;
     setSamples([]);
     setLiveError(null);
-    api
-      .ifaceSamples(switchId, ifaceId, LIVE_WINDOW_MS / 60_000)
-      .then((res) => {
-        if (dead) return;
-        setSeedEarliest(res.earliest);
-        setSamples((prev) => mergeSamples(res.samples, prev, Date.now() - LIVE_WINDOW_MS));
-      })
-      .catch(() => {
-        /* no seed: live ticks still build the graph */
-      });
+    if (!polling) return;
+    // Seeds are per port; switch-wide live builds from its own ticks.
+    if (ifaceId !== undefined) {
+      api
+        .ifaceSamples(switchId, ifaceId, LIVE_WINDOW_MS / 60_000)
+        .then((res) => {
+          if (dead) return;
+          setSeedEarliest(res.earliest);
+          setSamples((prev) => mergeSamples(res.samples, prev, Date.now() - LIVE_WINDOW_MS));
+        })
+        .catch(() => {
+          /* no seed: live ticks still build the graph */
+        });
+    }
     async function tick() {
       try {
-        const res = await api.query<Record<string, unknown>>(switchId, path);
+        const res = await api.query<Record<string, unknown>>(switchId, path, { rev: 'operational' });
         if (dead) return;
         fails = 0;
         setLiveError(null);
-        const inB = counterOf(res.data, 'link/stats/in-bytes');
-        const outB = counterOf(res.data, 'link/stats/out-bytes');
-        if (inB === undefined || outB === undefined) return;
-        const sample: TrafficSample = {
-          t: Date.now(),
-          inB,
-          outB,
-          inP: counterOf(res.data, 'link/stats/in-pkts'),
-          outP: counterOf(res.data, 'link/stats/out-pkts'),
-          dr: sumOf(res.data, 'link/stats/in-drops', 'link/stats/out-drops'),
-          er: sumOf(res.data, 'link/stats/in-errors', 'link/stats/out-errors'),
-        };
+        const sample = readSample(res.data, ifaceId === undefined);
+        if (!sample) return;
         setSamples((prev) => mergeSamples(prev, [sample], sample.t - LIVE_WINDOW_MS));
       } catch (err) {
         if (dead) return;
@@ -186,9 +218,8 @@ export function InterfaceTraffic({
       dead = true;
       clearInterval(id);
     };
-  }, [switchId, ifaceId, path]);
+  }, [switchId, ifaceId, path, polling]);
 
-  const [range, setRange] = useState<RangeSel>('live');
   const [metric, setMetric] = useState<'bytes' | 'packets'>('bytes');
   const [custom, setCustom] = useState<Period | null>(null);
   const [compare, setCompare] = useState<Period | null>(null);
@@ -198,10 +229,13 @@ export function InterfaceTraffic({
   const [kind, setKind] = useState<PeriodKind>('hour');
   const [draftA, setDraftA] = useState<Period | null>(null);
   const [draftB, setDraftB] = useState<Period | null>(null);
+  // One port's history, or the switch-wide sum (same shapes, same bounds).
+  const readHistory = (opts: { range?: string; metric?: string; from?: string; to?: string }) =>
+    ifaceId === undefined ? api.switchTraffic(switchId, opts) : api.history(switchId, ifaceId, opts);
   const history = useQuery({
-    queryKey: ['traffic-history', switchId, ifaceId, range, custom, metric],
+    queryKey: ['traffic-history', switchId, port, range, custom, metric],
     queryFn: () =>
-      api.history(switchId, ifaceId, {
+      readHistory({
         range: range === 'custom' ? '24h' : range,
         ...(custom && range === 'custom'
           ? { from: new Date(custom.from).toISOString(), to: new Date(custom.to).toISOString() }
@@ -223,9 +257,9 @@ export function InterfaceTraffic({
   const baseTo = range === 'custom' && custom ? custom.to : nowMin;
   const offsetMs = compare ? baseFrom - compare.from : 0;
   const compareHistory = useQuery({
-    queryKey: ['traffic-compare', switchId, ifaceId, compare, metric],
+    queryKey: ['traffic-compare', switchId, port, compare, metric],
     queryFn: () =>
-      api.history(switchId, ifaceId, {
+      readHistory({
         from: new Date(compare?.from ?? 0).toISOString(),
         to: new Date(compare?.to ?? 0).toISOString(),
         metric,
@@ -238,8 +272,9 @@ export function InterfaceTraffic({
   const earliest = earliestIso ? Date.parse(earliestIso) : null;
   // Hours this port actually has history for; pickers only offer those.
   const coverage = useQuery({
-    queryKey: ['traffic-coverage', switchId, ifaceId],
-    queryFn: () => api.ifaceCoverage(switchId, ifaceId),
+    queryKey: ['traffic-coverage', switchId, port],
+    queryFn: () =>
+      ifaceId === undefined ? api.switchCoverage(switchId) : api.ifaceCoverage(switchId, ifaceId),
     staleTime: 60_000,
   });
   const spans: Period[] = (coverage.data?.spans ?? []).map((s) => ({
@@ -428,12 +463,12 @@ export function InterfaceTraffic({
   };
   return (
     <>
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: embedded ? 0 : 12, minWidth: 0 }}>
         <Card
-          title="Traffic"
-          info="This port's bits (or packets) per second, received (In) and sent (Out). Compare draws a second period you pick as dashed lines over the view, start lined up with start."
+          title={title}
+          info={info}
           actions={
-            <span style={{ display: 'flex', gap: 8 }}>
+            <span style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>
               <SelectMenu
                 label="Metric"
                 value={metric}
@@ -676,81 +711,83 @@ export function InterfaceTraffic({
           )}
         </div>
       </Modal>
-      <div style={{ marginTop: 12 }}>
-        <Card title="Discards & errors">
-          {dropPoints.length === 0 ? (
-            <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
-              Drop and error rates appear here once samples accumulate — flat zero means a clean port.
-            </p>
-          ) : (
-            <div style={{ height: 180 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dropPoints} margin={{ left: 8, right: 8 }}>
-                  <defs>
-                    <linearGradient id="dropFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-fail)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="var(--color-fail)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="errFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-warn)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="var(--color-warn)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    {...timeAxis}
-                    tickFormatter={(v) =>
-                      new Date(Number(v)).toLocaleTimeString(undefined, {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    }
-                  />
-                  <YAxis
-                    tickFormatter={(v) => pps(Number(v))}
-                    tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
-                    width={64}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'var(--color-surface)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: 12,
-                      fontSize: 13,
-                    }}
-                    labelStyle={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: 2 }}
-                    itemStyle={{ color: 'var(--color-text)' }}
-                    cursor={{ fill: 'var(--color-muted)', fillOpacity: 0.07 }}
-                    labelFormatter={(v) =>
-                      new Date(Number(v)).toLocaleTimeString(undefined, {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })
-                    }
-                    formatter={(v) => pps(typeof v === 'number' ? v : Number(v))}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Drops"
-                    stroke="var(--color-fail)"
-                    strokeWidth={2}
-                    fill="url(#dropFill)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Errors"
-                    stroke="var(--color-warn)"
-                    strokeWidth={2}
-                    fill="url(#errFill)"
-                  />
-                  <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </Card>
-      </div>
+      {!embedded && (
+        <div style={{ marginTop: 12 }}>
+          <Card title="Discards & errors">
+            {dropPoints.length === 0 ? (
+              <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0 }}>
+                Drop and error rates appear here once samples accumulate — flat zero means a clean port.
+              </p>
+            ) : (
+              <div style={{ height: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dropPoints} margin={{ left: 8, right: 8 }}>
+                    <defs>
+                      <linearGradient id="dropFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--color-fail)" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="var(--color-fail)" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="errFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--color-warn)" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="var(--color-warn)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      {...timeAxis}
+                      tickFormatter={(v) =>
+                        new Date(Number(v)).toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      }
+                    />
+                    <YAxis
+                      tickFormatter={(v) => pps(Number(v))}
+                      tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+                      width={64}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'var(--color-surface)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 12,
+                        fontSize: 13,
+                      }}
+                      labelStyle={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: 2 }}
+                      itemStyle={{ color: 'var(--color-text)' }}
+                      cursor={{ fill: 'var(--color-muted)', fillOpacity: 0.07 }}
+                      labelFormatter={(v) =>
+                        new Date(Number(v)).toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })
+                      }
+                      formatter={(v) => pps(typeof v === 'number' ? v : Number(v))}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="Drops"
+                      stroke="var(--color-fail)"
+                      strokeWidth={2}
+                      fill="url(#dropFill)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="Errors"
+                      stroke="var(--color-warn)"
+                      strokeWidth={2}
+                      fill="url(#errFill)"
+                    />
+                    <Legend wrapperStyle={{ fontSize: 13, color: 'var(--color-muted)' }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
     </>
   );
 }
