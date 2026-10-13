@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api.js';
+import { api, type StageCall } from '../lib/api.js';
 import { itemSchema, leafLabel, scalarLeaves } from '../lib/schema.js';
 import { MiniTable } from './cards.js';
-import { Button, useToast } from './ui.js';
-import { CreateFlow } from '../screens/iface/CreateFlow.js';
+import { Button, PromptModal, useToast } from './ui.js';
+import { ChangeFlow } from '../screens/iface/ChangeFlow.js';
+import { CreateFlow, OBJECT_NAME } from '../screens/iface/CreateFlow.js';
 import { DeleteFlow } from '../screens/iface/DeleteFlow.js';
 import { ResourceForm } from '../screens/iface/ResourceForm.js';
 import { refreshInterfaces, type Scope } from '../screens/iface/scope.js';
@@ -106,6 +107,12 @@ function SubTable({
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  // Key-only rows (DNS servers, search lists…): the name IS the config, so
+  // creation stages an empty PATCH on a fresh path instead of a values form.
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickError, setQuickError] = useState<string | null>(null);
+  const [quickName, setQuickName] = useState<string | null>(null);
+  const [quickCalls, setQuickCalls] = useState<Record<string, StageCall[]> | null>(null);
   const subPath = `${parentPath}/${sub}`;
   const title = leafLabel(sub);
   const memberFields = useQuery({
@@ -134,6 +141,34 @@ function SubTable({
   if (ids.length === 0 && !canWrite) return null;
   const refreshed = () => refreshInterfaces(queryClient);
   const singular = title.endsWith('s') && !title.endsWith('ss') ? title.slice(0, -1) : `${title} entry`;
+  const keyOnly = canWrite && !!memberFields.data && createLeaves.length === 0;
+  const closeQuick = () => {
+    setQuickOpen(false);
+    setQuickError(null);
+    setQuickName(null);
+    setQuickCalls(null);
+  };
+  const submitQuick = (name: string) => {
+    if (!OBJECT_NAME.test(name)) {
+      setQuickError('Letters, digits, dot, dash, underscore, colon — no slashes.');
+      return;
+    }
+    const missing = present.filter((sw) => holders(name).indexOf(sw) === -1);
+    if (missing.length === 0) {
+      setQuickError(`${name} already exists on every switch in scope — nothing to create.`);
+      return;
+    }
+    setQuickError(null);
+    setQuickName(name);
+    setQuickCalls(
+      Object.fromEntries(
+        missing.map((sw) => [
+          sw,
+          [{ path: `${subPath}/${encodeURIComponent(name)}`, method: 'PATCH' as const, body: {} }],
+        ]),
+      ),
+    );
+  };
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -151,7 +186,7 @@ function SubTable({
           {title} · {ids.length}
         </h4>
         {canWrite && memberFields.data && (
-          <Button auto variant="secondary" onClick={() => setAdding(true)}>
+          <Button auto variant="secondary" onClick={() => (keyOnly ? setQuickOpen(true) : setAdding(true))}>
             New
           </Button>
         )}
@@ -199,7 +234,13 @@ function SubTable({
           ]}
           rows={ids}
           rowKey={(id) => id}
-          onRow={canWrite ? (id) => setEditing(id) : canDelete ? (id) => setDeleting(id) : undefined}
+          onRow={
+            canWrite && createLeaves.length > 0
+              ? (id) => setEditing(id)
+              : canDelete
+                ? (id) => setDeleting(id)
+                : undefined
+          }
         />
       ) : (
         <p style={{ fontSize: 13, color: 'var(--color-muted)', margin: 0 }}>
@@ -242,6 +283,39 @@ function SubTable({
           )}
           onClose={() => setDeleting(null)}
           onApplied={refreshed}
+        />
+      )}
+      {quickOpen && !quickCalls && (
+        <PromptModal
+          open
+          title={`New ${singular.toLowerCase()}`}
+          label="Name"
+          confirmLabel="Review"
+          error={quickError}
+          onSubmit={submitQuick}
+          onCancel={closeQuick}
+        />
+      )}
+      {quickCalls && quickName && (
+        <ChangeFlow
+          scope={scope}
+          calls={quickCalls}
+          warning={
+            scope.kind === 'group'
+              ? `${quickName} will be created on ${Object.keys(quickCalls).length} switch${Object.keys(quickCalls).length === 1 ? '' : 'es'}.`
+              : undefined
+          }
+          onBack={() => {
+            setQuickCalls(null);
+            setQuickName(null);
+          }}
+          onClose={closeQuick}
+          onApplied={() => {
+            refreshed();
+            closeQuick();
+          }}
+          notify={toast}
+          doneText={`${singular} ${quickName}`}
         />
       )}
     </div>
