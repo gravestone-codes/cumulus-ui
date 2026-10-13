@@ -548,6 +548,7 @@ export async function workflowRoutes(app: FastifyInstance, deps: WorkflowDeps): 
       view: z.string().min(1).optional(),
       include: z.union([z.string().min(1).max(256), z.array(z.string().min(1).max(256)).max(64)]).optional(),
       omit: z.union([z.string().min(1).max(256), z.array(z.string().min(1).max(256)).max(64)]).optional(),
+      filled: z.enum(['true', 'false']).optional(),
     })
     .transform((q) => ({
       ...q,

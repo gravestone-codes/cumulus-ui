@@ -218,7 +218,15 @@ export interface FanoutReadResult {
 export async function fanoutQuery(
   ctx: { sub: string; roles: Role[]; credKey: string },
   groupId: string,
-  call: { path: string; rev?: string; view?: string; include?: string[]; omit?: string[] },
+  call: {
+    path: string;
+    rev?: string;
+    view?: string;
+    include?: string[];
+    omit?: string[];
+    /** NVUE `filled` (root reads): false = only what differs from defaults, as `nv config show`. */
+    filled?: 'true' | 'false';
+  },
 ): Promise<{ results: FanoutReadResult[]; denied: string[] }> {
   const switches = await getSwitchesByGroup(groupId);
   const denied: string[] = [];
@@ -240,6 +248,7 @@ export async function fanoutQuery(
             view: call.view,
             include: call.include,
             omit: call.omit,
+            ...(call.filled ? { params: { filled: call.filled } } : {}),
             token,
           }),
         );

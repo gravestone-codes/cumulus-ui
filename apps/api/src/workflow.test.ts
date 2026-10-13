@@ -979,6 +979,13 @@ describe.skipIf(!LIVE)('branches + staging', () => {
       expect(
         (await api.get('/api/v1/groups/G2/query?path=/interface/swp1').set('Cookie', viewer)).status,
       ).toBe(403);
+      // nv config show over a group: filled=false reaches every member as-is.
+      const bare = await api
+        .get('/api/v1/groups/G2/query?path=/interface/swp1&rev=applied&filled=false')
+        .set('Cookie', op);
+      expect(bare.status).toBe(200);
+      const bareHit = fakeB.hits.filter((h) => h.startsWith('GET /nvue_v1/interface/swp1?')).pop() ?? '';
+      expect(new URL(`https://x/${bareHit.split(' ')[1]}`).searchParams.get('filled')).toBe('false');
 
       // Per-switch bodies stage only the keyed members, each with its own body.
       const staged = await api

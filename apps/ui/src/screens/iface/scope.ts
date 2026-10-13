@@ -46,6 +46,8 @@ export function usePerSwitch<T = Record<string, unknown>>(
     view?: string;
     include?: string[];
     omit?: string[];
+    /** Root reads only: false = what differs from defaults (`nv config show`). */
+    filled?: boolean;
     refetchMs?: number;
     enabled?: boolean;
   } = {},

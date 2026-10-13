@@ -423,6 +423,7 @@ export const api = {
     if (opts?.view) qs.set('view', opts.view);
     pushEach(qs, 'include', opts?.include);
     pushEach(qs, 'omit', opts?.omit);
+    if (opts?.filled !== undefined) qs.set('filled', String(opts.filled));
     return request<{ results: MemberResult<T>[] }>(
       `/api/v1/groups/${encodeURIComponent(groupId)}/query?${qs}`,
     );

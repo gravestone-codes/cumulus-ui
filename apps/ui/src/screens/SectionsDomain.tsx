@@ -36,7 +36,19 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
   const [editing, setEditing] = useState(false);
   const base = scopeBase(scope);
   const group = scope.kind === 'group';
-  const read = usePerSwitch<Obj>(scope, def.collection, { ...(def.rev ? { rev: def.rev } : {}) });
+  // What `nv config show` prints: the root without defaults (NVUE honours filled only at `/`),
+  // so a section counts as configured only when something in it differs from default.
+  const root = usePerSwitch<Obj>(scope, '/', { rev: def.rev ?? 'applied', filled: false });
+  const key = def.collection.slice(1);
+  const read = {
+    ...root,
+    objects: Object.fromEntries(
+      root.members.map((sw) => {
+        const v = getPath(root.objects[sw], key);
+        return [sw, isObj(v) ? v : undefined];
+      }),
+    ) as Record<string, Obj | undefined>,
+  };
   const schema = useSchemaSections(def.item);
   // A container nobody configured reads as absent; it is still there to configure.
   const present = read.members.filter((m) => !read.errors[m]);
