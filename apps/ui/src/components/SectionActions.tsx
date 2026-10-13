@@ -29,6 +29,36 @@ function actionLabel(path: string): string {
   return leafLabel(last);
 }
 
+/** Output-only leaves of NVUE's uniform `@action` envelope (never action inputs). */
+const ACTION_OUTPUTS = new Set(['status', 'percentage', 'detail', 'http-status', 'issue']);
+
+/**
+ * Runnable params of a POST body schema: `@action` inputs (`@fetch/state`,
+ * `@export/parameters/force`…) stay — they ARE the action — while the
+ * envelope's output leaves (`status`, `percentage`, …) stay out.
+ */
+export function actionParams(schema: unknown): string[] {
+  const item = itemSchema(schema);
+  if (!item) return [];
+  return scalarLeaves(item, '', 0, 4)
+    .map((l) => l.path)
+    .filter((p) => {
+      const segs = p.split('/');
+      const at = segs.findIndex((s) => s.startsWith('@'));
+      if (at === -1) return true;
+      const rest = segs.slice(at + 1);
+      const head = rest[0];
+      // `@x` alone, `@x/state`, `@x/timeout`, `@x/parameters/…` are inputs.
+      if (rest.length === 0 || head === 'state' || head === 'timeout') return true;
+      if (head === 'parameters') return true;
+      // `@x/type` is the action's own type tag (output); anything else shaped
+      // like the envelope (`status`, `percentage`, …) is output too.
+      if (rest.length === 1 && (head === 'type' || (head !== undefined && ACTION_OUTPUTS.has(head))))
+        return false;
+      return !rest.some((s) => ACTION_OUTPUTS.has(s));
+    });
+}
+
 /**
  * Concrete POST operations at or under one object path, sorted. Templated
  * (`{id}`) members belong to their row's detail screen, never a section card.
@@ -112,15 +142,24 @@ function ActionModal({
     staleTime: Infinity,
     retry: false,
   });
-  const item = params.data ? itemSchema(params.data.schema) : null;
-  const fields = (item ? scalarLeaves(item, '', 0, 3) : [])
-    .filter((l) => !l.path.split('/').some((seg) => seg.startsWith('@')))
-    .map((l) => {
-      const s = leafSchema(params.data?.schema, l.path);
+  const fields = actionParams(params.data?.schema)
+    .map((leaf) => {
+      const s = leafSchema(params.data?.schema, leaf);
       const kind = kindOf(s);
-      return { path: l.path, label: leafLabel(l.path, s), kind, choices: choicesOf(s), schema: s };
+      return { path: leaf, label: leafLabel(leaf, s), kind, choices: choicesOf(s), schema: s };
     })
     .filter((f) => f.kind === 'text' || f.kind === 'number' || f.kind === 'choice' || f.kind === 'keyed');
+  // The trigger defaults to `start`: opening the dialog pre-arms the action,
+  // the user only reviews params and confirms.
+  const armed: Record<string, string> =
+    params.data && Object.keys(values).length === 0
+      ? Object.fromEntries(
+          fields
+            .filter((f) => f.path.endsWith('/state') && f.choices.includes('start'))
+            .map((f) => [f.path, 'start']),
+        )
+      : {};
+  const current = { ...armed, ...values };
   const dangerous = DANGEROUS_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
   const short = actionLabel(path);
   const ready = !dangerous || typed === short;
@@ -128,7 +167,7 @@ function ActionModal({
   function body(): Record<string, unknown> {
     let out: Record<string, unknown> = {};
     for (const f of fields) {
-      const v = (values[f.path] ?? '').trim();
+      const v = (current[f.path] ?? '').trim();
       if (v === '') continue;
       const bad = invalidReason(f.kind, v, f.schema);
       if (bad) continue;
@@ -187,14 +226,14 @@ function ActionModal({
                 key={f.path}
                 label={f.label}
                 options={[{ value: '', label: '—' }, ...f.choices.map((c) => ({ value: c, label: c }))]}
-                value={values[f.path] ?? ''}
+                value={current[f.path] ?? ''}
                 onChange={(v) => setValues((prev) => ({ ...prev, [f.path]: v }))}
               />
             ) : (
               <LineField
                 key={f.path}
                 label={f.label}
-                value={values[f.path] ?? ''}
+                value={current[f.path] ?? ''}
                 onChange={(e) => setValues((prev) => ({ ...prev, [f.path]: e.target.value }))}
               />
             ),

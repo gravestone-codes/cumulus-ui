@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionPaths } from './SectionActions.js';
+import { actionParams, actionPaths } from './SectionActions.js';
 import { mapKeys, probeMethods } from './SubCollections.js';
 
 const routes: Record<string, string[]> = {
@@ -28,6 +28,38 @@ describe('actionPaths', () => {
 
   it('matches nothing outside the subtree', () => {
     expect(actionPaths(routes, '/service/ntp')).toEqual([]);
+  });
+});
+
+describe('actionParams', () => {
+  const schema = {
+    properties: {
+      '@fetch': {
+        type: 'object',
+        properties: {
+          state: { type: 'string', enum: ['inactive', 'start'] },
+          timeout: { type: 'integer' },
+          status: { type: 'string' },
+          percentage: { type: 'string' },
+          detail: { type: 'string' },
+          'http-status': { type: 'number' },
+          type: { type: 'string' },
+          issue: { type: 'array' },
+        },
+      },
+      '@export': {
+        type: 'object',
+        properties: {
+          parameters: { type: 'object', properties: { force: { type: 'boolean' } } },
+          status: { type: 'string' },
+        },
+      },
+    },
+  };
+  it('keeps @action inputs, drops envelope outputs', () => {
+    expect(actionParams(schema).sort()).toEqual(
+      ['@export/parameters/force', '@fetch/state', '@fetch/timeout'].sort(),
+    );
   });
 });
 

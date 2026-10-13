@@ -3,12 +3,15 @@
  * ResourceForm for the initial values, then ChangeFlow (dry-run → apply).
  * NVUE creates on PATCH to a fresh path, so creation rides the exact same
  * machinery as edits — no per-object creators. Members that already hold the
- * object are refused up front (create never overwrites).
+ * object are refused up front (create never overwrites). Key-only rows (DNS
+ * servers: the name IS the config, zero leaves) skip the values form and
+ * stage an empty PATCH instead.
  */
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Modal, PromptModal, useToast } from '../../components/ui.js';
 import { refreshInterfaces, usePerSwitch, type Scope } from './scope.js';
+import { ChangeFlow } from './ChangeFlow.js';
 import { ResourceForm } from './ResourceForm.js';
 
 /** NVUE object names: no slashes, bounded. Overridable per object. */
@@ -90,6 +93,29 @@ export function CreateFlow({
           </Button>
         </div>
       </Modal>
+    );
+  }
+  if (fields.length === 0) {
+    return (
+      <ChangeFlow
+        scope={scope}
+        calls={Object.fromEntries(
+          present.map((sw) => [sw, [{ path: objectPath, method: 'PATCH' as const, body: {} }]]),
+        )}
+        warning={
+          taken.length > 0
+            ? `${name} already exists on ${taken.join(', ')} — created on the remaining switches only.`
+            : (warning ?? undefined)
+        }
+        onBack={() => setName(null)}
+        onClose={onClose}
+        onApplied={() => {
+          refreshInterfaces(queryClient);
+          onApplied?.();
+        }}
+        notify={toast}
+        doneText={`${title}: ${name}`}
+      />
     );
   }
   return (

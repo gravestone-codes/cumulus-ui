@@ -67,7 +67,17 @@ export function SubCollections({
   });
   const manifest = useQuery({ queryKey: ['manifest'], queryFn: () => api.manifest(), staleTime: 300_000 });
   const item = parent.data ? itemSchema(parent.data.schema) : null;
+  const routes = manifest.data?.routes ?? {};
   const subs = mapKeys(item);
+  // Bare maps (`server: {type: object, properties: {}}`, e.g. DNS servers):
+  // no shape in the schema, but member paths in the manifest prove rows live
+  // here — key-only rows the name alone creates.
+  if (item && isObj(item.properties)) {
+    for (const k of Object.keys(item.properties as Record<string, unknown>)) {
+      if (k.startsWith('@') || subs.includes(k)) continue;
+      if (probeMethods(routes, `${parentPath}/${k}/-`).length > 0) subs.push(k);
+    }
+  }
   if (parent.isError || subs.length === 0) return null;
   if (parent.isPending || !manifest.data) return null;
   return (

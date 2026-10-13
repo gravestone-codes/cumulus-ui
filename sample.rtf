@@ -1,0 +1,985 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2870
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red97\green34\blue255;}
+{\*\expandedcolortbl;;\csgray\c0;\cssrgb\c46228\c27437\c100000;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs22 \cf2 \CocoaLigature0 - \cf3 header\cf2 :\
+    \cf3 model\cf2 : msn3700c\
+    \cf3 nvue-api-version\cf2 : nvue_v1\
+    \cf3 rev-id\cf2 : 1.0\
+    \cf3 version\cf2 : Cumulus Linux 5.14.0\
+- \cf3 set\cf2 :\
+    \cf3 bridge\cf2 :\
+      \cf3 domain\cf2 :\
+        \cf3 br_default\cf2 :\
+          \cf3 mac-address\cf2 : auto\
+          \cf3 stp\cf2 : \{\}\
+          \cf3 type\cf2 : vlan-aware\
+          \cf3 untagged\cf2 : 1\
+          \cf3 vlan\cf2 :\
+\cf3             '50'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '2050'\cf2 : \{\}\
+\cf3             '60'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '2060'\cf2 : \{\}\
+\cf3             '168'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '10168'\cf2 : \{\}\
+\cf3             '199'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '10199'\cf2 : \{\}\
+\cf3             '301'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '10301'\cf2 : \{\}\
+\cf3             '311'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '10311'\cf2 : \{\}\
+\cf3             '851'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '10851'\cf2 : \{\}\
+\cf3             '911'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '10911'\cf2 : \{\}\
+\cf3             '1001'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '10001'\cf2 : \{\}\
+\cf3             '3001'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '103001'\cf2 : \{\}\
+\cf3             '4001'\cf2 :\
+              \cf3 vni\cf2 :\
+\cf3                 '104001'\cf2 : \{\}\
+    \cf3 evpn\cf2 :\
+      \cf3 enable\cf2 : on\
+      \cf3 route-advertise\cf2 :\
+        \cf3 svi-ip\cf2 : on\
+    \cf3 interface\cf2 :\
+      \cf3 bond1\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp1s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 1\
+        \cf3 description\cf2 : DB_SERVER_01\
+      \cf3 bond1-5\cf2 :\
+        \cf3 bridge\cf2 :\
+          \cf3 domain\cf2 :\
+            \cf3 br_default\cf2 :\
+              \cf3 access\cf2 : 3001\
+\cf3       bond1-10,12-18,25-34,40,42-45\cf2 :\
+        \cf3 bridge\cf2 :\
+          \cf3 domain\cf2 :\
+            \cf3 br_default\cf2 :\
+              \cf3 stp\cf2 :\
+                \cf3 admin-edge\cf2 : on\
+                \cf3 bpdu-guard\cf2 : on\
+\cf3       bond1-10,12-34,40,42-45\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 lacp-bypass\cf2 : on\
+\cf3       bond1-36,40,42-45,47-48\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 mlag\cf2 :\
+            \cf3 enable\cf2 : on\
+        \cf3 type\cf2 : bond\
+      \cf3 bond2\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp1s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 2\
+        \cf3 description\cf2 : DB_SERVER_02\
+      \cf3 bond3\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp1s2\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 3\
+        \cf3 description\cf2 : DB_SERVER_03\
+      \cf3 bond4\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp1s3\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 4\
+        \cf3 description\cf2 : DB_SERVER_04\
+      \cf3 bond5\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp2s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 5\
+        \cf3 description\cf2 : DB_SERVER_05\
+      \cf3 bond6\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp2s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 6\
+        \cf3 description\cf2 : OBJ_STORAGE_01\
+\cf3       bond6-10,29-30\cf2 :\
+        \cf3 bridge\cf2 :\
+          \cf3 domain\cf2 :\
+            \cf3 br_default\cf2 :\
+              \cf3 access\cf2 : 4001\
+      \cf3 bond7\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp2s2\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 7\
+        \cf3 description\cf2 : OBJ_STORAGE_02\
+      \cf3 bond8\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp2s3\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 8\
+        \cf3 description\cf2 : OBJ_STORAGE_03\
+      \cf3 bond9\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp3s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 9\
+        \cf3 description\cf2 : OBJ_STORAGE_04\
+      \cf3 bond10\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp3s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 10\
+        \cf3 description\cf2 : OBJ_STORAGE_05\
+      \cf3 bond11\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp3s2\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 11\
+        \cf3 description\cf2 : NUTANIX_05\
+\cf3       bond11-16,31-34\cf2 :\
+        \cf3 bridge\cf2 :\
+          \cf3 domain\cf2 :\
+            \cf3 br_default\cf2 :\
+              \cf3 vlan\cf2 :\
+\cf3                 50,60,168,199,301,311,851,911,1001,3001,4001\cf2 : \{\}\
+      \cf3 bond12\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp3s3\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 12\
+        \cf3 description\cf2 : NUTANIX_06\
+      \cf3 bond13\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp4s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 13\
+        \cf3 description\cf2 : NUTANIX_07\
+      \cf3 bond14\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp4s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 14\
+        \cf3 description\cf2 : NUTANIX_08\
+      \cf3 bond15\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp4s2\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 15\
+        \cf3 description\cf2 : EXAGRID_03\
+      \cf3 bond16\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp4s3\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 16\
+        \cf3 description\cf2 : EXAGRID_04\
+\cf3       bond16,47-48,swp1-7,9-32,swp1s0-3,swp2s0-3,swp3s0-3,swp4s0-3,swp5s0-3,swp6s0-3,swp11s3,swp18s0-3\cf2 :\
+        \cf3 link\cf2 :\
+          \cf3 flap-protection\cf2 :\
+            \cf3 enable\cf2 : off\
+      \cf3 bond17\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp5s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 17\
+\cf3       bond17-18,35-36\cf2 :\
+        \cf3 link\cf2 :\
+          \cf3 fec\cf2 : auto\
+      \cf3 bond18\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp5s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 18\
+      \cf3 bond19\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp7\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 19\
+      \cf3 bond19-20\cf2 :\
+        \cf3 description\cf2 : UPLINK_ADM_SW1_MKT\
+      \cf3 bond19-22\cf2 :\
+        \cf3 bridge\cf2 :\
+          \cf3 domain\cf2 :\
+            \cf3 br_default\cf2 :\
+              \cf3 vlan\cf2 :\
+\cf3                 '1001'\cf2 : \{\}\
+      ? bond19-22,47-48,swp7-10,31-32,swp1s0-3,swp2s0-3,swp3s0-3,swp4s0-3,swp5s0-3,swp6s0-3,swp11s0-3,swp12s0-3,swp13s0-2,swp18s0-3,vlan50\
+      : \cf3 link\cf2 :\
+          \cf3 state\cf2 :\
+            \cf3 up\cf2 : \{\}\
+      \cf3 bond20\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp8\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 20\
+\cf3       bond20,23-27\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 mode\cf2 : lacp\
+      \cf3 bond21\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp9\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 21\
+      \cf3 bond21-22\cf2 :\
+        \cf3 description\cf2 : UPLINK_APPS_SW1_MKT\
+      \cf3 bond22\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp10\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 22\
+      \cf3 bond23\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp6s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 23\
+\cf3       bond23-24,35-36,47-48,peerlink,swp17\cf2 :\
+        \cf3 bridge\cf2 :\
+          \cf3 domain\cf2 :\
+            \cf3 br_default\cf2 : \{\}\
+      \cf3 bond24\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp6s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 24\
+      \cf3 bond25\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp11s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 25\
+        \cf3 description\cf2 : APPS_SERVER_06\
+\cf3       bond25-28,40\cf2 :\
+        \cf3 bridge\cf2 :\
+          \cf3 domain\cf2 :\
+            \cf3 br_default\cf2 :\
+              \cf3 access\cf2 : 1001\
+      \cf3 bond26\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp11s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 26\
+        \cf3 description\cf2 : APPS_SERVER_07\
+      \cf3 bond27\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp11s2\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 27\
+        \cf3 description\cf2 : APPS_SERVER_08\
+      \cf3 bond28\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp12s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 28\
+        \cf3 description\cf2 : APPS_SERVER_10\
+      \cf3 bond29\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp12s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 29\
+        \cf3 description\cf2 : OBJ_STORAGE_06\
+      \cf3 bond30\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp12s2\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 30\
+        \cf3 description\cf2 : OBJ_STORAGE_07\
+      \cf3 bond31\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp12s3\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 31\
+        \cf3 description\cf2 : NUTANIX_01\
+      \cf3 bond32\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp13s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 32\
+        \cf3 description\cf2 : NUTANIX_02\
+      \cf3 bond33\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp13s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 33\
+        \cf3 description\cf2 : NUTANIX_03\
+      \cf3 bond34\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp13s2\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 34\
+        \cf3 description\cf2 : NUTANIX_04\
+      \cf3 bond35\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp5s2\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 35\
+      \cf3 bond36\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp5s3\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 36\
+      \cf3 bond40\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp11s3\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 40\
+        \cf3 description\cf2 : APPS_SERVER_09\
+      \cf3 bond42\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp18s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 42\
+      \cf3 bond43\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp18s1\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 43\
+      \cf3 bond44\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp18s2\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 44\
+      \cf3 bond45\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp18s3\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 45\
+      \cf3 bond47\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp13s3\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 47\
+        \cf3 description\cf2 : EXAGRID_01\
+      \cf3 bond48\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp14s0\cf2 : \{\}\
+          \cf3 mlag\cf2 :\
+            \cf3 id\cf2 : 48\
+        \cf3 description\cf2 : EXAGRID_02\
+      \cf3 eth0\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.208.252.12/23\cf2 : \{\}\
+          \cf3 vrf\cf2 : mgmt\
+        \cf3 type\cf2 : eth\
+      \cf3 lo\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.154.1.1/32\cf2 : \{\}\
+        \cf3 type\cf2 : loopback\
+      \cf3 peerlink\cf2 :\
+        \cf3 bond\cf2 :\
+          \cf3 member\cf2 :\
+            \cf3 swp15-16\cf2 : \{\}\
+        \cf3 type\cf2 : peerlink\
+      \cf3 peerlink.4094\cf2 :\
+        \cf3 base-interface\cf2 : peerlink\
+        \cf3 type\cf2 : sub\
+        \cf3 vlan\cf2 : 4094\
+\cf3       swp1-6,11-14,18\cf2 :\
+        \cf3 link\cf2 :\
+          \cf3 breakout\cf2 :\
+            \cf3 4x\cf2 : \{\}\
+      \cf3 swp1-32\cf2 :\
+        \cf3 lldp\cf2 : \{\}\
+\cf3       swp1-32,swp1s0-3,swp2s0-3,swp3s0-3,swp4s0-3,swp5s0-3,swp6s0-3,swp11s0-3,swp12s0-3,swp13s0-2,swp18s0-3\cf2 :\
+        \cf3 type\cf2 : swp\
+\cf3       swp1s0-3,swp2s0-3,swp3s0-3,swp4s0-3,swp5s0-3,swp6s0-3,swp11s0-3,swp12s0-3,swp13s0-2,swp18s0-3\cf2 :\
+        \cf3 link\cf2 :\
+          \cf3 speed\cf2 : 25G\
+\cf3       swp2s0,swp5s0-3\cf2 :\
+        \cf3 link\cf2 :\
+          \cf3 mtu\cf2 : 1500\
+      \cf3 swp7-10\cf2 :\
+        \cf3 link\cf2 :\
+          \cf3 speed\cf2 : 40G\
+      \cf3 swp8\cf2 :\
+        \cf3 link\cf2 :\
+          \cf3 flap-protection\cf2 :\
+            \cf3 enable\cf2 : on\
+      \cf3 swp15\cf2 :\
+        \cf3 description\cf2 : PEER-LINK_1\
+      \cf3 swp16\cf2 :\
+        \cf3 description\cf2 : PEER-LINK_2\
+      \cf3 swp17\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.201.0.1/30\cf2 : \{\}\
+      \cf3 swp19\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.202.0.1/24\cf2 : \{\}\
+      \cf3 swp29-30\cf2 :\
+        \cf3 link\cf2 :\
+          \cf3 state\cf2 :\
+            \cf3 down\cf2 : \{\}\
+      \cf3 vlan50\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 172.28.5.21/24\cf2 : \{\}\
+          \cf3 vrf\cf2 : VRF_INTER-DC\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 172.28.5.20/24\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:00:50\
+        \cf3 vlan\cf2 : 50\
+\cf3       vlan50,60,168,199,301,311,851,911,1001,3001,4001\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 vrr\cf2 :\
+            \cf3 enable\cf2 : on\
+        \cf3 type\cf2 : svi\
+\cf3       vlan50,60,168,301,311,851,911,1001,3001,4001\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 vrr\cf2 :\
+            \cf3 state\cf2 :\
+              \cf3 up\cf2 : \{\}\
+      \cf3 vlan60\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 172.28.6.21/24\cf2 : \{\}\
+          \cf3 vrf\cf2 : VRF_L2-STRETCH\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 172.28.6.20/24\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:00:60\
+        \cf3 vlan\cf2 : 60\
+      \cf3 vlan168\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.19.0.2/24\cf2 : \{\}\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 10.19.0.1/24\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:01:68\
+        \cf3 vlan\cf2 : 168\
+\cf3       vlan168,301,911,1001,3001,4001\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 vrf\cf2 : VRF_GOV\
+      \cf3 vlan199\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.98.254.130/25\cf2 : \{\}\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 10.98.254.129/25\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:01:99\
+        \cf3 vlan\cf2 : 199\
+\cf3       vlan199,311\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 vrf\cf2 : VRF_PAY\
+      \cf3 vlan301\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.98.252.2/25\cf2 : \{\}\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 10.98.252.1/25\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:03:01\
+        \cf3 vlan\cf2 : 301\
+      \cf3 vlan311\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.98.254.2/25\cf2 : \{\}\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 10.98.254.1/25\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:03:11\
+        \cf3 vlan\cf2 : 311\
+      \cf3 vlan851\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.114.252.130/25\cf2 : \{\}\
+          \cf3 vrf\cf2 : VRF_NO_INTERNET\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 10.114.252.129/25\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:08:51\
+        \cf3 vlan\cf2 : 851\
+      \cf3 vlan911\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.118.252.2/25\cf2 : \{\}\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 10.118.252.1/25\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:09:11\
+        \cf3 vlan\cf2 : 911\
+      \cf3 vlan1001\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.98.252.130/25\cf2 : \{\}\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 10.98.252.129/25\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:10:00:01\
+        \cf3 vlan\cf2 : 1001\
+      \cf3 vlan3001\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.102.252.2/25\cf2 : \{\}\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 10.102.252.1/25\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:30:01\
+        \cf3 vlan\cf2 : 3001\
+      \cf3 vlan4001\cf2 :\
+        \cf3 ip\cf2 :\
+          \cf3 address\cf2 :\
+            \cf3 10.102.252.130/25\cf2 : \{\}\
+          \cf3 vrr\cf2 :\
+            \cf3 address\cf2 :\
+              \cf3 10.102.252.129/25\cf2 : \{\}\
+            \cf3 mac-address\cf2 : 00:00:00:00:40:01\
+        \cf3 vlan\cf2 : 4001\
+    \cf3 mlag\cf2 :\
+      \cf3 backup\cf2 :\
+        \cf3 10.154.1.2\cf2 : \{\}\
+      \cf3 enable\cf2 : on\
+      \cf3 mac-address\cf2 : 44:38:39:FF:22:01\
+      \cf3 peer-ip\cf2 : linklocal\
+      \cf3 priority\cf2 : 2048\
+    \cf3 nve\cf2 :\
+      \cf3 vxlan\cf2 :\
+        \cf3 enable\cf2 : on\
+        \cf3 mlag\cf2 :\
+          \cf3 shared-address\cf2 : 10.154.10.1\
+        \cf3 source\cf2 :\
+          \cf3 address\cf2 : 10.154.1.1\
+    \cf3 router\cf2 :\
+      \cf3 bgp\cf2 :\
+        \cf3 enable\cf2 : on\
+        \cf3 graceful-restart\cf2 :\
+          \cf3 path-selection-deferral-time\cf2 : 120\
+          \cf3 restart-time\cf2 : 40\
+          \cf3 stale-routes-time\cf2 : 120\
+        \cf3 router-id\cf2 : 10.154.1.1\
+      \cf3 policy\cf2 :\
+        \cf3 prefix-list\cf2 :\
+          \cf3 PL_IMPORT_VRF_GOV-APPS_TO_VRF_PAY\cf2 :\
+            \cf3 rule\cf2 :\
+\cf3               '10'\cf2 :\
+                \cf3 action\cf2 : permit\
+                \cf3 match\cf2 :\
+                  \cf3 10.98.252.128/25\cf2 : \{\}\
+          \cf3 PL_IMPORT_VRF_PAY-DB_TO_VRF_GOV\cf2 :\
+            \cf3 rule\cf2 :\
+              '10':\
+                \cf3 action\cf2 : permit\
+                \cf3 match\cf2 :\
+                  \cf3 10.98.254.128/25\cf2 : \{\}\
+        \cf3 route-map\cf2 :\
+          \cf3 ROUTE-MAP_IMPORT_VRF_GOV-APPS_TO_VRF_PAY\cf2 :\
+            \cf3 rule\cf2 :\
+              '10':\
+                \cf3 action\cf2 :\
+                  \cf3 permit\cf2 : \{\}\
+                \cf3 match\cf2 :\
+                  \cf3 ip-prefix-list\cf2 : PL_IMPORT_VRF_GOV-APPS_TO_VRF_PAY\
+                  \cf3 type\cf2 : ipv4\
+          \cf3 ROUTE-MAP_IMPORT_VRF_PAY-DB_TO_VRF_GOV\cf2 :\
+            \cf3 rule\cf2 :\
+              '10':\
+                \cf3 action\cf2 :\
+                  \cf3 permit\cf2 : \{\}\
+                \cf3 match\cf2 :\
+                  \cf3 ip-prefix-list\cf2 : PL_IMPORT_VRF_PAY-DB_TO_VRF_GOV\
+                  \cf3 type\cf2 : ipv4\
+      \cf3 vrr\cf2 :\
+        \cf3 enable\cf2 : on\
+    \cf3 service\cf2 :\
+      \cf3 dns\cf2 :\
+        \cf3 mgmt\cf2 :\
+          \cf3 server\cf2 :\
+            \cf3 5.11.11.5\cf2 : \{\}\
+            \cf3 5.11.11.11\cf2 : \{\}\
+            \cf3 8.8.4.4\cf2 : \{\}\
+            \cf3 8.8.8.8\cf2 : \{\}\
+      \cf3 ntp\cf2 :\
+        \cf3 mgmt\cf2 :\
+          \cf3 server\cf2 :\
+            \cf3 0.cumulusnetworks.pool.ntp.org\cf2 :\
+              \cf3 iburst\cf2 : on\
+            \cf3 1.cumulusnetworks.pool.ntp.org\cf2 :\
+              \cf3 iburst\cf2 : on\
+            \cf3 2.cumulusnetworks.pool.ntp.org\cf2 :\
+              \cf3 iburst\cf2 : on\
+            \cf3 3.cumulusnetworks.pool.ntp.org\cf2 :\
+              \cf3 iburst\cf2 : on\
+    \cf3 system\cf2 :\
+      \cf3 aaa\cf2 :\
+        \cf3 class\cf2 :\
+          \cf3 nvapply\cf2 :\
+            \cf3 action\cf2 : allow\
+            \cf3 command-path\cf2 :\
+              \cf3 /\cf2 :\
+                \cf3 permission\cf2 : all\
+          \cf3 nvshow\cf2 :\
+            \cf3 action\cf2 : allow\
+            \cf3 command-path\cf2 :\
+              \cf3 /\cf2 :\
+                \cf3 permission\cf2 : ro\
+          \cf3 sudo\cf2 :\
+            \cf3 action\cf2 : allow\
+            \cf3 command-path\cf2 :\
+              \cf3 /\cf2 :\
+                \cf3 permission\cf2 : all\
+        \cf3 role\cf2 :\
+          \cf3 nvue-admin\cf2 :\
+            \cf3 class\cf2 :\
+              \cf3 nvapply\cf2 : \{\}\
+          \cf3 nvue-monitor\cf2 :\
+            \cf3 class\cf2 :\
+              \cf3 nvshow\cf2 : \{\}\
+          \cf3 system-admin\cf2 :\
+            \cf3 class\cf2 :\
+              \cf3 nvapply\cf2 : \{\}\
+              \cf3 sudo\cf2 : \{\}\
+        \cf3 user\cf2 :\
+          \cf3 cumulus\cf2 :\
+            \cf3 full-name\cf2 : cumulus,,,\
+            \cf3 hashed-password\cf2 : '*'\
+            \cf3 role\cf2 : system-admin\
+          \cf3 jean-b\cf2 :\
+            \cf3 full-name\cf2 : Jean B Mutabazi Hategeka\
+            \cf3 hashed-password\cf2 : '*'\
+            \cf3 role\cf2 : system-admin\
+          \cf3 ketsia\cf2 :\
+            \cf3 full-name\cf2 : Ketsia Keza Mutabazi\
+            \cf3 hashed-password\cf2 : '*'\
+            \cf3 role\cf2 : nvue-monitor\
+          \cf3 landry\cf2 :\
+            \cf3 full-name\cf2 : Landry Chedjou\
+            \cf3 hashed-password\cf2 : '*'\
+            \cf3 role\cf2 : system-admin\
+          \cf3 marie\cf2 :\
+            \cf3 full-name\cf2 : Marie Ange\
+            \cf3 hashed-password\cf2 : '*'\
+            \cf3 role\cf2 : system-admin\
+          \cf3 rconfig-user\cf2 :\
+            \cf3 full-name\cf2 : RCONFIG\
+            \cf3 hashed-password\cf2 : '*'\
+            \cf3 role\cf2 : nvue-monitor\
+          \cf3 samburu\cf2 :\
+            \cf3 full-name\cf2 : Samuel Mburu\
+            \cf3 hashed-password\cf2 : '*'\
+            \cf3 role\cf2 : system-admin\
+          \cf3 yves\cf2 :\
+            \cf3 full-name\cf2 : Yves Nkurunziza\
+            \cf3 hashed-password\cf2 : '*'\
+            \cf3 role\cf2 : nvue-monitor\
+      \cf3 api\cf2 :\
+        \cf3 state\cf2 : enabled\
+      \cf3 config\cf2 :\
+        \cf3 auto-save\cf2 :\
+          \cf3 state\cf2 : enabled\
+      \cf3 control-plane\cf2 :\
+        \cf3 acl\cf2 :\
+          \cf3 acl-default-dos\cf2 :\
+            \cf3 inbound\cf2 : \{\}\
+          \cf3 acl-default-whitelist\cf2 :\
+            \cf3 inbound\cf2 : \{\}\
+      \cf3 hostname\cf2 : aos-bgr-leaf-01\
+      \cf3 reboot\cf2 :\
+        \cf3 mode\cf2 : cold\
+      \cf3 snmp-server\cf2 :\
+        \cf3 listening-address\cf2 :\
+          \cf3 all\cf2 :\
+            \cf3 vrf\cf2 : mgmt\
+        \cf3 readonly-community\cf2 :\
+          \cf3 $nvsec$725800cef2ee7b1af321c0d528e052cc\cf2 :\
+            \cf3 access\cf2 :\
+              \cf3 any\cf2 : \{\}\
+        \cf3 state\cf2 : enabled\
+      \cf3 ssh-server\cf2 :\
+        \cf3 allow-users\cf2 :\
+          \cf3 cumulus\cf2 : \{\}\
+          \cf3 jean-b\cf2 : \{\}\
+          \cf3 ketsia\cf2 : \{\}\
+          \cf3 landry\cf2 : \{\}\
+          \cf3 marie\cf2 : \{\}\
+          \cf3 rconfig-user\cf2 : \{\}\
+          \cf3 yves\cf2 : \{\}\
+        \cf3 inactive-timeout\cf2 : 5\
+        \cf3 login-timeout\cf2 : 600\
+        \cf3 state\cf2 : enabled\
+        \cf3 vrf\cf2 :\
+          \cf3 VRF_GOV\cf2 : \{\}\
+          \cf3 mgmt\cf2 : \{\}\
+      \cf3 wjh\cf2 :\
+        \cf3 channel\cf2 :\
+          \cf3 forwarding\cf2 :\
+            \cf3 trigger\cf2 :\
+              \cf3 l2\cf2 : \{\}\
+              \cf3 l3\cf2 : \{\}\
+              \cf3 tunnel\cf2 : \{\}\
+        \cf3 enable\cf2 : on\
+    \cf3 vrf\cf2 :\
+      \cf3 VRF_GOV\cf2 :\
+        \cf3 evpn\cf2 :\
+          \cf3 enable\cf2 : on\
+          \cf3 vni\cf2 :\
+\cf3             '6001'\cf2 : \{\}\
+        \cf3 router\cf2 :\
+          \cf3 bgp\cf2 :\
+            \cf3 address-family\cf2 :\
+              \cf3 ipv4-unicast\cf2 :\
+                \cf3 aggregate-route\cf2 :\
+                  \cf3 10.19.0.0/24\cf2 :\
+                    \cf3 summary-only\cf2 : on\
+                  \cf3 10.98.252.0/25\cf2 :\
+                    \cf3 summary-only\cf2 : on\
+                  \cf3 10.98.252.128/25\cf2 :\
+                    \cf3 summary-only\cf2 : on\
+                  \cf3 10.98.254.128/25\cf2 :\
+                    \cf3 summary-only\cf2 : on\
+                  \cf3 10.102.254.0/25\cf2 :\
+                    \cf3 summary-only\cf2 : on\
+                  \cf3 10.102.254.128/25\cf2 :\
+                    \cf3 summary-only\cf2 : on\
+                  \cf3 10.118.252.128/25\cf2 :\
+                    \cf3 summary-only\cf2 : on\
+                \cf3 enable\cf2 : on\
+                \cf3 redistribute\cf2 :\
+                  \cf3 connected\cf2 :\
+                    \cf3 enable\cf2 : on\
+                \cf3 route-export\cf2 :\
+                  \cf3 to-evpn\cf2 :\
+                    \cf3 enable\cf2 : on\
+              \cf3 l2vpn-evpn\cf2 :\
+                \cf3 enable\cf2 : on\
+            \cf3 autonomous-system\cf2 : 65301\
+            \cf3 enable\cf2 : on\
+            \cf3 route-export\cf2 :\
+              \cf3 to-evpn\cf2 :\
+                \cf3 route-target\cf2 : \{\}\
+            \cf3 route-import\cf2 :\
+              \cf3 from-evpn\cf2 :\
+                \cf3 route-target\cf2 :\
+                  \cf3 ANY:6001\cf2 : \{\}\
+            \cf3 router-id\cf2 : 10.154.1.1\
+      \cf3 VRF_INTER-DC\cf2 :\
+        \cf3 evpn\cf2 :\
+          \cf3 enable\cf2 : on\
+          \cf3 vni\cf2 :\
+\cf3             '3001'\cf2 : \{\}\
+        \cf3 router\cf2 :\
+          \cf3 bgp\cf2 :\
+            \cf3 address-family\cf2 :\
+              \cf3 ipv4-unicast\cf2 :\
+                \cf3 enable\cf2 : on\
+                \cf3 redistribute\cf2 :\
+                  \cf3 connected\cf2 :\
+                    \cf3 enable\cf2 : on\
+                \cf3 route-export\cf2 :\
+                  \cf3 to-evpn\cf2 :\
+                    \cf3 enable\cf2 : on\
+              \cf3 l2vpn-evpn\cf2 :\
+                \cf3 enable\cf2 : on\
+            \cf3 autonomous-system\cf2 : 65301\
+            \cf3 enable\cf2 : on\
+            \cf3 route-import\cf2 :\
+              \cf3 from-evpn\cf2 :\
+                \cf3 route-target\cf2 :\
+                  \cf3 ANY:3001\cf2 : \{\}\
+            \cf3 router-id\cf2 : 10.154.1.1\
+      \cf3 VRF_INTERNET\cf2 :\
+        \cf3 evpn\cf2 :\
+          \cf3 enable\cf2 : on\
+          \cf3 vni\cf2 :\
+\cf3             '4001'\cf2 : \{\}\
+        \cf3 router\cf2 :\
+          \cf3 bgp\cf2 :\
+            \cf3 address-family\cf2 :\
+              \cf3 ipv4-unicast\cf2 :\
+                \cf3 enable\cf2 : on\
+                \cf3 redistribute\cf2 :\
+                  \cf3 connected\cf2 :\
+                    \cf3 enable\cf2 : on\
+                \cf3 route-export\cf2 :\
+                  \cf3 to-evpn\cf2 :\
+                    \cf3 enable\cf2 : on\
+              \cf3 l2vpn-evpn\cf2 :\
+                \cf3 enable\cf2 : on\
+            \cf3 autonomous-system\cf2 : 65301\
+            \cf3 enable\cf2 : on\
+            \cf3 route-import\cf2 :\
+              \cf3 from-evpn\cf2 :\
+                \cf3 route-target\cf2 :\
+                  \cf3 ANY:3001\cf2 : \{\}\
+            \cf3 router-id\cf2 : 10.154.1.1\
+      \cf3 VRF_L2-STRETCH\cf2 :\
+        \cf3 evpn\cf2 :\
+          \cf3 enable\cf2 : on\
+          \cf3 vni\cf2 :\
+\cf3             '2001'\cf2 : \{\}\
+        \cf3 router\cf2 :\
+          \cf3 bgp\cf2 :\
+            \cf3 address-family\cf2 :\
+              \cf3 ipv4-unicast\cf2 :\
+                \cf3 enable\cf2 : on\
+                \cf3 redistribute\cf2 :\
+                  \cf3 connected\cf2 :\
+                    \cf3 enable\cf2 : on\
+                \cf3 route-export\cf2 :\
+                  \cf3 to-evpn\cf2 :\
+                    \cf3 enable\cf2 : on\
+              \cf3 l2vpn-evpn\cf2 :\
+                \cf3 enable\cf2 : on\
+            \cf3 autonomous-system\cf2 : 65301\
+            \cf3 enable\cf2 : on\
+            \cf3 route-import\cf2 :\
+              \cf3 from-evpn\cf2 :\
+                \cf3 route-target\cf2 :\
+                  \cf3 ANY:2001\cf2 : \{\}\
+            \cf3 router-id\cf2 : 10.154.1.1\
+      \cf3 VRF_NO_INTERNET\cf2 :\
+        \cf3 evpn\cf2 :\
+          \cf3 enable\cf2 : on\
+          \cf3 vni\cf2 :\
+\cf3             '9001'\cf2 : \{\}\
+        \cf3 router\cf2 :\
+          \cf3 bgp\cf2 :\
+            \cf3 address-family\cf2 :\
+              \cf3 ipv4-unicast\cf2 :\
+                \cf3 enable\cf2 : on\
+                \cf3 redistribute\cf2 :\
+                  \cf3 connected\cf2 :\
+                    \cf3 enable\cf2 : on\
+                \cf3 route-export\cf2 :\
+                  \cf3 to-evpn\cf2 :\
+                    \cf3 enable\cf2 : on\
+              \cf3 l2vpn-evpn\cf2 :\
+                \cf3 enable\cf2 : on\
+            \cf3 autonomous-system\cf2 : 65301\
+            \cf3 enable\cf2 : on\
+            \cf3 router-id\cf2 : 10.154.1.1\
+      \cf3 VRF_PAY\cf2 :\
+        \cf3 evpn\cf2 :\
+          \cf3 enable\cf2 : on\
+          \cf3 vni\cf2 :\
+\cf3             '6101'\cf2 : \{\}\
+        \cf3 router\cf2 :\
+          \cf3 bgp\cf2 :\
+            \cf3 address-family\cf2 :\
+              \cf3 ipv4-unicast\cf2 :\
+                \cf3 aggregate-route\cf2 : \{\}\
+                \cf3 enable\cf2 : on\
+                \cf3 redistribute\cf2 :\
+                  \cf3 connected\cf2 :\
+                    \cf3 enable\cf2 : on\
+                \cf3 route-export\cf2 :\
+                  \cf3 to-evpn\cf2 :\
+                    \cf3 enable\cf2 : on\
+              \cf3 l2vpn-evpn\cf2 :\
+                \cf3 enable\cf2 : on\
+            \cf3 autonomous-system\cf2 : 65301\
+            \cf3 enable\cf2 : on\
+            \cf3 route-export\cf2 :\
+              \cf3 to-evpn\cf2 : \{\}\
+            \cf3 route-import\cf2 :\
+              \cf3 from-evpn\cf2 :\
+                \cf3 route-target\cf2 :\
+                  \cf3 ANY:6101\cf2 : \{\}\
+            \cf3 router-id\cf2 : 10.154.1.1\
+      \cf3 default\cf2 :\
+        \cf3 router\cf2 :\
+          \cf3 bgp\cf2 :\
+            \cf3 address-family\cf2 :\
+              \cf3 ipv4-unicast\cf2 :\
+                \cf3 enable\cf2 : on\
+                \cf3 redistribute\cf2 :\
+                  \cf3 connected\cf2 :\
+                    \cf3 enable\cf2 : on\
+              \cf3 l2vpn-evpn\cf2 :\
+                \cf3 enable\cf2 : on\
+            \cf3 autonomous-system\cf2 : 65301\
+            \cf3 enable\cf2 : on\
+            \cf3 neighbor\cf2 :\
+              \cf3 swp29\cf2 :\
+                \cf3 peer-group\cf2 : underlay\
+                \cf3 type\cf2 : unnumbered\
+              \cf3 swp30\cf2 :\
+                \cf3 peer-group\cf2 : underlay\
+                \cf3 type\cf2 : unnumbered\
+              \cf3 swp31\cf2 :\
+                \cf3 enable\cf2 : on\
+                \cf3 peer-group\cf2 : underlay\
+                \cf3 shutdown\cf2 : off\
+                \cf3 type\cf2 : unnumbered\
+              \cf3 swp32\cf2 :\
+                \cf3 enable\cf2 : on\
+                \cf3 peer-group\cf2 : underlay\
+                \cf3 shutdown\cf2 : off\
+                \cf3 type\cf2 : unnumbered\
+            \cf3 peer-group\cf2 :\
+              \cf3 underlay\cf2 :\
+                \cf3 address-family\cf2 :\
+                  \cf3 l2vpn-evpn\cf2 :\
+                    \cf3 enable\cf2 : on\
+                \cf3 bfd\cf2 :\
+                  \cf3 detect-multiplier\cf2 : 3\
+                  \cf3 enable\cf2 : on\
+                  \cf3 min-rx-interval\cf2 : 300\
+                  \cf3 min-tx-interval\cf2 : 300\
+                \cf3 remote-as\cf2 : external\
+            \cf3 router-id\cf2 : 10.154.1.1\
+      \cf3 mgmt\cf2 :\
+        \cf3 router\cf2 :\
+          \cf3 static\cf2 :\
+            \cf3 0.0.0.0/0\cf2 :\
+              \cf3 address-family\cf2 : ipv4-unicast\
+              \cf3 via\cf2 :\
+                \cf3 10.208.252.1\cf2 :\
+                  \cf3 type\cf2 : ipv4-address}

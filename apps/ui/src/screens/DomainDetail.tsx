@@ -100,6 +100,8 @@ function DomainObject() {
   });
 
   const editable = def.editable !== false && checked.length > 0;
+  // Rows without scalar leaves (VRF-keyed DNS/NTP shells) still delete: their
+  // substance lives in nested row tables, but the row itself is removable.
   // Edit is an action, not a place: the button swaps the overview for the form in place.
   const tabs = [
     {
@@ -162,6 +164,10 @@ function DomainObject() {
                 Delete
               </Button>
             </>
+          ) : def.editable !== false ? (
+            <Button auto variant="secondary" onClick={() => setDeleting(true)}>
+              Delete
+            </Button>
           ) : undefined
         }
         read={read}
