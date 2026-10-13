@@ -404,63 +404,7 @@ function ResourcesCard({ switches }: { switches: SwitchRow[] }) {
           </div>
         );
       })}
-      {children}
     </div>
-  );
-}
-
-/** Member roster for a group: reachability, health, release, uptime and load per switch. */
-export function MemberTable({ switches, groupId }: { switches: SwitchRow[]; groupId: string }) {
-  const navigate = useNavigate();
-  const v = useVitals(switches.map((s) => s.id));
-  type Row = SwitchRow & { __health: string };
-  const rows: Row[] = switches.map((s) => ({
-    ...s,
-    __health: v.byId[s.id]?.health?.status ?? (v.failed.includes(s.id) ? 'unreachable' : ''),
-  }));
-  const pct = (n: number | undefined) => (n === undefined ? '—' : `${Math.round(n)}%`);
-  return (
-    <DataTable<Row>
-      storageKey={`cumulus.group-members.${groupId}.v1`}
-      rows={rows}
-      rowKey={(r) => r.id}
-      onRowClick={(r) => navigate(`/switches/${encodeURIComponent(r.id)}`)}
-      cols={[
-        { key: 'name', label: 'Switch', always: true, value: (r) => r.display_name || r.id },
-        {
-          key: 'reach',
-          label: 'Reachable',
-          value: (r) => (r.last_check_ok === true ? 'yes' : r.last_check_ok === false ? 'no' : 'unknown'),
-          render: (r) => (
-            <Badge tone={r.last_check_ok === true ? 'pass' : r.last_check_ok === false ? 'fail' : 'muted'}>
-              {r.last_check_ok === true ? 'yes' : r.last_check_ok === false ? 'no' : 'unknown'}
-            </Badge>
-          ),
-        },
-        {
-          key: 'health',
-          label: 'Health',
-          value: (r) => r.__health || '—',
-          render: (r) =>
-            r.__health ? (
-              <Badge
-                tone={
-                  r.__health.toLowerCase() === 'ok' ? 'pass' : r.__health === 'unreachable' ? 'muted' : 'fail'
-                }
-              >
-                {r.__health}
-              </Badge>
-            ) : (
-              '—'
-            ),
-        },
-        { key: 'release', label: 'Release', value: (r) => v.byId[r.id]?.version ?? '—' },
-        { key: 'uptime', label: 'Uptime', value: (r) => uptimeText(v.byId[r.id]?.uptime) },
-        { key: 'cpu', label: 'CPU', value: (r) => pct(v.byId[r.id]?.cpu) },
-        { key: 'mem', label: 'Memory', value: (r) => pct(v.byId[r.id]?.memory) },
-        { key: 'trust', label: 'Trust', value: (r) => (r.trust_verified ? 'verified' : 'pending') },
-      ]}
-    />
   );
 }
 
