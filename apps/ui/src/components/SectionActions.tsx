@@ -76,6 +76,30 @@ export function actionPaths(routes: Record<string, string[]>, objectPath: string
 }
 
 /**
+ * POST operations on and below one member row (BGP soft/clear per neighbor,
+ * fetch per file…): manifest templates matching the row's path whose remaining
+ * segments are literal (`soft/in`), concretized with the row's own path. A
+ * POST directly on a templated row (per-file fetch) counts too; a static path
+ * stays with SectionActions. Templates needing a deeper id stay out (no row
+ * to address them with).
+ */
+export function memberActionPaths(routes: Record<string, string[]>, memberPath: string): string[] {
+  const base = memberPath.split('/');
+  const out: string[] = [];
+  for (const [tmpl, methods] of Object.entries(routes)) {
+    if (!methods.includes('post')) continue;
+    const ts = tmpl.split('/');
+    if (ts.length < base.length) continue;
+    if (!ts.slice(0, base.length).every((s, i) => s.startsWith('{') || s === base[i])) continue;
+    const rest = ts.slice(base.length);
+    if (rest.some((s) => s.startsWith('{'))) continue;
+    if (rest.length === 0 && !tmpl.includes('{')) continue;
+    out.push([...base, ...rest].join('/'));
+  }
+  return [...new Set(out)].sort();
+}
+
+/**
  * Every concrete POST operation at or under one NVUE object path, run through
  * ActionRunner (confirm → params → run → per-switch results). Discovers from
  * the backend manifest, so new spec operations appear with zero UI changes.
@@ -101,6 +125,45 @@ export function SectionActions({
     <>
       <RowMenu
         label="Section actions"
+        items={actions.map((path) => ({ label: actionLabel(path), onClick: () => setChosen(path) }))}
+      />
+      {chosen && (
+        <ActionModal
+          key={chosen}
+          scope={scope}
+          path={chosen}
+          members={members}
+          onClose={() => setChosen(null)}
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * POST operations on one member row (its own concrete path): the same
+ * ActionRunner modal as sections, fed with the row's templated actions.
+ * Renders nothing when the member has no runnable actions.
+ */
+export function MemberActions({
+  scope,
+  memberPath,
+  members,
+}: {
+  scope: { kind: 'switch' | 'group'; id: string };
+  /** Concrete member path (e.g. `/vrf/default/router/bgp/neighbor/swp29`). */
+  memberPath: string;
+  /** Switches holding the row. */
+  members: string[];
+}) {
+  const manifest = useQuery({ queryKey: ['manifest'], queryFn: () => api.manifest(), staleTime: 300_000 });
+  const [chosen, setChosen] = useState<string | null>(null);
+  const actions = memberActionPaths(manifest.data?.routes ?? {}, memberPath);
+  if (!manifest.data || actions.length === 0) return null;
+  return (
+    <>
+      <RowMenu
+        label="Row actions"
         items={actions.map((path) => ({ label: actionLabel(path), onClick: () => setChosen(path) }))}
       />
       {chosen && (

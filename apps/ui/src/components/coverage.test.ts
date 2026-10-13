@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { actionParams, actionPaths } from './SectionActions.js';
-import { childObjectKeys, hasChildren, mapKeys, probeMethods } from './SubCollections.js';
+import { actionParams, actionPaths, memberActionPaths } from './SectionActions.js';
+import { childObjectKeys, hasChildren, hasDeeper, mapKeys, probeMethods } from './SubCollections.js';
 
 const routes: Record<string, string[]> = {
   '/system/packages': ['delete', 'get', 'patch', 'post'],
@@ -115,5 +115,41 @@ describe('hasChildren', () => {
     expect(hasChildren({ properties: { router: { properties: {} } } })).toBe(true);
     expect(hasChildren({ properties: { mode: { type: 'string' } } })).toBe(false);
     expect(hasChildren(null)).toBe(false);
+  });
+});
+
+describe('memberActionPaths', () => {
+  const routes: Record<string, string[]> = {
+    '/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/soft/in': ['post'],
+    '/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/soft/out': ['post'],
+    '/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}/address-family/ipv4-unicast': ['get'],
+    '/system/log/file/{file-name}': ['get', 'post'],
+    '/system/config': ['post'],
+  };
+  it('concretizes literal-suffix POSTs under the row', () => {
+    expect(memberActionPaths(routes, '/vrf/default/router/bgp/neighbor/swp29')).toEqual([
+      '/vrf/default/router/bgp/neighbor/swp29/soft/in',
+      '/vrf/default/router/bgp/neighbor/swp29/soft/out',
+    ]);
+  });
+
+  it('skips templates needing a deeper id', () => {
+    expect(memberActionPaths(routes, '/system/log')).toEqual([]);
+    expect(memberActionPaths(routes, '/system/log/file/auth.log')).toEqual(['/system/log/file/auth.log']);
+  });
+
+  it('never includes its own path', () => {
+    expect(memberActionPaths(routes, '/system/config')).toEqual([]);
+  });
+});
+
+describe('hasDeeper', () => {
+  const routes: Record<string, string[]> = {
+    '/vrf/{vrf-id}/router/bgp/neighbor/{neighbor-id}': ['get'],
+  };
+  it('matches concrete paths against templates', () => {
+    expect(hasDeeper(routes, '/vrf/default/router')).toBe(true);
+    expect(hasDeeper(routes, '/vrf/default/router/bgp/neighbor')).toBe(true);
+    expect(hasDeeper(routes, '/system/ntp')).toBe(false);
   });
 });

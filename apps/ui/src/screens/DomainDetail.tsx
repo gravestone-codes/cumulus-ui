@@ -20,6 +20,7 @@ import { enableGates, useSchemaFields, useSchemaLeaves } from '../lib/schema.js'
 import { ScopeShell } from './iface/ScopeShell.js';
 import { DeleteFlow } from './iface/DeleteFlow.js';
 import { ResourceForm } from './iface/ResourceForm.js';
+import { MemberActions } from '../components/SectionActions.js';
 import { SubCollections } from '../components/SubCollections.js';
 import { refreshInterfaces, scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
@@ -160,14 +161,18 @@ function DomainObject() {
           editable ? (
             <>
               {editButton}
+              <MemberActions scope={scope} memberPath={objectPath} members={present} />
               <Button auto variant="secondary" onClick={() => setDeleting(true)}>
                 Delete
               </Button>
             </>
           ) : def.editable !== false ? (
-            <Button auto variant="secondary" onClick={() => setDeleting(true)}>
-              Delete
-            </Button>
+            <>
+              <MemberActions scope={scope} memberPath={objectPath} members={present} />
+              <Button auto variant="secondary" onClick={() => setDeleting(true)}>
+                Delete
+              </Button>
+            </>
           ) : undefined
         }
         read={read}

@@ -17,6 +17,7 @@ import { parentCrumb, singularOf, type DomainDef } from '../lib/domains.js';
 import { enableGates, useSchemaFields, useSchemaLeaves } from '../lib/schema.js';
 import { ScopeShell } from './iface/ScopeShell.js';
 import { ResourceForm } from './iface/ResourceForm.js';
+import { SectionActions } from '../components/SectionActions.js';
 import { SubCollections } from '../components/SubCollections.js';
 import { refreshInterfaces, scopeBase, usePerSwitch, type Scope } from './iface/scope.js';
 
@@ -110,6 +111,12 @@ export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }
         Edit
       </Button>
     ) : null;
+  const actions = (
+    <>
+      {editButton}
+      <SectionActions scope={scope} objectPath={def.collection} members={present} />
+    </>
+  );
 
   return (
     <ScopeShell scope={scope} active={`/${def.parent ?? def.key}`}>
@@ -123,7 +130,7 @@ export function SingletonDomain({ def, scope }: { def: DomainDef; scope: Scope }
         id={def.label}
         path={def.collection}
         tabs={tabs}
-        actions={editButton}
+        actions={actions}
         read={read}
         present={present}
       />

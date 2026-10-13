@@ -6,6 +6,7 @@ import { MiniTable } from './cards.js';
 import { Button, Modal, PromptModal, useToast } from './ui.js';
 import { ChangeFlow } from '../screens/iface/ChangeFlow.js';
 import { CreateFlow, OBJECT_NAME } from '../screens/iface/CreateFlow.js';
+import { MemberActions } from './SectionActions.js';
 import { DeleteFlow } from '../screens/iface/DeleteFlow.js';
 import { ResourceForm } from '../screens/iface/ResourceForm.js';
 import { refreshInterfaces, type Scope } from '../screens/iface/scope.js';
@@ -13,8 +14,13 @@ import { refreshInterfaces, type Scope } from '../screens/iface/scope.js';
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** Drill depth: VRF → router → bgp → neighbor tables resolve within two hops. */
-const DRILL_DEPTH = 2;
+/**
+ * Drill depth through singleton objects (VRF → router → bgp → neighbor
+ * tables resolve within three hops). Intermediate prefixes are usually NOT
+ * addressable API paths, so the descent walks the already-fetched parent
+ * schema — never extra per-hop reads (which 404).
+ */
+const DRILL_DEPTH = 3;
 
 /**
  * Map-typed children of an item schema (flattened: `additionalProperties`
@@ -59,6 +65,21 @@ export function hasChildren(item: unknown): boolean {
 }
 
 /**
+ * Any manifest template at or below a concrete path (`{id}` segments are
+ * wildcards). Gates drill-down so object children with nothing below them
+ * stay quiet.
+ */
+export function hasDeeper(routes: Record<string, string[]>, basePath: string): boolean {
+  const segs = basePath.split('/');
+  return Object.keys(routes).some((t) => {
+    const ts = t.split('/');
+    return (
+      ts.length >= segs.length && ts.slice(0, segs.length).every((s, i) => s.startsWith('{') || s === segs[i])
+    );
+  });
+}
+
+/**
  * Match a concrete probe path against manifest templates (`{id}` wildcards):
  * the method set of the first template hit. The backend resolves the same way.
  */
@@ -93,36 +114,6 @@ export function SubCollections({
   /** Members to offer (switches holding the parent). */
   present: string[];
 }) {
-  return (
-    <ChildMaps
-      scope={scope}
-      parentPath={parentPath}
-      objects={objects}
-      present={present}
-      depth={DRILL_DEPTH}
-    />
-  );
-}
-
-function ChildMaps({
-  scope,
-  parentPath,
-  objects,
-  present,
-  depth,
-  crumb,
-  nested,
-}: {
-  scope: Scope;
-  parentPath: string;
-  objects: Record<string, Obj | undefined>;
-  present: string[];
-  depth: number;
-  /** Title prefix for drilled tables (`Bgp › `). */
-  crumb?: string;
-  /** Nested renders (member modals, drills) skip the card-body top margin. */
-  nested?: boolean;
-}) {
   const parent = useQuery({
     queryKey: ['spec-fields', parentPath, 'GET'],
     queryFn: () => api.fields(parentPath, 'GET'),
@@ -130,44 +121,90 @@ function ChildMaps({
     retry: false,
   });
   const manifest = useQuery({ queryKey: ['manifest'], queryFn: () => api.manifest(), staleTime: 300_000 });
-  const item = parent.data ? itemSchema(parent.data.schema) : null;
-  const routes = manifest.data?.routes ?? {};
+  if (parent.isError) return null;
+  if (parent.isPending || !manifest.data) return null;
+  const item = itemSchema(parent.data.schema);
+  return (
+    <SubTables
+      scope={scope}
+      basePath={parentPath}
+      objects={objects}
+      present={present}
+      routes={manifest.data.routes}
+      item={item}
+      depth={DRILL_DEPTH}
+    />
+  );
+}
+
+function SubTables({
+  scope,
+  basePath,
+  objects,
+  present,
+  routes,
+  item,
+  depth,
+  crumb,
+  nested,
+}: {
+  scope: Scope;
+  /** Concrete path of the object this schema describes. */
+  basePath: string;
+  objects: Record<string, Obj | undefined>;
+  present: string[];
+  routes: Record<string, string[]>;
+  item: unknown;
+  depth: number;
+  /** Title prefix for drilled tables (`Bgp › `). */
+  crumb?: string;
+  /** Nested renders (drills, member modals) skip the card-body top margin. */
+  nested?: boolean;
+}) {
   const subs = mapKeys(item);
   // Bare maps (`server: {type: object, properties: {}}`, e.g. DNS servers):
   // no shape in the schema, but member paths in the manifest prove rows live
   // here — key-only rows the name alone creates.
-  if (item && isObj(item.properties)) {
-    for (const k of Object.keys(item.properties as Record<string, unknown>)) {
+  if (isObj(item) && isObj((item as Obj).properties)) {
+    for (const k of Object.keys((item as Obj).properties as Record<string, unknown>)) {
       if (k.startsWith('@') || subs.includes(k)) continue;
-      if (probeMethods(routes, `${parentPath}/${k}/-`).length > 0) subs.push(k);
+      if (probeMethods(routes, `${basePath}/${k}/-`).length > 0) subs.push(k);
     }
   }
-  const drills = depth > 0 ? childObjectKeys(item) : [];
-  if (parent.isError || (subs.length === 0 && drills.length === 0)) return null;
-  if (parent.isPending || !manifest.data) return null;
+  const drills =
+    depth > 0 && isObj(item) && isObj((item as Obj).properties)
+      ? childObjectKeys(item).filter((k) => hasDeeper(routes, `${basePath}/${k}`))
+      : [];
+  if (subs.length === 0 && drills.length === 0) return null;
+  const props =
+    isObj(item) && isObj((item as Obj).properties)
+      ? ((item as Obj).properties as Record<string, unknown>)
+      : {};
   return (
     <div style={{ display: 'grid', gap: 16, ...(nested ? {} : { marginTop: 16 }) }}>
       {subs.map((sub) => (
         <SubTable
           key={sub}
           scope={scope}
-          parentPath={parentPath}
+          parentPath={basePath}
           sub={sub}
           objects={objects}
           present={present}
           crumb={crumb}
-          methods={probeMethods(manifest.data.routes, `${parentPath}/${sub}/-`)}
+          methods={probeMethods(routes, `${basePath}/${sub}/-`)}
         />
       ))}
       {drills.map((key) => (
-        <ChildMaps
+        <SubTables
           key={key}
           scope={scope}
-          parentPath={`${parentPath}/${key}`}
+          basePath={`${basePath}/${key}`}
           objects={Object.fromEntries(
             present.map((sw) => [sw, isObj(objects[sw]?.[key]) ? (objects[sw]?.[key] as Obj) : undefined]),
           )}
           present={present}
+          routes={routes}
+          item={(props[key] ?? null) as unknown}
           depth={depth - 1}
           crumb={`${crumb ?? ''}${leafLabel(key)} › `}
           nested
@@ -226,6 +263,9 @@ function SubTable({
         .filter((p) => !p.split('/').some((seg) => seg.startsWith('@')))
     : [];
   const memberGetItem = memberGet.data ? itemSchema(memberGet.data.schema) : null;
+  // Manifest evidence for the member template (placeholders match `{id}`).
+  const manifest = useQuery({ queryKey: ['manifest'], queryFn: () => api.manifest(), staleTime: 300_000 });
+  const memberRoutes = manifest.data?.routes ?? {};
   const holders = (id: string) =>
     present.filter((sw) => isObj(objects[sw]?.[sub]) && (objects[sw]?.[sub] as Obj)[id] !== undefined);
   const ids = [
@@ -271,6 +311,9 @@ function SubTable({
     );
   };
   const editHolders = editing ? holders(editing) : [];
+  const editMember = (
+    editing ? editHolders.map((sw) => (objects[sw]?.[sub] as Obj)?.[editing]) : []
+  ) as Array<Obj | undefined>;
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -356,6 +399,15 @@ function SubTable({
       )}
       {editing && (
         <Modal open onClose={() => setEditing(null)} title={`${title} ${editing}`} width={640}>
+          {editHolders.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+              <MemberActions
+                scope={scope}
+                memberPath={`${subPath}/${encodeURIComponent(editing)}`}
+                members={editHolders}
+              />
+            </div>
+          )}
           {createLeaves.length > 0 && (
             <ResourceForm
               modal={false}
@@ -363,9 +415,7 @@ function SubTable({
               objectPath={`${subPath}/${encodeURIComponent(editing)}`}
               name={editing}
               title={title}
-              cfg={Object.fromEntries(
-                editHolders.map((sw) => [sw, (objects[sw]?.[sub] as Obj)?.[editing] as Obj | undefined]),
-              )}
+              cfg={Object.fromEntries(editHolders.map((sw, i) => [sw, editMember[i]]))}
               present={editHolders}
               onClose={() => setEditing(null)}
               onApplied={refreshed}
@@ -373,15 +423,12 @@ function SubTable({
               doneText={`${title} ${editing}`}
             />
           )}
-          <ChildMaps
+          <ChildMemberTables
             scope={scope}
-            parentPath={`${subPath}/${encodeURIComponent(editing)}`}
-            objects={Object.fromEntries(
-              editHolders.map((sw) => [sw, (objects[sw]?.[sub] as Obj)?.[editing] as Obj | undefined]),
-            )}
+            memberPath={`${subPath}/${encodeURIComponent(editing)}`}
+            memberObjects={Object.fromEntries(editHolders.map((sw, i) => [sw, editMember[i]]))}
             present={editHolders}
-            depth={DRILL_DEPTH}
-            nested
+            routes={memberRoutes}
           />
         </Modal>
       )}
@@ -430,5 +477,40 @@ function SubTable({
         />
       )}
     </div>
+  );
+}
+
+/** Nested tables inside a member modal, from the member's own GET schema. */
+function ChildMemberTables({
+  scope,
+  memberPath,
+  memberObjects,
+  present,
+  routes,
+}: {
+  scope: Scope;
+  memberPath: string;
+  memberObjects: Record<string, Obj | undefined>;
+  present: string[];
+  routes: Record<string, string[]>;
+}) {
+  const memberGet = useQuery({
+    queryKey: ['spec-fields', memberPath, 'GET'],
+    queryFn: () => api.fields(memberPath, 'GET'),
+    staleTime: Infinity,
+    retry: false,
+  });
+  if (memberGet.isError || !memberGet.data) return null;
+  return (
+    <SubTables
+      scope={scope}
+      basePath={memberPath}
+      objects={memberObjects}
+      present={present}
+      routes={routes}
+      item={itemSchema(memberGet.data.schema)}
+      depth={DRILL_DEPTH}
+      nested
+    />
   );
 }
