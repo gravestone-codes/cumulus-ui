@@ -59,6 +59,8 @@ const Query = z.object({
   view: z.string().min(1).optional(),
   include: FieldList,
   omit: FieldList,
+  /** Root config reads: `false` returns only values that differ from defaults (`nv config show`). */
+  filled: z.enum(['true', 'false']).optional(),
 });
 
 export async function queryRoutes(app: FastifyInstance, deps: { cfg: AuthConfig }): Promise<void> {
@@ -125,6 +127,7 @@ export async function queryRoutes(app: FastifyInstance, deps: { cfg: AuthConfig 
           view: parsed.data.view,
           include: parsed.data.include,
           omit: parsed.data.omit,
+          ...(parsed.data.filled ? { params: { filled: parsed.data.filled } } : {}),
           token,
         }),
       );

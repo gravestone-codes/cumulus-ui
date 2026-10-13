@@ -381,6 +381,15 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
       expect(params.getAll('include')).toEqual(['/*/type', '/*/description']);
       expect(params.getAll('omit')).toEqual(['/*/counters']);
 
+      // nv config show: filled=false reaches the switch as-is.
+      const cfg = await api
+        .get('/api/v1/switches/swi/query')
+        .set('Cookie', cookie)
+        .query({ path: '/interface', rev: 'applied', filled: 'false' });
+      expect(cfg.status).toBe(200);
+      const cfgHit = fake.hits.filter((h) => h.startsWith('GET /nvue_v1/interface?')).pop() ?? '';
+      expect(new URL(`https://x/${cfgHit.split(' ')[1]}`).searchParams.get('filled')).toBe('false');
+
       // GET serves the 200-response schema (list columns); PATCH still serves the body.
       const cols = await api
         .get('/api/v1/spec/fields')

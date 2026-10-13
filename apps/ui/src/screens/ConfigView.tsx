@@ -17,10 +17,11 @@ import { ScopeShell } from './iface/ScopeShell.js';
 type Format = 'commands' | 'yaml' | 'unsaved';
 type Rev = 'applied' | 'startup';
 
-function useRevision(switchId: string, rev: Rev, enabled: boolean) {
+/** One revision of the whole tree; `filled` adds every default the CLI leaves out. */
+function useRevision(switchId: string, rev: Rev, filled: boolean, enabled: boolean) {
   return useQuery({
-    queryKey: ['config', switchId, rev],
-    queryFn: () => api.query<Record<string, unknown>>(switchId, '/', { rev }),
+    queryKey: ['config', switchId, rev, filled],
+    queryFn: () => api.query<Record<string, unknown>>(switchId, '/', { rev, filled }),
     enabled,
     retry: false,
     staleTime: 30_000,
@@ -35,8 +36,9 @@ export function ConfigView() {
   const [rev, setRev] = useState<Rev>('applied');
   const [section, setSection] = useState('');
   const [query, setQuery] = useState('');
-  const applied = useRevision(switchId, 'applied', true);
-  const startup = useRevision(switchId, 'startup', rev === 'startup' || format === 'unsaved');
+  const [defaults, setDefaults] = useState(false);
+  const applied = useRevision(switchId, 'applied', defaults, true);
+  const startup = useRevision(switchId, 'startup', defaults, rev === 'startup' || format === 'unsaved');
   const shown = format === 'unsaved' || rev === 'applied' ? applied : startup;
 
   const sections = Object.keys(shown.data?.data ?? applied.data?.data ?? {});
@@ -131,6 +133,10 @@ export function ConfigView() {
           onChange={setSection}
           width={170}
         />
+        <label className="check-row" style={{ padding: 0 }}>
+          <input type="checkbox" checked={defaults} onChange={(e) => setDefaults(e.target.checked)} />
+          Include defaults
+        </label>
         <span className="lf" style={{ flex: 1, minWidth: 180, maxWidth: 320 }}>
           <input
             aria-label="Filter lines"

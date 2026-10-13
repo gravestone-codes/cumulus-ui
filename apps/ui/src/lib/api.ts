@@ -139,6 +139,8 @@ export interface QueryOpts {
   view?: string;
   include?: string[];
   omit?: string[];
+  /** Root config reads only: false = just the values that differ from defaults. */
+  filled?: boolean;
 }
 
 /** Append one query param per value (the switch reads repeated ?include=). */
@@ -381,6 +383,7 @@ export const api = {
     if (opts?.view) qs.set('view', opts.view);
     pushEach(qs, 'include', opts?.include);
     pushEach(qs, 'omit', opts?.omit);
+    if (opts?.filled !== undefined) qs.set('filled', String(opts.filled));
     return request<QueryResult<T>>(`/api/v1/switches/${encodeURIComponent(switchId)}/query?${qs}`);
   },
   /** One read per member of `each` (`path` holds a `{key}` slot); 404 members come back null. */
