@@ -10,18 +10,15 @@ import {
   leafSchema,
   mergeBodies,
   nest,
+  type FieldKind,
 } from '../lib/fieldSchema.js';
 import { itemSchema, scalarLeaves } from '../lib/schema.js';
 import { Alert, Button, LineDropdown, LineField, Modal, RowMenu, useToast } from './ui.js';
 
-/** POST prefixes whose blast radius needs a typed confirmation (mirrors the backend danger gate). */
-const DANGEROUS_PREFIXES = [
-  '/system/factory-default',
-  '/system/image',
-  '/system/packages',
-  '/system/aaa',
-  '/system/security',
-];
+/** Whether a POST path falls in the §6.6 class (prefixes served by the manifest). */
+export function isDangerousPath(prefixes: string[], path: string): boolean {
+  return prefixes.some((p) => path === p || path.startsWith(`${p}/`));
+}
 
 /** Short label for an action path (`/system/config/files` → `Files`). */
 function actionLabel(path: string): string {
@@ -59,16 +56,58 @@ export function actionParams(schema: unknown): string[] {
     });
 }
 
+/** One action input as the dialog renders it. */
+export interface ActionField {
+  path: string;
+  label: string;
+  kind: FieldKind;
+  choices: string[];
+  schema: ReturnType<typeof leafSchema>;
+}
+
+/** Pre-armed values: a `…/state` trigger offering `start` defaults to it until the user picks otherwise. */
+export function armedDefaults(fields: ActionField[]): Record<string, string> {
+  return Object.fromEntries(
+    fields
+      .filter((f) => f.path.endsWith('/state') && f.choices.includes('start'))
+      .map((f) => [f.path, 'start']),
+  );
+}
+
+/**
+ * POST body from the dialog values. Invalid values come back as per-field
+ * errors (Run stays disabled) — never silently dropped from the body.
+ */
+export function actionBody(
+  fields: ActionField[],
+  values: Record<string, string>,
+): { body: Record<string, unknown>; errors: Record<string, string> } {
+  let body: Record<string, unknown> = {};
+  const errors: Record<string, string> = {};
+  for (const f of fields) {
+    const v = (values[f.path] ?? '').trim();
+    if (v === '') continue;
+    const bad = invalidReason(f.kind, v, f.schema);
+    if (bad) {
+      errors[f.path] = bad;
+      continue;
+    }
+    body = mergeBodies(body, nest(f.path, encodeValue(f.kind, v, f.choices)));
+  }
+  return { body, errors };
+}
+
 /**
  * Concrete POST operations at or under one object path, sorted. Templated
  * (`{id}`) members belong to their row's detail screen, never a section card.
+ * `exact` keeps only POSTs on the path itself (a container's General card).
  */
-export function actionPaths(routes: Record<string, string[]>, objectPath: string): string[] {
+export function actionPaths(routes: Record<string, string[]>, objectPath: string, exact = false): string[] {
   return Object.entries(routes)
     .filter(
       ([path, methods]) =>
         methods.includes('post') &&
-        (path === objectPath || path.startsWith(`${objectPath}/`)) &&
+        (path === objectPath || (!exact && path.startsWith(`${objectPath}/`))) &&
         !path.includes('{'),
     )
     .map(([path]) => path)
@@ -109,17 +148,20 @@ export function SectionActions({
   scope,
   objectPath,
   members,
+  exact,
 }: {
   scope: { kind: 'switch' | 'group'; id: string };
-  /** Section object path (e.g. `/system/packages`); GENERAL passes the container. */
+  /** Section object path (e.g. `/system/packages`); GENERAL passes the container with `exact`. */
   objectPath: string;
   /** Switches that hold the object (group member picker). */
   members: string[];
+  /** Only POSTs on `objectPath` itself, none below (sections own their subtrees). */
+  exact?: boolean;
 }) {
   const manifest = useQuery({ queryKey: ['manifest'], queryFn: () => api.manifest(), staleTime: 300_000 });
   const [chosen, setChosen] = useState<string | null>(null);
   const routes = manifest.data?.routes ?? {};
-  const actions = actionPaths(routes, objectPath);
+  const actions = actionPaths(routes, objectPath, exact);
   if (!manifest.data || actions.length === 0) return null;
   return (
     <>
@@ -127,11 +169,12 @@ export function SectionActions({
         label="Section actions"
         items={actions.map((path) => ({ label: actionLabel(path), onClick: () => setChosen(path) }))}
       />
-      {chosen && (
+      {chosen && manifest.data && (
         <ActionModal
           key={chosen}
           scope={scope}
           path={chosen}
+          dangerous={isDangerousPath(manifest.data.dangerous, chosen)}
           members={members}
           onClose={() => setChosen(null)}
         />
@@ -166,11 +209,12 @@ export function MemberActions({
         label="Row actions"
         items={actions.map((path) => ({ label: actionLabel(path), onClick: () => setChosen(path) }))}
       />
-      {chosen && (
+      {chosen && manifest.data && (
         <ActionModal
           key={chosen}
           scope={scope}
           path={chosen}
+          dangerous={isDangerousPath(manifest.data.dangerous, chosen)}
           members={members}
           onClose={() => setChosen(null)}
         />
@@ -182,11 +226,14 @@ export function MemberActions({
 function ActionModal({
   scope,
   path,
+  dangerous,
   members,
   onClose,
 }: {
   scope: { kind: 'switch' | 'group'; id: string };
   path: string;
+  /** §6.6 class: demand the typed action name before running. */
+  dangerous: boolean;
   members: string[];
   onClose: () => void;
 }) {
@@ -205,7 +252,7 @@ function ActionModal({
     staleTime: Infinity,
     retry: false,
   });
-  const fields = actionParams(params.data?.schema)
+  const fields: ActionField[] = actionParams(params.data?.schema)
     .map((leaf) => {
       const s = leafSchema(params.data?.schema, leaf);
       const kind = kindOf(s);
@@ -213,42 +260,22 @@ function ActionModal({
     })
     .filter((f) => f.kind === 'text' || f.kind === 'number' || f.kind === 'choice' || f.kind === 'keyed');
   // The trigger defaults to `start`: opening the dialog pre-arms the action,
-  // the user only reviews params and confirms.
-  const armed: Record<string, string> =
-    params.data && Object.keys(values).length === 0
-      ? Object.fromEntries(
-          fields
-            .filter((f) => f.path.endsWith('/state') && f.choices.includes('start'))
-            .map((f) => [f.path, 'start']),
-        )
-      : {};
-  const current = { ...armed, ...values };
-  const dangerous = DANGEROUS_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
+  // the user only reviews params and confirms. Values the user touched win.
+  const current = { ...armedDefaults(fields), ...values };
+  const { body, errors } = actionBody(fields, current);
   const short = actionLabel(path);
-  const ready = !dangerous || typed === short;
-
-  function body(): Record<string, unknown> {
-    let out: Record<string, unknown> = {};
-    for (const f of fields) {
-      const v = (current[f.path] ?? '').trim();
-      if (v === '') continue;
-      const bad = invalidReason(f.kind, v, f.schema);
-      if (bad) continue;
-      out = mergeBodies(out, nest(f.path, encodeValue(f.kind, v, f.choices)));
-    }
-    return out;
-  }
+  const ready = (!dangerous || typed === short) && Object.keys(errors).length === 0;
 
   async function run() {
     setBusy(true);
     setError(null);
     try {
       if (!group) {
-        const res = await api.runAction(scope.id, { path, body: body() });
+        const res = await api.runAction(scope.id, { path, body });
         setSingle(res);
-        toast('pass', `${short}: ${res.finalState ?? 'done'}.`);
+        toast(res.finalState === 'success' ? 'pass' : 'warn', `${short}: ${res.finalState ?? 'unknown'}.`);
       } else {
-        const res = await api.groupAction(scope.id, { path, body: body(), members: picked });
+        const res = await api.groupAction(scope.id, { path, body, members: picked });
         setResults(res.results);
       }
     } catch (err) {
@@ -288,6 +315,7 @@ function ActionModal({
               <LineDropdown
                 key={f.path}
                 label={f.label}
+                error={errors[f.path]}
                 options={[{ value: '', label: '—' }, ...f.choices.map((c) => ({ value: c, label: c }))]}
                 value={current[f.path] ?? ''}
                 onChange={(v) => setValues((prev) => ({ ...prev, [f.path]: v }))}
@@ -296,6 +324,7 @@ function ActionModal({
               <LineField
                 key={f.path}
                 label={f.label}
+                error={errors[f.path]}
                 value={current[f.path] ?? ''}
                 onChange={(e) => setValues((prev) => ({ ...prev, [f.path]: e.target.value }))}
               />

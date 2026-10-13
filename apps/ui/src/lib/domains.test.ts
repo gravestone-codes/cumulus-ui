@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import manifestJson from '@cumulus/spec/manifest.json' with { type: 'json' };
-import { DOMAINS, domainOf } from './domains.js';
+import { DOMAINS, domainOf, sectionDomains } from './domains.js';
 
 const manifest = manifestJson as { routes: Record<string, string[]> };
 
@@ -43,16 +43,19 @@ describe('domain registry', () => {
     }
   });
 
-  it('containers are one object with sections; section links and parents resolve', () => {
+  it('containers are one object with sections; every child domain is linked from its section', () => {
     for (const d of DOMAINS.filter((x) => x.sections)) {
       expect(d.collection, d.key).toBe(d.item);
       expect(d.creatable ?? false, d.key).toBe(false);
-      for (const target of Object.values(d.sectionLinks ?? {}))
-        expect(domainOf(target), target).toBeDefined();
     }
     for (const d of DOMAINS.filter((x) => x.parent)) {
-      expect(domainOf(d.parent ?? '')?.sections, d.key).toBe(true);
-      expect(d.collection.startsWith(domainOf(d.parent ?? '')?.collection ?? '?'), d.key).toBe(true);
+      const parent = domainOf(d.parent ?? '');
+      expect(parent?.sections, d.key).toBe(true);
+      expect(d.collection.startsWith(`${parent?.collection ?? '?'}/`), d.key).toBe(true);
+      const section = d.collection.slice((parent?.collection.length ?? 0) + 1).split('/')[0] ?? '';
+      // The section is a real object (it gets an index entry), and its card links here.
+      expect(manifest.routes[`${parent?.collection ?? ''}/${section}`], d.key).toContain('get');
+      expect(parent && sectionDomains(parent, section).map((x) => x.key), d.key).toContain(d.key);
     }
   });
 

@@ -40,8 +40,6 @@ export interface DomainDef {
    * a section index over one object instead of a table of rows.
    */
   sections?: boolean;
-  /** Sections with their own deeper screen (section → domain key), linked from the section card. */
-  sectionLinks?: Record<string, string>;
   /** Container this domain lives in (nav highlight + breadcrumb), e.g. DHCP → service. */
   parent?: string;
   /** The collection rejects `?include` (NVUE answers 404): read whole, pick columns client-side. */
@@ -109,16 +107,6 @@ export const DOMAINS: DomainDef[] = [
     collection: '/service',
     item: '/service',
     sections: true,
-    sectionLinks: {
-      'dhcp-server': 'dhcp',
-      ntp: 'ntp',
-      dns: 'dns',
-      'dhcp-relay': 'dhcp-relay',
-      'dhcp-relay6': 'dhcp-relay6',
-      'dhcp-server6': 'dhcp-server6',
-      ptp: 'ptp',
-      control: 'control',
-    },
     fields: [],
     labels: {},
     rev: 'applied',
@@ -130,14 +118,6 @@ export const DOMAINS: DomainDef[] = [
     collection: '/system',
     item: '/system',
     sections: true,
-    sectionLinks: {
-      syslog: 'syslog',
-      'snmp-server': 'snmp',
-      ztp: 'ztp',
-      'port-mirror': 'port-mirror',
-      'grpc-tunnel': 'grpc-tunnel',
-      wjh: 'wjh-channel',
-    },
     fields: [],
     labels: {},
     rev: 'applied',
@@ -488,6 +468,19 @@ export const DOMAINS: DomainDef[] = [
 /** Registry lookup by route key. */
 export function domainOf(key: string): DomainDef | undefined {
   return DOMAINS.find((d) => d.key === key);
+}
+
+/**
+ * Deeper screens behind one section of a container (System › control-plane →
+ * traps, policers, ACLs): every domain parented here whose collection lives at
+ * or below the section path. Derived, so a new child domain is linked by
+ * declaring its `parent` alone.
+ */
+export function sectionDomains(container: DomainDef, section: string): DomainDef[] {
+  const at = `${container.collection}/${section}`;
+  return DOMAINS.filter(
+    (d) => d.parent === container.key && (d.collection === at || d.collection.startsWith(`${at}/`)),
+  );
 }
 
 /** Breadcrumb step for a domain's container (Service › DHCP); none at top level. */

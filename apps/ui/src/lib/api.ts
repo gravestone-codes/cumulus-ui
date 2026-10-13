@@ -136,6 +136,8 @@ export interface SpecManifest {
   version: string;
   routes: Record<string, string[]>;
   views: Record<string, string[]>;
+  /** §6.6 dangerous POST prefixes: typed confirmation before running. */
+  dangerous: string[];
 }
 export interface FieldSchema {
   schema: unknown;

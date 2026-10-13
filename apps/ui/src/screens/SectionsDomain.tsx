@@ -16,7 +16,7 @@ import { ReadError, ValueGrid } from '../components/resource.js';
 import { MixedValue } from '../components/mixed.js';
 import { mergeValues } from '../lib/merge.js';
 import { displayValue, getPath } from '../lib/format.js';
-import { domainOf, type DomainDef } from '../lib/domains.js';
+import { sectionDomains, type DomainDef } from '../lib/domains.js';
 import { itemSchema, leafLabel, scalarLeaves, useSchemaSections } from '../lib/schema.js';
 import { api } from '../lib/api.js';
 import { SectionActions, actionPaths } from '../components/SectionActions.js';
@@ -85,7 +85,7 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
   // live config; empty and unwritable ones leave the index instead of
   // dead-ending on "Nothing set" with no Configure.
   const containerFields = useQuery({
-    queryKey: ['spec-fields', def.collection],
+    queryKey: ['spec-fields', def.collection, 'PATCH'],
     queryFn: () => api.fields(def.collection, 'PATCH'),
     staleTime: Infinity,
     retry: false,
@@ -113,7 +113,7 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
   const hideable = (id: string) =>
     id !== GENERAL &&
     !configured(id) &&
-    !domainOf(def.sectionLinks?.[id] ?? '') &&
+    sectionDomains(def, id).length === 0 &&
     sliceLeaves(id).length === 0 &&
     containerProps !== null &&
     !hasSubMaps(id) &&
@@ -132,7 +132,7 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
   // never PATCH bodies, so they stay out of display and forms alike.
   const sectionPath = current && current !== GENERAL ? `${def.collection}/${current}` : null;
   const sectionFields = useQuery({
-    queryKey: ['spec-fields', sectionPath ?? ''],
+    queryKey: ['spec-fields', sectionPath ?? '', 'PATCH'],
     queryFn: () => api.fields(sectionPath ?? '', 'PATCH'),
     enabled: !!sectionPath,
     staleTime: Infinity,
@@ -210,8 +210,7 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
     ),
   ];
   const objectPath = current === GENERAL ? def.collection : `${def.collection}/${current}`;
-  const link = current ? def.sectionLinks?.[current] : undefined;
-  const linkDef = link ? domainOf(link) : undefined;
+  const linkDefs = current && current !== GENERAL ? sectionDomains(def, current) : [];
 
   return (
     <ScopeShell scope={scope} active={`/${def.key}`}>
@@ -292,17 +291,22 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
               hint={configured(current) ? undefined : 'Not configured'}
               actions={
                 <span style={{ display: 'inline-flex', gap: 8 }}>
-                  {linkDef && (
-                    <Button auto variant="secondary" onClick={() => navigate(`${base}/${linkDef.key}`)}>
-                      Open {linkDef.label}
+                  {linkDefs.map((d) => (
+                    <Button key={d.key} auto variant="secondary" onClick={() => navigate(`${base}/${d.key}`)}>
+                      Open {d.label}
                     </Button>
-                  )}
+                  ))}
                   {editLeaves.length > 0 && (
                     <Button auto variant="secondary" onClick={() => setEditing(true)}>
                       {configured(current) ? 'Edit' : 'Configure'}
                     </Button>
                   )}
-                  <SectionActions scope={scope} objectPath={objectPath} members={present} />
+                  <SectionActions
+                    scope={scope}
+                    objectPath={objectPath}
+                    members={present}
+                    exact={current === GENERAL}
+                  />
                 </span>
               }
             >
@@ -313,12 +317,15 @@ export function SectionsDomain({ def, scope }: { def: DomainDef; scope: Scope })
                   Nothing set — the switch runs this section on its defaults.
                 </p>
               )}
-              <SubCollections
-                scope={scope}
-                parentPath={objectPath}
-                objects={Object.fromEntries(present.map((sw) => [sw, sectionObj(sw, current)]))}
-                present={present}
-              />
+              {/* General is the container's own scalars; its maps and objects are sections. */}
+              {current !== GENERAL && (
+                <SubCollections
+                  scope={scope}
+                  parentPath={objectPath}
+                  objects={Object.fromEntries(present.map((sw) => [sw, sectionObj(sw, current)]))}
+                  present={present}
+                />
+              )}
             </Card>
           )}
         </div>

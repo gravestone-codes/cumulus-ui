@@ -94,6 +94,7 @@ describe.skipIf(!LIVE)('read proxy + manifest', () => {
       const manifest = await api.get('/api/v1/spec/manifest').set('Cookie', viewer);
       expect(manifest.status).toBe(200);
       expect(manifest.body.routes['/interface']).toContain('get');
+      expect(manifest.body.dangerous).toContain('/system/factory-default');
       expect(await api.get('/api/v1/spec/manifest')).toMatchObject({ status: 401 });
     } finally {
       dropUserTokens('qw-op');

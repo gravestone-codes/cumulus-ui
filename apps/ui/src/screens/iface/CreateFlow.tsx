@@ -9,7 +9,7 @@
  */
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Modal, PromptModal, useToast } from '../../components/ui.js';
+import { Alert, Button, Modal, PromptModal, Spinner, useToast } from '../../components/ui.js';
 import { refreshInterfaces, usePerSwitch, type Scope } from './scope.js';
 import { ChangeFlow } from './ChangeFlow.js';
 import { ResourceForm } from './ResourceForm.js';
@@ -27,6 +27,7 @@ export function CreateFlow({
   labels,
   validateName,
   warning,
+  members,
   onClose,
   onApplied,
 }: {
@@ -46,6 +47,8 @@ export function CreateFlow({
   validateName?: (name: string) => string | null;
   /** Extra warning on the review step. */
   warning?: string;
+  /** Restrict targets (e.g. switches holding the parent row); default: the whole scope. */
+  members?: string[];
   onClose: () => void;
   onApplied?: () => void;
 }) {
@@ -81,9 +84,31 @@ export function CreateFlow({
     );
   }
   const objectPath = `${collection}/${encodeURIComponent(name)}`;
-  const taken = holders.members.filter((sw) => holders.objects[sw]?.[name] !== undefined);
-  const present = holders.members.filter((sw) => holders.objects[sw]?.[name] === undefined);
-  if (!holders.loading && present.length === 0) {
+  // Who already holds the name decides the targets: never stage before it is known.
+  if (holders.loading) {
+    return (
+      <Modal open onClose={onClose} title={title}>
+        <Spinner label="Checking switches in scope" />
+      </Modal>
+    );
+  }
+  if (holders.error) {
+    return (
+      <Modal open onClose={onClose} title={title}>
+        <Alert tone="fail">{`Could not check which switches hold ${name}: ${holders.error.message}`}</Alert>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+          <Button auto variant="secondary" onClick={() => setName(null)}>
+            Back
+          </Button>
+        </div>
+      </Modal>
+    );
+  }
+  // Unreadable members are skipped, never staged blind.
+  const inScope = holders.members.filter((sw) => (members ?? [sw]).includes(sw) && !holders.errors[sw]);
+  const taken = inScope.filter((sw) => holders.objects[sw]?.[name] !== undefined);
+  const present = inScope.filter((sw) => holders.objects[sw]?.[name] === undefined);
+  if (present.length === 0) {
     return (
       <Modal open onClose={() => setName(null)} title={title}>
         <Alert tone="warn">{name} already exists on every switch in scope — nothing to create.</Alert>
@@ -97,25 +122,27 @@ export function CreateFlow({
   }
   if (fields.length === 0) {
     return (
-      <ChangeFlow
-        scope={scope}
-        calls={Object.fromEntries(
-          present.map((sw) => [sw, [{ path: objectPath, method: 'PATCH' as const, body: {} }]]),
-        )}
-        warning={
-          taken.length > 0
-            ? `${name} already exists on ${taken.join(', ')} — created on the remaining switches only.`
-            : (warning ?? undefined)
-        }
-        onBack={() => setName(null)}
-        onClose={onClose}
-        onApplied={() => {
-          refreshInterfaces(queryClient);
-          onApplied?.();
-        }}
-        notify={toast}
-        doneText={`${title}: ${name}`}
-      />
+      <Modal open onClose={onClose} title={title} width={scope.kind === 'group' ? 600 : 460}>
+        <ChangeFlow
+          scope={scope}
+          calls={Object.fromEntries(
+            present.map((sw) => [sw, [{ path: objectPath, method: 'PATCH' as const, body: {} }]]),
+          )}
+          warning={
+            taken.length > 0
+              ? `${name} already exists on ${taken.join(', ')} — created on the remaining switches only.`
+              : (warning ?? undefined)
+          }
+          onBack={() => setName(null)}
+          onClose={onClose}
+          onApplied={() => {
+            refreshInterfaces(queryClient);
+            onApplied?.();
+          }}
+          notify={toast}
+          doneText={`${title}: ${name}`}
+        />
+      </Modal>
     );
   }
   return (

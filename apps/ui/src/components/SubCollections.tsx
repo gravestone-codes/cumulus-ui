@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type StageCall } from '../lib/api.js';
+import { api } from '../lib/api.js';
 import { itemSchema, leafLabel, scalarLeaves } from '../lib/schema.js';
 import { MiniTable } from './cards.js';
-import { Button, Modal, PromptModal, useToast } from './ui.js';
-import { ChangeFlow } from '../screens/iface/ChangeFlow.js';
-import { CreateFlow, OBJECT_NAME } from '../screens/iface/CreateFlow.js';
-import { MemberActions } from './SectionActions.js';
+import { Button, Modal, useToast } from './ui.js';
+import { CreateFlow } from '../screens/iface/CreateFlow.js';
+import { MemberActions, memberActionPaths } from './SectionActions.js';
 import { DeleteFlow } from '../screens/iface/DeleteFlow.js';
 import { ResourceForm } from '../screens/iface/ResourceForm.js';
 import { refreshInterfaces, type Scope } from '../screens/iface/scope.js';
@@ -76,6 +75,18 @@ export function hasDeeper(routes: Record<string, string[]>, basePath: string): b
     return (
       ts.length >= segs.length && ts.slice(0, segs.length).every((s, i) => s.startsWith('{') || s === segs[i])
     );
+  });
+}
+
+/**
+ * Any manifest template strictly below a path (`{id}` segments are
+ * wildcards): something to manage behind a row, not just the row itself.
+ */
+export function hasBelow(routes: Record<string, string[]>, path: string): boolean {
+  const segs = path.split('/');
+  return Object.keys(routes).some((t) => {
+    const ts = t.split('/');
+    return ts.length > segs.length && segs.every((s, i) => ts[i]!.startsWith('{') || ts[i] === s);
   });
 }
 
@@ -236,12 +247,6 @@ function SubTable({
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  // Key-only rows (DNS servers, search lists…): the name IS the config, so
-  // creation stages an empty PATCH on a fresh path instead of a values form.
-  const [quickOpen, setQuickOpen] = useState(false);
-  const [quickError, setQuickError] = useState<string | null>(null);
-  const [quickName, setQuickName] = useState<string | null>(null);
-  const [quickCalls, setQuickCalls] = useState<Record<string, StageCall[]> | null>(null);
   const subPath = `${parentPath}/${sub}`;
   const title = `${crumb ?? ''}${leafLabel(sub)}`;
   const memberFields = useQuery({
@@ -279,37 +284,17 @@ function SubTable({
   const canDelete = methods.includes('delete');
   if (ids.length === 0 && !canWrite) return null;
   const refreshed = () => refreshInterfaces(queryClient);
-  const singular = title.endsWith('s') && !title.endsWith('ss') ? title.slice(0, -1) : `${title} entry`;
-  const keyOnly = canWrite && !!memberFields.data && createLeaves.length === 0;
-  // Row opens when something lives behind it: values to edit, or children to manage.
-  const openable = canWrite && (createLeaves.length > 0 || hasChildren(memberGetItem));
-  const closeQuick = () => {
-    setQuickOpen(false);
-    setQuickError(null);
-    setQuickName(null);
-    setQuickCalls(null);
-  };
-  const submitQuick = (name: string) => {
-    if (!OBJECT_NAME.test(name)) {
-      setQuickError('Letters, digits, dot, dash, underscore, colon — no slashes.');
-      return;
-    }
-    const missing = present.filter((sw) => holders(name).indexOf(sw) === -1);
-    if (missing.length === 0) {
-      setQuickError(`${name} already exists on every switch in scope — nothing to create.`);
-      return;
-    }
-    setQuickError(null);
-    setQuickName(name);
-    setQuickCalls(
-      Object.fromEntries(
-        missing.map((sw) => [
-          sw,
-          [{ path: `${subPath}/${encodeURIComponent(name)}`, method: 'PATCH' as const, body: {} }],
-        ]),
-      ),
-    );
-  };
+  // The map's own name, never the drill crumb (`Bgp › Neighbor` → `neighbor`).
+  const leaf = leafLabel(sub);
+  const singular = leaf.endsWith('s') && !leaf.endsWith('ss') ? leaf.slice(0, -1) : `${leaf} entry`;
+  // Row opens when something lives behind it: values to edit, reachable
+  // children to manage, or row actions to run — never an empty modal.
+  const memberTmpl = `${subPath}/-`;
+  const openable =
+    canWrite &&
+    (createLeaves.length > 0 ||
+      (hasChildren(memberGetItem) && hasBelow(memberRoutes, memberTmpl)) ||
+      memberActionPaths(memberRoutes, memberTmpl).length > 0);
   const editHolders = editing ? holders(editing) : [];
   const editMember = (
     editing ? editHolders.map((sw) => (objects[sw]?.[sub] as Obj)?.[editing]) : []
@@ -331,7 +316,7 @@ function SubTable({
           {title} · {ids.length}
         </h4>
         {canWrite && memberFields.data && (
-          <Button auto variant="secondary" onClick={() => (keyOnly ? setQuickOpen(true) : setAdding(true))}>
+          <Button auto variant="secondary" onClick={() => setAdding(true)}>
             New
           </Button>
         )}
@@ -386,6 +371,7 @@ function SubTable({
           No {title.toLowerCase()} configured.
         </p>
       )}
+      {/* Key-only rows (DNS servers, search lists…) pass no leaves: CreateFlow stages an empty PATCH. */}
       {adding && (
         <CreateFlow
           scope={scope}
@@ -393,6 +379,7 @@ function SubTable({
           nameLabel="Name"
           collection={subPath}
           fields={createLeaves}
+          members={present}
           onClose={() => setAdding(false)}
           onApplied={refreshed}
         />
@@ -441,39 +428,6 @@ function SubTable({
           )}
           onClose={() => setDeleting(null)}
           onApplied={refreshed}
-        />
-      )}
-      {quickOpen && !quickCalls && (
-        <PromptModal
-          open
-          title={`New ${singular.toLowerCase()}`}
-          label="Name"
-          confirmLabel="Review"
-          error={quickError}
-          onSubmit={submitQuick}
-          onCancel={closeQuick}
-        />
-      )}
-      {quickCalls && quickName && (
-        <ChangeFlow
-          scope={scope}
-          calls={quickCalls}
-          warning={
-            scope.kind === 'group'
-              ? `${quickName} will be created on ${Object.keys(quickCalls).length} switch${Object.keys(quickCalls).length === 1 ? '' : 'es'}.`
-              : undefined
-          }
-          onBack={() => {
-            setQuickCalls(null);
-            setQuickName(null);
-          }}
-          onClose={closeQuick}
-          onApplied={() => {
-            refreshed();
-            closeQuick();
-          }}
-          notify={toast}
-          doneText={`${singular} ${quickName}`}
         />
       )}
     </div>

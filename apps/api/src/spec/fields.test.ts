@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import manifestJson from '@cumulus/spec/manifest.json' with { type: 'json' };
 import { matchTemplate } from '../nvue/guard.js';
-import { dereference, requestBodySchema, specDoc } from './fields.js';
+import { dereference, flattenComposites, requestBodySchema, specDoc } from './fields.js';
 
 const manifest = manifestJson as { routes: Record<string, string[]>; views: Record<string, string[]> };
 
@@ -64,5 +64,16 @@ describe('spec fields', () => {
     };
     expect(schema.properties?.timezone?.type).toBe('string');
     expect(schema.properties?.timezone?.enum).toContain('Africa/Kigali');
+  });
+
+  it('allOf patterns all hold after flattening (none dropped)', () => {
+    const flat = flattenComposites({
+      allOf: [{ type: 'string', pattern: '^[a-z0-9]+$' }, { pattern: '^.{1,3}$' }],
+    }) as { type?: string; pattern?: string };
+    expect(flat.type).toBe('string');
+    const re = new RegExp(flat.pattern ?? '');
+    expect(re.test('ab1')).toBe(true);
+    expect(re.test('abcd')).toBe(false);
+    expect(re.test('a.b')).toBe(false);
   });
 });

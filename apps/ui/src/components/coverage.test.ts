@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { actionParams, actionPaths, memberActionPaths } from './SectionActions.js';
-import { childObjectKeys, hasChildren, hasDeeper, mapKeys, probeMethods } from './SubCollections.js';
+import {
+  actionBody,
+  actionParams,
+  actionPaths,
+  armedDefaults,
+  isDangerousPath,
+  memberActionPaths,
+  type ActionField,
+} from './SectionActions.js';
+import {
+  childObjectKeys,
+  hasBelow,
+  hasChildren,
+  hasDeeper,
+  mapKeys,
+  probeMethods,
+} from './SubCollections.js';
 
 const routes: Record<string, string[]> = {
   '/system/packages': ['delete', 'get', 'patch', 'post'],
@@ -151,5 +166,64 @@ describe('hasDeeper', () => {
     expect(hasDeeper(routes, '/vrf/default/router')).toBe(true);
     expect(hasDeeper(routes, '/vrf/default/router/bgp/neighbor')).toBe(true);
     expect(hasDeeper(routes, '/system/ntp')).toBe(false);
+  });
+});
+
+describe('actionPaths exact', () => {
+  it('keeps only POSTs on the path itself (General card)', () => {
+    expect(actionPaths(routes, '/system/packages', true)).toEqual(['/system/packages']);
+    expect(actionPaths(routes, '/system', true)).toEqual([]);
+  });
+});
+
+describe('isDangerousPath', () => {
+  it('matches served prefixes on segment boundaries only', () => {
+    const prefixes = ['/system/image', '/system/aaa'];
+    expect(isDangerousPath(prefixes, '/system/image')).toBe(true);
+    expect(isDangerousPath(prefixes, '/system/aaa/user')).toBe(true);
+    expect(isDangerousPath(prefixes, '/system/aaax')).toBe(false);
+    expect(isDangerousPath([], '/system/image')).toBe(false);
+  });
+});
+
+describe('action dialog values', () => {
+  const fields: ActionField[] = [
+    { path: '@fetch/state', label: 'State', kind: 'choice', choices: ['start', 'stop'], schema: undefined },
+    {
+      path: '@fetch/parameters/timeout',
+      label: 'Timeout',
+      kind: 'number',
+      choices: [],
+      schema: { type: 'integer', minimum: 1, maximum: 60 },
+    },
+  ];
+
+  it('arms start triggers, and touching another field keeps the trigger armed', () => {
+    const current = { ...armedDefaults(fields), '@fetch/parameters/timeout': '10' };
+    expect(actionBody(fields, current)).toEqual({
+      body: { '@fetch': { state: 'start', parameters: { timeout: 10 } } },
+      errors: {},
+    });
+  });
+
+  it('reports invalid values instead of dropping them', () => {
+    const { body, errors } = actionBody(fields, {
+      ...armedDefaults(fields),
+      '@fetch/parameters/timeout': '99',
+    });
+    expect(errors['@fetch/parameters/timeout']).toMatch(/at most 60/);
+    expect(body).toEqual({ '@fetch': { state: 'start' } });
+  });
+
+  it('an explicit blank disarms the trigger', () => {
+    expect(actionBody(fields, { ...armedDefaults(fields), '@fetch/state': '' }).body).toEqual({});
+  });
+});
+
+describe('hasBelow', () => {
+  it('needs a template strictly deeper than the row', () => {
+    expect(hasBelow(routes, '/system/aaa/user/-')).toBe(false);
+    expect(hasBelow(routes, '/system/packages/key')).toBe(true);
+    expect(hasBelow(routes, '/service/ptp/-')).toBe(true);
   });
 });

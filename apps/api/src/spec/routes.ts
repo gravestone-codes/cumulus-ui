@@ -1,7 +1,8 @@
 /**
  * Spec manifest endpoint (decision 10: even the manifest comes from the backend).
- * Powers ViewSwitcher options and any other schema-driven UI. Authenticated,
- * same for every role (it describes the API surface, not data).
+ * Powers ViewSwitcher options, the §6.6 dangerous-path class, and any other
+ * schema-driven UI. Authenticated, same for every role (it describes the API
+ * surface, not data).
  */
 import type { FastifyInstance } from 'fastify';
 import manifestJson from '@cumulus/spec/manifest.json' with { type: 'json' };
@@ -9,6 +10,7 @@ import { problem } from '../lib/problems.js';
 import { type AuthConfig } from '../auth/config.js';
 import { resolveCaller } from '../auth/caller.js';
 import { matchTemplate } from '../nvue/guard.js';
+import { DANGEROUS_PREFIXES } from '../rbac/store.js';
 import { requestBodySchema, responseSchema } from './fields.js';
 import { z } from 'zod';
 
@@ -22,6 +24,8 @@ export async function specRoutes(app: FastifyInstance, deps: { cfg: AuthConfig }
       version: (manifestJson as { version?: string }).version ?? 'unknown',
       routes: manifest.routes,
       views: manifest.views,
+      // §6.6 class the UI must typed-confirm before POSTing; one list, served.
+      dangerous: DANGEROUS_PREFIXES,
     };
   });
 

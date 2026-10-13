@@ -77,6 +77,14 @@ export interface FieldSchema {
   schema: unknown;
 }
 
+/**
+ * One ECMA-262 pattern matching only where every input pattern matches
+ * (lookahead conjunction; anchors inside each branch keep their meaning).
+ */
+export function conjoinPatterns(patterns: string[]): string {
+  return `^${patterns.map((p) => `(?=[\\s\\S]*?(?:${p}))`).join('')}`;
+}
+
 /** Merge allOf branches into one object schema (CUE patch bodies compose this way). */
 export function flattenComposites(schema: unknown): unknown {
   if (typeof schema !== 'object' || schema === null || Array.isArray(schema)) return schema;
@@ -112,6 +120,8 @@ export function flattenComposites(schema: unknown): unknown {
   // branch actually carries some; otherwise the scalar (or all-string enum)
   // evidence decides the type.
   let scalarType: string | undefined;
+  // allOf is AND: every branch's pattern must hold, so none may be dropped.
+  const patterns: string[] = [];
   for (const branch of allOf) {
     const flat = flattenComposites(branch) as Record<string, unknown>;
     if (typeof flat !== 'object' || flat === null || Array.isArray(flat)) continue;
@@ -138,11 +148,14 @@ export function flattenComposites(schema: unknown): unknown {
     if (Array.isArray(flat['required'])) {
       (merged['required'] as unknown[]).push(...flat['required']);
     }
+    if (typeof flat['pattern'] === 'string' && !patterns.includes(flat['pattern']))
+      patterns.push(flat['pattern']);
     for (const [k, v] of Object.entries(flat)) {
       if (k !== 'properties' && k !== 'required' && k !== 'allOf' && merged[k] === undefined) merged[k] = v;
     }
   }
   if ((merged['required'] as unknown[]).length === 0) delete merged['required'];
+  if (patterns.length > 1) merged['pattern'] = conjoinPatterns(patterns);
   const shapeOf = (n: Record<string, unknown>) =>
     Object.keys((n['properties'] ?? {}) as Record<string, unknown>).length > 0 ||
     n['additionalProperties'] !== undefined ||
